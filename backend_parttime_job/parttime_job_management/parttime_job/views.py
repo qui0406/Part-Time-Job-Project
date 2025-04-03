@@ -1,18 +1,45 @@
 from rest_framework import viewsets, generics, status, parsers, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from parttime_job.models import User
-from parttime_job import serializers
+from rest_framework.views import APIView
+from . import perms
+from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
+from oauth2_provider.views.generic import ProtectedResourceView
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.http.response import HttpResponse
+from django.contrib.auth import authenticate
+from oauth2_provider.models import AccessToken
 
 # Create your views here.
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
-    serializer_class = serializers.UserSerializer
+    serializer_class = UserSerializer
     parser_classes = [parsers.MultiPartParser]
+    permission_classes = [AllowAny]
 
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
-             permission_classes = [permissions.IsAuthenticated])
+    def create(self, request, *args, **kwargs):
+        serializer = RegisterSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()    
+            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_permissions(self):
+        if self.action.__eq__('current_user'):
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+        
+    @action(methods=['get'], url_path='current-user', detail=False)
+    def current_user(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    #Cap nhat thong tin nguoi dung
+    @action(methods=['get', 'patch'], url_path='update-user', detail=False,
+            permission_classes = [permissions.IsAuthenticated])
     def get_current_user(self, request):
         u = request.user
         if request.method.__eq__('PATCH'):
@@ -22,5 +49,31 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 elif k.__eq__('password'):
                     u.set_password(v)
             u.save()
-        return Response(serializers.UserSerializer(u).data)
+        return Response(UserSerializer(u).data)
+    
 
+class AuthUserLoginView(APIView):
+    serializer_class = LoginSerializer
+    permission_classes = (AllowAny, )
+
+    def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        user = authenticate(username=username, password=password)
+
+
+        token, created = AccessToken.objects.get_or_create(user=user)
+
+        return Response({
+            "access_token": str(token.token),
+            "token_type": "Bearer",
+            "expires_in": token.expires,
+            "user": UserSerializer(user).data
+        }, status=status.HTTP_200_OK)
+    
+
+class ProtectedView(APIView):
+    permission_classes = [IsAuthenticated]  # Chỉ cho phép user đã xác thực truy cập
+
+    def get(self, request):
+        return Response({"message": "Bạn đã xác thực thành công!"})

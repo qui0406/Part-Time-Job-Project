@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.1.18']
 
 
 # Application definition
@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'cloudinary',
-    'oauth2_provider'
+    'oauth2_provider',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -53,10 +54,15 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware'
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+
 ROOT_URLCONF = 'parttime_job_management.urls'
+
+LOGIN_URL = '/login/'
 
 import cloudinary
 import cloudinary.uploader
@@ -73,6 +79,10 @@ cloudinary.config(
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        # 'rest_framework.authentication.BasicAuthentication',
+        # 'rest_framework.authentication.TokenAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        # 'oauth2_provider.backends.OAuth2Backend',
     )
 }
 
@@ -156,8 +166,17 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OAUTH2_PROVIDER = {
-    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore',
 }
 
-CLIENT_ID= '09fCQXdT7oUn1sgWyNn16Raep5PiECCaKCUSKLdR'
-CLIENT_SECRET='Ih0b8YW7zARwYnQ3D1CfTIdxZgshAi3EqbYKvpDmxp6brzbjomcFl2wpMzIN78L1tCdfoHIfDp6NANpqKuQsnrifz0PuzhI7HdnkwDoNV0QBDqh7xDwRdhUPCtOE3qKq'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'anhqui04062004@gmail.com'
+EMAIL_HOST_PASSWORD = "uvbc jfpm udxt apwv"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'default from email'
+
+
+CLIENT_ID= 'O4r67ACBYqmoS5UtapYGTcIuM8iwWgiohcsId4cl'
+CLIENT_SECRET='SP3QdfEMiLsVSoX2q2I3UrUnaPfz3DodUVqQELK4eePoRgKMA4eAdAMKIFxROiD6oDxNot8ckKZdOPGuAWbXHeWhPQYNXo6qijxh6TKqkrasMMNmZlhHv45h1wOSFAeV'
