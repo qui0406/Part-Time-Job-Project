@@ -49,21 +49,21 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
         return self.username
     
 
-# class Company(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='company')
-#     company_name = models.CharField(max_length=255)
-#     tax_code = models.CharField(max_length=50)
-#     is_approved = models.BooleanField(default=False)
+class Company(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='company')
+    company_name = models.CharField(max_length=255)
+    tax_code = models.CharField(max_length=50)
+    is_approved = models.BooleanField(default=False)
 
-#     def __str__(self):
-#         return self.company_name
+    def __str__(self):
+        return self.company_name
 
 
-# class CompanyImage(models.Model):
-#     employer = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='work_images')
-#     image = CloudinaryField(null=False)
+class CompanyImage(models.Model):
+    employer = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='work_images')
+    image = CloudinaryField(null=False)
 
-#     def __str__(self):
-#         return f"Ảnh của {self.employer.company_name}"
+    def __str__(self):
+        return f"Ảnh của {self.employer.company_name}"
     
 

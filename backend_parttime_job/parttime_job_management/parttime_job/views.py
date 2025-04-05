@@ -52,26 +52,6 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return Response(UserSerializer(u).data)
     
 
-class AuthUserLoginView(APIView):
-    serializer_class = LoginSerializer
-    permission_classes = (AllowAny, )
-
-    def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        user = authenticate(username=username, password=password)
-
-
-        token, created = AccessToken.objects.get_or_create(user=user)
-
-        return Response({
-            "access_token": str(token.token),
-            "token_type": "Bearer",
-            "expires_in": token.expires,
-            "user": UserSerializer(user).data
-        }, status=status.HTTP_200_OK)
-    
-
 class ProtectedView(APIView):
     permission_classes = [IsAuthenticated]  # Chỉ cho phép user đã xác thực truy cập
 

@@ -12,5 +12,4 @@ router.register('user', views.UserViewSet, basename='register')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('login/', views.AuthUserLoginView.as_view(), name='login')
 ]
