@@ -9,8 +9,15 @@ import Profile from './components/Auth/Profile';
 import Register from './components/Auth/Register';
 import Login from './components/Auth/Login';
 
+import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+GoogleSignin.configure({
+  webClientId: '33669217847-m2dftpjk9vrja2khhlqm31f6cqe37fpc.apps.googleusercontent.com',
+  offlineAccess: false,
+});
 
 
 const MyStack = () => {

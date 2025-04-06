@@ -45,6 +45,31 @@ import {
         };
       });
     };
+
+
+    const signInWithGoogle = async () => {
+      try {
+        // Đăng nhập với Google
+        await GoogleSignin.hasPlayServices();
+        const userInfo = await GoogleSignin.signIn();
+        
+        // Lấy ID Token và gửi đến backend
+        const idToken = userInfo.idToken;
+        // Gửi token đến backend Django
+        const response = await fetch('http://192.168.1.18:8000/api/token/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: idToken }),
+        });
+    
+        const data = await response.json();
+        console.log(data); // Kiểm tra dữ liệu trả về
+      } catch (error) {
+        console.error(error);
+      }
+    };
   
     const login = async () =>{
       setLoading(true);
@@ -61,7 +86,6 @@ import {
             
 
           let user = await authApi(res.data.access_token).get(endpoints['current-user']);
-          console.info(user.data);
           dispatch({"type": 'login', "payload": user.data});
           
             // Lưu access_token vào AsyncStorage
@@ -120,6 +144,9 @@ import {
                 <ActivityIndicator />
               ) : (
                 <>
+                  <TouchableOpacity onPress={signInWithGoogle}>
+                    <Text style={styles.button}>Đăng nhập với google</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={login}>
                     <Text style={styles.button}>Đăng nhập</Text>
                   </TouchableOpacity>
