@@ -1,11 +1,13 @@
 export default {
-    WHITE: '#fff',
-    PRIMARY: '#0075ff',
-    GRAY: '#858585',
-    BG_GRAY: '#f2f2f2',
-    BLACK: '#000',
-    GREEN: '#24b351',
-    LIGHT_GREEN: '#dbffdd',
-    RED: '#f51c0c',
-    LIGHT_RED: '#ffc8c4'
-  }
+  WHITE: '#fff',
+  PRIMARY: '#1b4089',
+  SECONDARY: '#87CEFA',
+  ACCENT: '#bd3232',
+  GRAY: '#A9A9A9',
+  BG_GRAY: '#F5F7FA',
+  BLACK: '#333',
+  GREEN: '#98FF98',
+  LIGHT_GREEN: '#E0FFFF',
+  RED: '#FF9999',
+  LIGHT_RED: '#FFE4E1'
+}
