@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,13 +41,18 @@ INSTALLED_APPS = [
     'parttime_job.apps.ParttimeJobConfig',
     'debug_toolbar',
     'rest_framework',
+    'rest_framework.authtoken',
     'drf_yasg',
+    'corsheaders',
     'cloudinary',
     'oauth2_provider',
-    'rest_framework.authtoken',
+    'allauth.socialaccount.providers.google',
+    'django_rest_passwordreset',
+    'django_extensions'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -56,7 +62,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
+    # 'allauth.account.middleware.AccountMiddleware',
 ]
+
+AUTHENTICATION_BACKENDS = [
+   'parttime_job.auth_backend.EmailAuthBackend',
+    'django.contrib.auth.backends.ModelBackend'  
+]
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -64,9 +77,9 @@ ROOT_URLCONF = 'parttime_job_management.urls'
 
 LOGIN_URL = '/login/'
 
-import cloudinary
-import cloudinary.uploader
-from cloudinary.utils import cloudinary_url
+import cloudinary # type: ignore
+import cloudinary.uploader # type: ignore
+from cloudinary.utils import cloudinary_url # type: ignore
 
 # Configuration
 cloudinary.config(
@@ -79,20 +92,19 @@ cloudinary.config(
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-        # 'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework.authentication.TokenAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',
-        # 'oauth2_provider.backends.OAuth2Backend',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication'
     )
 }
 
-import pymysql
+
+import pymysql # type: ignore
 pymysql.install_as_MySQLdb()
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -143,6 +155,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -165,18 +178,31 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-OAUTH2_PROVIDER = {
+OAUTH2_PROVIDER = { 
+    
     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore',
 }
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'anhqui04062004@gmail.com'
-EMAIL_HOST_PASSWORD = "uvbc jfpm udxt apwv"
+EMAIL_HOST_PASSWORD = "jwbx qyxp qhca shnf"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'default from email'
+DEFAULT_FROM_EMAIL = 'anhqui04062004@gmail.com'
 
 
-CLIENT_ID= 'LEDKTl3WSbREJGM4Ec4Ak55jCYrB93usxYV6oAGP'
-CLIENT_SECRET='UnWOgMEpCdzPJFe9eV1G75R3xt4BL8r3d0CQOiwzTw1Y0RDeT4Us0TOvSU4zNwGasR2RYf23U01dN2HmZjuFqbHk0IFpU42zwJx0egFOTsM2shv2OLqZLhco2JJxkzWR'
+
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
+# SITE_ID = 1
+# ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+# ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_AUTHENTICATION_METHOD = 'email'
+
+
+CLIENT_ID= 'emFAVIpGLRJSlMdxzL85SfiHS7Fo3yEzcF9R7DD1'
+CLIENT_SECRET='eh5RVxxH8TK9x1PA3EDATdwNT9CLigo05zQe7SZ9rEVfFitinba1jCgFENDCIPkZKH7KUcofLbR0MnYRoL2im2uW54EUUWbdIR3Qu65AC0veBaizZmN9eiJ1Tyf9Z1jN'

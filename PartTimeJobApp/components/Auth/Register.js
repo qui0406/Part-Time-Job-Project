@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { HelperText } from 'react-native-paper';
 import APIs, { endpoints } from './../../configs/APIs';
 import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
+import {avatarImg} from './../../assets/icon.png';
 
 export default function Register() {
   const [firstName, setFirstName] = useState();
@@ -81,27 +82,22 @@ export default function Register() {
       try {
         let form = new FormData();
         for (let f in user) {
-          console.log(user[f]);
-        }
-
-        for (let f in user) {
           if (f === 'avatar') {
             form.append(f, {
-              name: user.avatar.fileName,
-              type: user.avatar.type,
+              name: user.avatar.fileName || avatarImg,
+              type: user.avatar.type || 'image/jpeg',
               uri: user.avatar.uri,
             });
           } else {
             form.append(f, user[f]);
           }
-        }
-
-        console.log(form);
+        }  
         let res = await APIs.post(endpoints['register'], form, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
+        console.log(res.status);
         if (res.status === 201) {
           nav.navigate('Login');
         }
@@ -166,8 +162,8 @@ export default function Register() {
             <Image
               source={require('./../../assets/logo.png')} 
               style={styles.logo}
-              resizeMode="contain"
-            />            {fields.map((f) => (
+              resizeMode="contain"/>
+            {fields.map((f) => (
               <TextInput
                 placeholderTextColor={Colors.GRAY}
                 style={styles.input}
@@ -181,8 +177,7 @@ export default function Register() {
 
             <TouchableOpacity
               onPress={picker}
-              style={styles.imageButton}
-            >
+              style={styles.imageButton}>
               <Text style={styles.imageButtonText}>Chọn ảnh đại diện</Text>
             </TouchableOpacity>
             {user.avatar && <Image source={{ uri: user.avatar.uri }} style={styles.avatar} />}
@@ -195,7 +190,7 @@ export default function Register() {
               <ActivityIndicator size="large" color={Colors.PRIMARY} />
             ) : (
               <>
-                <TouchableOpacity style={styles.button} onPre onPress={register}>
+                <TouchableOpacity style={styles.button} onPress={register}>
                   <Text style={styles.buttonText}>Đăng ký</Text>
                 </TouchableOpacity>
               </>
