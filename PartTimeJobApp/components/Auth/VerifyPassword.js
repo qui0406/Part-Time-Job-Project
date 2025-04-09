@@ -37,7 +37,7 @@ const VerifyPassword = () => {
       });
 
       console.log('Phản hồi:', res.data);
-      navigation.navigate('ResetPassword', { token: token });
+      navigation.navigate('Login');
     } catch (error) {
       console.error(error);
       Alert.alert('Lỗi', 'Không thể đổi mật khẩu. Vui lòng kiểm tra token.');

@@ -11,7 +11,6 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import ForgotPassword from './components/Auth/ForgotPassword';
 import VerifyPassword from './components/Auth/VerifyPassword';
-import ResetPassword from './components/Auth/ResetPassword';
 import Profile from './components/Auth/Profile';
 import HomeScreen from './components/Home/Home';
 
@@ -24,7 +23,6 @@ const HomeStack = () => (
     <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ" }} />
     <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ title: "Quên mật khẩu" }} />
     <Stack.Screen name="VerifyPassword" component={VerifyPassword} options={{ title: "Xác thực tài khoản" }} />
-    <Stack.Screen name="ResetPassword" component={ResetPassword} options={{ title: "Đặt lại mật khẩu" }} />
     <Stack.Screen name="Login" component={Login} options={{ title: "Đăng nhập" }} />
   </Stack.Navigator>
 );
