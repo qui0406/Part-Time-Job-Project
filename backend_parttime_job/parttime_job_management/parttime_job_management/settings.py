@@ -178,9 +178,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-OAUTH2_PROVIDER = { 
-    
-    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore',
+OAUTH2_PROVIDER = {
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,
+    'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,
+    'APPLICATION_MODEL': 'oauth2_provider.Application',
+    'SCOPES': {'read': 'Read scope', 'write': 'Write scope'},
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.OAuthLibCore',
 }
 
 
@@ -193,8 +196,6 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'anhqui04062004@gmail.com'
 
 
-
-
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
@@ -204,5 +205,5 @@ LOGOUT_REDIRECT_URL = '/'
 # ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
 
-CLIENT_ID= 'emFAVIpGLRJSlMdxzL85SfiHS7Fo3yEzcF9R7DD1'
-CLIENT_SECRET='eh5RVxxH8TK9x1PA3EDATdwNT9CLigo05zQe7SZ9rEVfFitinba1jCgFENDCIPkZKH7KUcofLbR0MnYRoL2im2uW54EUUWbdIR3Qu65AC0veBaizZmN9eiJ1Tyf9Z1jN'
+CLIENT_ID= 'w1O2z0ABBBpJEqx0OwwnefLaZsI54cszC2TzUWqk'
+CLIENT_SECRET='94DQx75eW8F1vzaVGvE62psfWgcLRPcyFBaBbbYUooH18YGp0rFOcO7Aj8OrMZJIKsaHjxYBSp6Sln4gBOptnyEzHk9Jr8pll22FUCR7Hq4RMKoU5u6WHUVRFoGb7oDP'

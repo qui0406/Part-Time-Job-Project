@@ -23,7 +23,7 @@ import { HelperText } from 'react-native-paper';
 import APIs, { authApi, endpoints } from './../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
-
+import qs from 'qs';
 
 
 export default function Login() {
@@ -59,30 +59,34 @@ export default function Login() {
     } else {
       setError(false);
     }
+    console.log(user)
     try {
-      console.log(user);
-      let res = await APIs.post(endpoints['login'], {
-        ...user,
-        grant_type: 'password',
-        client_id: 'LEDKTl3WSbREJGM4Ec4Ak55jCYrB93usxYV6oAGP', // Thay thế bằng client_id của bạn
-        client_secret: 'UnWOgMEpCdzPJFe9eV1G75R3xt4BL8r3d0CQOiwzTw1Y0RDeT4Us0TOvSU4zNwGasR2RYf23U01dN2HmZjuFqbHk0IFpU42zwJx0egFOTsM2shv2OLqZLhco2JJxkzWR', // Thay thế bằng client_secret của bạn
-      })
       
-
-      console.log(res.data);
+      let res = await APIs.post(endpoints['login'],
+        qs.stringify({
+          ...user,
+          client_id: 'w1O2z0ABBBpJEqx0OwwnefLaZsI54cszC2TzUWqk',
+          client_secret: '94DQx75eW8F1vzaVGvE62psfWgcLRPcyFBaBbbYUooH18YGp0rFOcO7Aj8OrMZJIKsaHjxYBSp6Sln4gBOptnyEzHk9Jr8pll22FUCR7Hq4RMKoU5u6WHUVRFoGb7oDP',
+          grant_type: 'password',
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
       AsyncStorage.setItem('token', res.data.access_token);
 
       setTimeout(async () => {
 
 
         let user = await authApi(res.data.access_token).get(endpoints['current-user']);
-        console.info(user.data);
+        
         dispatch({ "type": 'login', "payload": user.data });
 
         // Lưu access_token vào AsyncStorage
         // Lưu thông tin người dùng vào AsyncStorage
         AsyncStorage.setItem('user', JSON.stringify(user.data));
-
         nav.navigate('Home');
       }, 100)
 

@@ -2,13 +2,16 @@ import { useContext } from "react";
 import { View, Text, Image } from "react-native";
 import { Button } from "react-native-paper";
 import Colors from "./../../constants/Colors";
-import { MyDispatchContext, MyUserContext } from "./../../contexts/UserContext";
+import { MyDispacthContext, MyUserContext } from "./../../contexts/UserContext";
 import MyStyles from "./../../styles/MyStyles";
 
 const Profile = () => {
     const user = useContext(MyUserContext);
-    const dispatch = useContext(MyDispatchContext);
+    const dispatch = useContext(MyDispacthContext);
 
+    if (!user) {
+        return <Text>Không có thông tin người dùng</Text>; // Tạm thời xử lý lỗi
+    }
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Thông tin tài khoản</Text>
