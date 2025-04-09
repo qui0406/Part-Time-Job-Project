@@ -7,14 +7,19 @@ import {
   Platform,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
-  StyleSheet
+  StyleSheet, ActivityIndicator
 } from 'react-native';
 import { TextInput, HelperText } from 'react-native-paper';
 import { useNavigation } from "@react-navigation/native";
+import APIs, { authApi, endpoints } from './../../configs/APIs';
+import Colors from '../../constants/Colors';
+
+
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const nav = useNavigation();
 
   const handleBlur = () => {
@@ -26,23 +31,41 @@ export default function ForgotPassword() {
     return email.includes('@');
   };
 
-  const handleSubmit = () => {
-    if (!validateEmail(email)) {
-      setError(true);
-    } else {
-      setError(false);
-      // Gửi yêu cầu quên mật khẩu tới backend ở đây
-      console.log('Sending reset email to:', email);
-      nav.navigate('VerifyPassword', { email });
+  const handleSubmit =async () => {
+    setLoading(true);
+
+    try {
+      if (!validateEmail(email)) {
+        setError(true);
+      } else {
+        setError(false);
+          const res = await APIs.post(endpoints['password-reset'], {
+            email: email,
+          });
+          console.log(res.data);
+        }
+
+        // Gửi yêu cầu quên mật khẩu tới backend ở đây
+        console.log('Sending reset email to:', email);
+        nav.navigate('VerifyPassword', {email: email})
+      }
+    
+    catch (error) {
+      console.error('Error:', error);
     }
+    finally {
+      setLoading(false);
+    }
+    
+
+    
   };
 
   return (
     <TouchableWithoutFeedback onPress={handleBlur}>
       <View style={styles.container}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <Text style={styles.title}>Quên mật khẩu</Text>
           <TextInput
             label="Email"
@@ -51,15 +74,17 @@ export default function ForgotPassword() {
             mode="outlined"
             keyboardType="email-address"
             autoCapitalize="none"
-            style={styles.textInput}
-          />
+            style={styles.textInput}/>
           <HelperText type="error" visible={error}>
             Email không hợp lệ
           </HelperText>
-
+          {loading === true ? (
+                        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                      ) : (<>
           <TouchableOpacity style={styles.button} onPress={handleSubmit}>
             <Text style={styles.buttonText}>Xác nhận</Text>
-          </TouchableOpacity>
+          </TouchableOpacity></>)}
+          
         </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>

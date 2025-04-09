@@ -2,93 +2,109 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
-  Keyboard,
-  Platform,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  StyleSheet
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { TextInput, HelperText } from 'react-native-paper';
-import { useNavigation } from "@react-navigation/native";
+import APIs, { authApi, endpoints } from './../../configs/APIs';
+import Colors from '../../constants/Colors';
+import { useRoute, useNavigation } from '@react-navigation/native';
 
-export default function EnterOTP() {
-  const [otp, setOTP] = useState('');
-  const [error, setError] = useState(false);
-  const nav = useNavigation();
+const VerifyPassword = () => {
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleBlur = () => {
-    Keyboard.dismiss();
-  };
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { email } = route.params;
 
-  const handleConfirm = () => {
-    // Giả sử OTP phải có đúng 6 chữ số
-    if (otp.length !== 6 || isNaN(otp)) {
-      setError(true);
-    } else {
-      setError(false);
-      console.log('OTP xác nhận:', otp);
-      nav.navigate('ResetPassword', { otp });
-      // Gửi OTP đến backend kiểm tra ở đây
+  const handleResetPassword = async () => {
+    if (!token || !newPassword) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ token và mật khẩu mới.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await APIs.post(endpoints['password-reset-confirm'], {
+        email: email,
+        token: token,
+        password: newPassword,
+      });
+
+      console.log('Phản hồi:', res.data);
+      navigation.navigate('ResetPassword', { token: token });
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Lỗi', 'Không thể đổi mật khẩu. Vui lòng kiểm tra token.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <TouchableWithoutFeedback onPress={handleBlur}>
-      <View style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <Text style={styles.title}>Nhập mã OTP</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Xác nhận đổi mật khẩu</Text>
 
-          <TextInput
-            label="Mã OTP"
-            value={otp}
-            onChangeText={setOTP}
-            mode="outlined"
-            keyboardType="numeric"
-            maxLength={6}
-            style={styles.textInput}
-          />
+      <TextInput
+        style={styles.input}
+        placeholder="Mã xác nhận (token)"
+        value={token}
+        onChangeText={setToken}
+      />
 
-          <HelperText type="error" visible={error}>
-            Mã OTP không hợp lệ
-          </HelperText>
+      <TextInput
+        style={styles.input}
+        placeholder="Mật khẩu mới"
+        secureTextEntry
+        value={newPassword}
+        onChangeText={setNewPassword}
+      />
 
-          <TouchableOpacity style={styles.button} onPress={handleConfirm}>
-            <Text style={styles.buttonText}>Xác nhận</Text>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </View>
-    </TouchableWithoutFeedback>
+      <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
+        <Text style={styles.buttonText}>Đổi mật khẩu</Text>
+      </TouchableOpacity>
+
+      {loading && <ActivityIndicator size="large" color="#007bff" style={{ marginTop: 16 }} />}
+    </View>
   );
-}
+};
+
+export default VerifyPassword;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
     justifyContent: 'center',
-    padding: 24,
     backgroundColor: '#fff',
   },
   title: {
-    fontSize: 24,
-    marginBottom: 24,
-    textAlign: 'center',
+    fontSize: 22,
+    marginBottom: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
-  textInput: {
-    marginBottom: 10,
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
   },
   button: {
     backgroundColor: '#007bff',
     padding: 15,
-    marginTop: 20,
     borderRadius: 8,
     alignItems: 'center',
+    marginTop: 8,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

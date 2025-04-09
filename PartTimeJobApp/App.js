@@ -8,21 +8,25 @@ import MyUserReducer from './reducers/Reducer';
 import Profile from './components/Auth/Profile';
 import Register from './components/Auth/Register';
 import Login from './components/Auth/Login';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import VerifyPassword from './components/Auth/VerifyPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 
-import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-GoogleSignin.configure({
-  webClientId: '33669217847-m2dftpjk9vrja2khhlqm31f6cqe37fpc.apps.googleusercontent.com',
-  offlineAccess: false,
-});
 
 
 const MyStack = () => {
   return (
-    <></>
+    <Stack.Navigator>
+      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+      <Stack.Screen name="VerifyPassword" component={VerifyPassword} />
+      <Stack.Screen name="ResetPassword" component={ResetPassword} />
+
+    </Stack.Navigator>
   );
 }
 
@@ -36,6 +40,7 @@ const MyTab = () => {
       {user === null?<>
         <Tab.Screen name="Register" component={Register} options={{ title: "Đăng ký", tabBarIcon: () => <Icon size={30} color="#1b4089" source="account" />}} />
         <Tab.Screen name="Login" component={Login} options={{title: "Đăng nhập", tabBarIcon: () => <Icon size={30} color="#1b4089" source="login" />}} />
+        
       </>:<>
         <Tab.Screen name="Profile" component={Profile} options={{ title: user.username, tabBarIcon: () => <Icon size={30} color="#1b4089" source="account" />}} />
       </>}

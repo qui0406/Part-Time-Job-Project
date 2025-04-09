@@ -1,76 +1,39 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Keyboard,
-  Platform,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  StyleSheet,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TextInput, HelperText } from 'react-native-paper';
-import { useNavigation } from "@react-navigation/native";
+import APIs, { endpoints } from './../../configs/APIs';
+import { useRoute, useNavigation } from '@react-navigation/native';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const nav = useNavigation();
+  const route = useRoute();
+  const navigation = useNavigation();
+  const token = route?.params?.token || '';
 
-  const handleBlur = () => {
-    Keyboard.dismiss();
-  };
-
-  const handleReset = () => {
-    if (password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự');
-    } else if (password !== confirmPassword) {
-      setError('Mật khẩu không khớp');
-    } else {
-      setError('');
-      // Gửi mật khẩu mới đến server tại đây
-      console.log('Mật khẩu mới:', password);
-      nav.navigate('Login');
+  const handleReset = async () => {
+    if (password !== confirmPassword) {
+      setError('Mật khẩu không khớp.');
+      return;
+    }
+    try {
+      await APIs.post(endpoints['password-reset-confirm'], { password, token });
+      alert('Đổi mật khẩu thành công.');
+      navigation.navigate('Login');
+    } catch (err) {
+      alert('Có lỗi xảy ra khi đặt lại mật khẩu.');
     }
   };
 
   return (
-    <TouchableWithoutFeedback onPress={handleBlur}>
-      <View style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <Text style={styles.title}>Đặt lại mật khẩu</Text>
-
-          <TextInput
-            label="Mật khẩu mới"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            mode="outlined"
-            style={styles.textInput}
-          />
-
-          <TextInput
-            label="Nhập lại mật khẩu"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            mode="outlined"
-            style={styles.textInput}
-          />
-
-          <HelperText type="error" visible={!!error}>
-            {error}
-          </HelperText>
-
-          <TouchableOpacity style={styles.button} onPress={handleReset}>
-            <Text style={styles.buttonText}>Xác nhận</Text>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </View>
-    </TouchableWithoutFeedback>
+    <View style={styles.container}>
+      <Text style={styles.title}>Đặt lại mật khẩu</Text>
+      <TextInput label="Mật khẩu mới" secureTextEntry value={password} onChangeText={setPassword} mode="outlined" style={styles.input} />
+      <TextInput label="Nhập lại mật khẩu" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} mode="outlined" style={styles.input} />
+      <HelperText type="error" visible={!!error}>{error}</HelperText>
+      <TouchableOpacity style={styles.button} onPress={handleReset}><Text style={styles.buttonText}>Xác nhận</Text></TouchableOpacity>
+    </View>
   );
 }
 

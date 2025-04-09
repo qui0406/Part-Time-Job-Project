@@ -1,89 +1,4 @@
 import {
-    View,
-    Text,
-    Image,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    Linking,
-    Alert,
-    ScrollView,
-    TouchableWithoutFeedback,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
-  } from 'react-native';
-  import axios from 'axios';
-  import React, { useContext, useRef, useState } from 'react';
-  import Colors from './../../constants/Colors';
-  import { useNavigation } from "@react-navigation/native";
-  import * as ImagePicker from 'expo-image-picker';
-  import { HelperText } from 'react-native-paper';
-  import APIs, { authApi, endpoints } from './../../configs/APIs';
-  import AsyncStorage from '@react-native-async-storage/async-storage';
-  import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
-  
-  export default function Login() {
-    const [loading, setLoading] = useState(false);
-    const [user, setUser] = useState({});
-    const [error, setError] = useState(false);
-    const nav = useNavigation();
-    const userRef = useRef();
-    const dispatch= useContext(MyDispacthContext);
-  
-    const handleBlur = () => {
-      // Ẩn bàn phím khi TextInput mất focus
-      Keyboard.dismiss();
-    };
-  
-    const change = (field, value) => {
-      setUser((current) => {
-        return {
-          ...current,
-          [field]: value,
-        };
-      });
-    };
-
-
-    const signInWithGoogle = async () => {
-      try {
-        // Đăng nhập với Google
-        await GoogleSignin.hasPlayServices();
-        const userInfo = await GoogleSignin.signIn();
-        
-        // Lấy ID Token và gửi đến backend
-        const idToken = userInfo.idToken;
-        // Gửi token đến backend Django
-        const response = await fetch('http://192.168.1.18:8000/api/token/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token: idToken }),
-        });
-    
-        const data = await response.json();
-        console.log(data); // Kiểm tra dữ liệu trả về
-      } catch (error) {
-        console.error(error);
-      }
-    };
-  
-    const login = async () =>{
-      setLoading(true);
-      try{
-        let res  =  await APIs.post(endpoints['login'], {
-          ...user,
-          grant_type: 'password',
-          client_id: 'LEDKTl3WSbREJGM4Ec4Ak55jCYrB93usxYV6oAGP', // Thay thế bằng client_id của bạn
-          client_secret:'UnWOgMEpCdzPJFe9eV1G75R3xt4BL8r3d0CQOiwzTw1Y0RDeT4Us0TOvSU4zNwGasR2RYf23U01dN2HmZjuFqbHk0IFpU42zwJx0egFOTsM2shv2OLqZLhco2JJxkzWR', // Thay thế bằng client_secret của bạn
-        })
-        AsyncStorage.setItem('token', res.data.access_token);
-        
-        setTimeout(async() => {
-            
   View,
   Text,
   Image,
@@ -102,12 +17,14 @@ import {
 import axios from 'axios';
 import React, { useContext, useRef, useState } from 'react';
 import Colors from './../../constants/Colors';
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import * as ImagePicker from 'expo-image-picker';
 import { HelperText } from 'react-native-paper';
 import APIs, { authApi, endpoints } from './../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
+
+
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
@@ -116,6 +33,7 @@ export default function Login() {
   const nav = useNavigation();
   const userRef = useRef();
   const dispatch = useContext(MyDispacthContext);
+  const router = useRoute();
 
   const handleBlur = () => {
     // Ẩn bàn phím khi TextInput mất focus
@@ -132,109 +50,31 @@ export default function Login() {
   };
 
   const login = async () => {
+
     setLoading(true);
+    if (!user.username || !user.password) {
+      setError(true);
+      setLoading(false);
+      return;
+    } else {
+      setError(false);
+    }
     try {
+      console.log(user);
       let res = await APIs.post(endpoints['login'], {
         ...user,
         grant_type: 'password',
         client_id: 'LEDKTl3WSbREJGM4Ec4Ak55jCYrB93usxYV6oAGP', // Thay thế bằng client_id của bạn
         client_secret: 'UnWOgMEpCdzPJFe9eV1G75R3xt4BL8r3d0CQOiwzTw1Y0RDeT4Us0TOvSU4zNwGasR2RYf23U01dN2HmZjuFqbHk0IFpU42zwJx0egFOTsM2shv2OLqZLhco2JJxkzWR', // Thay thế bằng client_secret của bạn
       })
+      
+
+      console.log(res.data);
       AsyncStorage.setItem('token', res.data.access_token);
 
       setTimeout(async () => {
 
 
-          let user = await authApi(res.data.access_token).get(endpoints['current-user']);
-          dispatch({"type": 'login', "payload": user.data});
-          
-            // Lưu access_token vào AsyncStorage
-          // Lưu thông tin người dùng vào AsyncStorage
-          AsyncStorage.setItem('user', JSON.stringify(user.data));
-          
-          nav.navigate('Home');
-        }, 100)
-        
-  
-      }catch{
-        console.log(ex)
-      }
-      finally{
-        setLoading(false);
-      }
-    }
-    
-    const fields = [
-      {
-        label: 'Username',
-        icon: 'user',
-        field: 'username',
-      },
-      {
-        label: 'Mật khẩu',
-        icon: 'eye',
-        field: 'password',
-        secureTextEntry: true,
-      },
-      
-    ];
-  
-    return (
-      <TouchableWithoutFeedback onPress={handleBlur}>
-        <View>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <ScrollView>
-              <Text>Đăng nhập người dùng</Text>
-              {fields.map((f) => (
-                <TextInput
-                  style={styles.textInput}
-                  value={user[f.field]}
-                  onChangeText={(t) => change(f.field, t)}
-                  key={f.field}
-                  placeholder={f.label}
-                  secureTextEntry={f.secureTextEntry}
-                />
-              ))}
-  
-              <HelperText type="error" style={{ marginTop: 20 }} visible={error}>
-                Mật khẩu không khớp
-              </HelperText>
-  
-              {loading === true ? (
-                <ActivityIndicator />
-              ) : (
-                <>
-                  <TouchableOpacity onPress={signInWithGoogle}>
-                    <Text style={styles.button}>Đăng nhập với google</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={login}>
-                    <Text style={styles.button}>Đăng nhập</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </View>
-      </TouchableWithoutFeedback>
-    )
-  }
-  
-  const styles = StyleSheet.create({
-    textInput: {
-      borderWidth: 1,
-      width: '100%',
-      padding: 15,
-      fontSize: 18,
-      marginTop: 20,
-      borderRadius: 8,
-    },
-    button: {
-      backgroundColor: Colors.WHITE,
-      padding: 15,
-      margin: 20,
-      borderRadius: 10,
-    },
-  });
         let user = await authApi(res.data.access_token).get(endpoints['current-user']);
         console.info(user.data);
         dispatch({ "type": 'login', "payload": user.data });
@@ -247,9 +87,10 @@ export default function Login() {
       }, 100)
 
 
-    } catch {
+    } catch (ex) {
       console.log(ex)
     }
+    
     finally {
       setLoading(false);
     }
@@ -279,7 +120,8 @@ export default function Login() {
               source={require('./../../assets/logo.png')} // Thay bằng đường dẫn logo của bạn
               style={styles.logo}
               resizeMode="contain"
-            />            {fields.map((f) => (
+            />            
+            {fields.map((f) => (
               <TextInput
                 placeholderTextColor={Colors.GRAY}
                 style={styles.input}
@@ -290,12 +132,13 @@ export default function Login() {
                 secureTextEntry={f.secureTextEntry}
               />
             ))}
-            <TouchableOpacity onPress={() => console.log("Quên mật khẩu pressed")}>
+            <TouchableOpacity onPress={()=> nav.navigate('ForgotPassword')}>
               <Text style={styles.forgotPassword}>Quên Mật Khẩu?</Text>
             </TouchableOpacity>
-            <HelperText type="error" style={{ marginTop: 20 }} visible={error}>
-              Mật khẩu không khớp
+            <HelperText type="error" visible={error}>
+              Sai tên đăng nhập hoặc mật khẩu.
             </HelperText>
+
 
             {loading === true ? (
               <ActivityIndicator size="large" color={Colors.PRIMARY} />
