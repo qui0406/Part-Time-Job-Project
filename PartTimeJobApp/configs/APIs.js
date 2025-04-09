@@ -7,7 +7,7 @@ export const endpoints = {
     'login':'/o/token/',
     'current-user':'/user/current-user/',
     'password-reset':'/api/password_reset/',
-    'password-reset-confirm':'/api/password_reset_confirm/',
+    'password-reset-confirm':'/api/password_reset/confirm/',
     'password-reset-token': '/api/password_reset/:token/',
 }
 
