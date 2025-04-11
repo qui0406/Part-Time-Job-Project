@@ -13,6 +13,7 @@ import ForgotPassword from './components/Auth/ForgotPassword';
 import VerifyPassword from './components/Auth/VerifyPassword';
 import Profile from './components/Auth/Profile';
 import HomeScreen from './components/Home/Home';
+import EmployerRegister from './components/Auth/EmployerRegister';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -24,6 +25,8 @@ const HomeStack = () => (
     <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ title: "Quên mật khẩu" }} />
     <Stack.Screen name="VerifyPassword" component={VerifyPassword} options={{ title: "Xác thực tài khoản" }} />
     <Stack.Screen name="Login" component={Login} options={{ title: "Đăng nhập" }} />
+     {/* Thêm màn hình EmployerRegister */}
+     <Stack.Screen name="EmployerRegister" component={EmployerRegister} options={{ title: "Đăng ký nhà tuyển dụng" }} />
   </Stack.Navigator>
 );
 
@@ -32,7 +35,8 @@ const MainTab = () => {
   const user = useContext(MyUserContext);
 
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator 
+    screenOptions={{ headerShown: false }}>
       <Tab.Screen
         name="Home"
         component={HomeStack}
@@ -61,6 +65,7 @@ const MainTab = () => {
           />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name="VerifyPassword" component={VerifyPassword} />
+          {/* <Stack.Screen name="EmployerRegister" component={EmployerRegister} /> */}
         </>
       ) : (
         <Tab.Screen

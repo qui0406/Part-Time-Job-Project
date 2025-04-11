@@ -22,7 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { HelperText } from 'react-native-paper';
 import APIs, { endpoints } from './../../configs/APIs';
 import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
-import {avatarImg} from './../../assets/icon.png';
+import { avatarImg } from './../../assets/icon.png';
 
 export default function Register() {
   const [firstName, setFirstName] = useState();
@@ -91,7 +91,8 @@ export default function Register() {
           } else {
             form.append(f, user[f]);
           }
-        }  
+        }
+        console.log('Register form data:', user);
         let res = await APIs.post(endpoints['register'], form, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -160,9 +161,9 @@ export default function Register() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <Image
-              source={require('./../../assets/logo.png')} 
+              source={require('./../../assets/logo.png')}
               style={styles.logo}
-              resizeMode="contain"/>
+              resizeMode="contain" />
             {fields.map((f) => (
               <TextInput
                 placeholderTextColor={Colors.GRAY}

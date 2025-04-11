@@ -5,11 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e46d42a2-1ad1-4cce-8656-bb3ae19208c9" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/App.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Login.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Login.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Profile.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Profile.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Register.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Register.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PartTimeJobApp/constants/Colors.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/constants/Colors.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PartTimeJobApp/configs/APIs.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/configs/APIs.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend_parttime_job/parttime_job_management/parttime_job_management/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend_parttime_job/parttime_job_management/parttime_job_management/settings.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,10 +25,10 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 5
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="2vLzXnfaqzSHwQkGW85LfN4VCrA" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -37,10 +40,12 @@
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "ScreenshotViewer.SavePath": "D:/K2N3/CNLTHD/BTL_PartTimeJob_Project/PartTimeJobApp/assets",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true"
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/K2N3/CNLTHD/BTL_PartTimeJob_Project/PartTimeJobApp/assets"
   }
 }]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
