@@ -70,29 +70,33 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     permission_classes = [perms.IsEmployer, permissions.IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ['get_current_company', 'update_company_info']:
-            return [permissions.IsAuthenticated()]
+        if self.action.__eq__('create_current_company'):
+            return [permissions.IsAuthenticated() and perms.IsEmployer()]
+        if self.action.__eq__('update_company_info'):
+            return [permissions.IsAuthenticated() and perms.IsEmployer() and perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
 
-    # @action(methods=['get'], url_path='current-company', detail=False)
-    # def get_curent_company(self, request):
-    #     """Lấy thông tin công ty của employer hiện tại"""
-    #     try:
-    #         company = request.user.employer_profile
-    #         serializer = CompanySerializer(company)
-    #         return Response(serializer.data)
-    #     except Company.DoesNotExist:
-    #         return Response({"detail": "Chưa tạo hồ sơ công ty."}, status=404)
+    @action(methods=['get'], url_path='current-company', detail=False)
+    def get_current_company(self, request):
+        import pdb; pdb.set_trace()
+        try:
+            # Nếu user chưa có công ty
+            if not hasattr(request.user, 'employer_profile'):
+                return Response({"detail": "Người dùng chưa có công ty."}, status=status.HTTP_404_NOT_FOUND)
+            company = request.user.employer_profile
+            serializer = self.get_serializer(company)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-    @action(methods=['post'], url_path='current-company', detail=False)
+    @action(methods=['post'], url_path='create-company', detail=False)
     def create_current_company(self, request):
         try:
             # Nếu đã tồn tại company
             if hasattr(request.user, 'employer_profile'):
-                return Response({"detail": "Công ty đã tồn tại."}, status=status.HTTP_400_BAD_REQUEST)
-            
+                return Response({"detail": "Tài khoản này đã có công ty"}, status=status.HTTP_400_BAD_REQUEST)
             serializer = self.get_serializer(data=request.data, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
@@ -101,12 +105,11 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    
-
     @action(methods=['patch'], url_path='update-company', detail=True)
-    def update_company_info(self, request):
+    def update_company_info(self, request, pk= None):
         try:
             company = request.user.employer_profile
+            import pdb; pdb.set_trace()
             serializer = CompanySerializer(company, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
@@ -114,10 +117,10 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return Response(serializer.errors, status=400)
         except Company.DoesNotExist:
             return Response({"detail": "Không tìm thấy công ty."}, status=404)
-    
+
 
 class CompanyListViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = Company.objects.filter(active=True, is_approved=True)
+    queryset = Company.objects.filter(active=True)
     serializer_class = CompanySerializer
     permission_classes = [permissions.AllowAny]
 
