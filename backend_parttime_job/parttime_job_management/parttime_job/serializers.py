@@ -68,38 +68,40 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 
 
-class CompanyImageSerializer(serializers.ModelSerializer):
+class CompanyImageSerializer(ItemSerializer):
     class Meta:
         model = CompanyImage
         fields = ['image']
 
-
 class CompanySerializer(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=True
+        child=serializers.ImageField(),
+        write_only=True,
+        required=True
     )
+    image_list = CompanyImageSerializer(source='images', many=True, read_only=True)
 
     def validate_images(self, value):
         if len(value) < 3:
             raise serializers.ValidationError("Cần ít nhất 3 hình ảnh môi trường làm việc.")
         return value
-    
+
     def create(self, validated_data):
-        images = validated_data.pop('images')
+        images_data = validated_data.pop('images')
         user = self.context['request'].user
         company = Company.objects.create(user=user, **validated_data)
-        for img in images:
-            CompanyImage.objects.create(employer=company, image=img)
+        for image in images_data:
+            CompanyImage.objects.create(company=company, image=image)
         return company
-    
-    
+
     def update(self, instance, validated_data):
+        validated_data.pop('images', None)
         return super().update(instance, validated_data)
 
     class Meta:
         model = Company
         fields = ['user', 'company_name', 'company_address', 'company_phone',
-                  'company_email', 'description', 'tax_id', 'images']
+                  'company_email', 'description', 'tax_id', 'images', 'image_list', 'is_approved']
         extra_kwargs = {
             'user': {'read_only': True}
         }

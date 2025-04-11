@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.18']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -42,13 +42,13 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'rest_framework',
     'rest_framework.authtoken',
-    'drf_yasg',
     'corsheaders',
     'cloudinary',
     'oauth2_provider',
     'allauth.socialaccount.providers.google',
     'django_rest_passwordreset',
-    'django_extensions'
+    'django_extensions',
+    'drf_spectacular',  
 ]
 
 MIDDLEWARE = [
@@ -64,6 +64,20 @@ MIDDLEWARE = [
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
     # 'allauth.account.middleware.AccountMiddleware',
 ]
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'basic': {
+            'type': 'basic'
+        }
+    },
+    'USE_SESSION_AUTH': False,
+    'VALIDATOR_URL': None,
+}
+
+REDOC_SETTINGS = {
+   'LAZY_RENDERING': False,
+}
 
 AUTHENTICATION_BACKENDS = [
    'parttime_job.auth_backend.EmailAuthBackend',
@@ -92,11 +106,34 @@ cloudinary.config(
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication'
-    )
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Tên API của bạn',
+    'DESCRIPTION': 'Mô tả ngắn về API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,  # Tắt schema gốc nếu chỉ muốn hiển thị UI
+    'COMPONENT_SPLIT_REQUEST': True,
+    # Nếu dùng token-based authentication:
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
+    'SECURITY': [{'Bearer': []}],
+    'COMPONENT_SPLIT_REQUEST': True,
+    'AUTHENTICATION_WHITELIST': ['rest_framework.authentication.TokenAuthentication'],
+    'SECURITY_SCHEMES': {
+        'Bearer': {
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
+        },
+    },
+}
 
 import pymysql # type: ignore
 pymysql.install_as_MySQLdb()
