@@ -1,14 +1,16 @@
 import { useContext } from "react";
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from "react-native-paper";
 import Colors from "./../../constants/Colors";
 import { MyDispacthContext, MyUserContext } from "./../../contexts/UserContext";
 import MyStyles from "./../../styles/MyStyles";
+import { useNavigation } from "@react-navigation/native";
 
 const Profile = () => {
     const user = useContext(MyUserContext);
     const dispatch = useContext(MyDispacthContext);
+    const nav = useNavigation();
 
     if (!user) {
         return <Text>Không có thông tin người dùng</Text>; // Tạm thời xử lý lỗi
@@ -56,6 +58,9 @@ const Profile = () => {
             >
                 Đăng xuất
             </Button>
+            <TouchableOpacity onPress={()=> nav.navigate('EmployerRegister')} style={[MyStyles.m, { backgroundColor: Colors.SECONDARY, borderRadius: 12, padding: 10 }]}>
+                <Text>Đăng ký nhà tuyển dụng</Text>
+            </TouchableOpacity>
         </SafeAreaView>
     );
 };
