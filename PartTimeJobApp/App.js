@@ -17,6 +17,7 @@ import EmployerRegister from './components/Auth/EmployerRegister';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const RootStack = createNativeStackNavigator();
 
 // Stack cho Home
 const HomeStack = () => (
@@ -25,8 +26,7 @@ const HomeStack = () => (
     <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ title: "Quên mật khẩu" }} />
     <Stack.Screen name="VerifyPassword" component={VerifyPassword} options={{ title: "Xác thực tài khoản" }} />
     <Stack.Screen name="Login" component={Login} options={{ title: "Đăng nhập" }} />
-     {/* Thêm màn hình EmployerRegister */}
-     <Stack.Screen name="EmployerRegister" component={EmployerRegister} options={{ title: "Đăng ký nhà tuyển dụng" }} />
+    <Stack.Screen name="EmployerRegister" component={EmployerRegister} options={{ title: "Đăng ký nhà tuyển dụng" }} />
   </Stack.Navigator>
 );
 
@@ -88,7 +88,10 @@ export default function App() {
     <NavigationContainer>
       <MyUserContext.Provider value={user}>
         <MyDispacthContext.Provider value={dispatch}>
-          <MainTab />
+          <RootStack.Navigator screenOptions={{ headerShown: false }}>
+            <RootStack.Screen name="MainTab" component={MainTab} />
+            <RootStack.Screen name="EmployerRegister" component={EmployerRegister} />
+          </RootStack.Navigator>
         </MyDispacthContext.Provider>
       </MyUserContext.Provider>
     </NavigationContainer>

@@ -26,10 +26,10 @@ export default function EmployerRegister() {
     const [loading, setLoading] = useState(false);
     const [employer, setEmployer] = useState({
         company_name: '',
-        address: '',
-        contact_email: '',
-        contact_phone: '',
-        website: '',
+        company_address: '',
+        company_email: '',
+        tax_id: '',
+        company_phone: '',
         description: '',
         images: [], // Thêm trường images để lưu danh sách hình ảnh
     });
@@ -89,7 +89,7 @@ export default function EmployerRegister() {
 
     const registerEmployer = async () => {
         // Kiểm tra các trường bắt buộc
-        if (!employer.company_name || !employer.address || !employer.contact_email) {
+        if (!employer.company_name || !employer.company_address || !employer.company_email) {
             setError('Vui lòng điền đầy đủ thông tin bắt buộc');
             return;
         }
@@ -100,6 +100,7 @@ export default function EmployerRegister() {
             return;
         }
 
+        
         setLoading(true);
         setError('');
 
@@ -107,7 +108,6 @@ export default function EmployerRegister() {
             const token = await AsyncStorage.getItem('token');
             console.log('token:', token);
             let form = new FormData();
-            console.log('token:', token);
             // Thêm các trường thông tin khác
             for (let field in employer) {
                 if (field !== 'images') {
@@ -117,20 +117,22 @@ export default function EmployerRegister() {
 
             // Thêm hình ảnh vào form
             employer.images.forEach((image, index) => {
-                form.append(`images[${index}]`, {
+                form.append('images', {
                     name: image.fileName || `image_${index}.jpg`,
                     type: image.type || 'image/jpeg',
-                    uri: image.uri,
+                    uri: Platform.OS === 'ios' ? image.uri.replace('file://', '') : image.uri,
                 });
             });
-
-            let res;
-                res = await authApi(token).post(endpoints['create-employer'], form, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-                console.log('Response:', res.data);
+            for (var pair of form.entries()) {
+                console.log(`${pair[0]}:`, pair[1]);
+            }            
+            console.log('Form data:', form); // Kiểm tra dữ liệu form trước khi gửi
+            let res = await authApi(token).post(endpoints['create-employer'], form, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            console.log('Response:', res.data);
             if (res.status === 201) {
                 Alert.alert(
                     'Thành công',
@@ -154,18 +156,18 @@ export default function EmployerRegister() {
         },
         {
             label: 'Địa chỉ công ty *',
-            field: 'address',
+            field: 'company_address',
             placeholder: 'Nhập địa chỉ công ty',
         },
         {
             label: 'Email liên hệ *',
-            field: 'contact_email',
+            field: 'company_email',
             placeholder: 'Email liên hệ với ứng viên',
             keyboardType: 'email-address',
         },
         {
             label: 'Số điện thoại',
-            field: 'contact_phone',
+            field: 'company_phone',
             placeholder: 'Số điện thoại liên hệ',
             keyboardType: 'phone-pad',
         },

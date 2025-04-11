@@ -78,7 +78,7 @@ export default function Register() {
     } else {
       setError(false);
       setLoading(true);
-
+  
       try {
         let form = new FormData();
         for (let f in user) {
@@ -92,18 +92,32 @@ export default function Register() {
             form.append(f, user[f]);
           }
         }
-        console.log('Register form data:', user);
+  
+        // console.log('Register form data:', user);
+  
         let res = await APIs.post(endpoints['register'], form, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
-        console.log(res.status);
+  
+        console.log('Đăng ký thành công:', res.data);
+  
         if (res.status === 201) {
           nav.navigate('Login');
         }
+  
       } catch (e) {
-        console.error(e);
+        if (e.response && e.response.data) {
+          const errors = e.response.data;
+          let messages = [];
+          for (let field in errors) {
+            console.log(`${field}: ${errors[field].join(', ')} Nó nằm ở đây nè. Sửa lỗi trùng username, email ở đây nha cục dàng <3 `);
+          }
+        } else {
+          console.error('Lỗi không xác định:', e);
+          alert('Có lỗi xảy ra, vui lòng thử lại.');
+        }
       } finally {
         setLoading(false);
       }

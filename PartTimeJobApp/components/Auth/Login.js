@@ -65,8 +65,8 @@ export default function Login() {
       let res = await APIs.post(endpoints['login'],
         qs.stringify({
           ...user,
-          client_id: 'SbdPQOR4nt7u8xlN6boLWjHo09IRnArJx9PqPNDF',
-          client_secret: 'l1vPNhGIByzwq4bwPMgHpBXocOmnVrOgeEE6bCt2s4am8IV0Nf8CNCRbBt0XjJm3YCTtSuGkwwgeT6oOi8BrTUzBKWYByVTPzkOdQ1tBBN0N4aikOUbX9LglqeoRdYGa',
+          client_id: 'w1O2z0ABBBpJEqx0OwwnefLaZsI54cszC2TzUWqk',
+          client_secret: '94DQx75eW8F1vzaVGvE62psfWgcLRPcyFBaBbbYUooH18YGp0rFOcO7Aj8OrMZJIKsaHjxYBSp6Sln4gBOptnyEzHk9Jr8pll22FUCR7Hq4RMKoU5u6WHUVRFoGb7oDP',
           grant_type: 'password',
         }),
         {
@@ -136,7 +136,7 @@ export default function Login() {
                 secureTextEntry={f.secureTextEntry}
               />
             ))}
-            <TouchableOpacity onPress={()=> nav.navigate('ForgotPassword')}>
+            <TouchableOpacity onPress={()=> router.push('ForgotPassword')}>
               <Text style={styles.forgotPassword}>Quên Mật Khẩu?</Text>
             </TouchableOpacity>
             <HelperText type="error" visible={error}>

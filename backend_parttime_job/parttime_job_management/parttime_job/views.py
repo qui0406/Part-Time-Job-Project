@@ -70,10 +70,10 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     permission_classes = [perms.IsEmployer, permissions.IsAuthenticated]
 
     def get_permissions(self):
+        if self.action in ['update_company_info']:
+            return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
         if self.action.__eq__('create_current_company'):
-            return [permissions.IsAuthenticated() and perms.IsEmployer()]
-        if self.action.__eq__('update_company_info'):
-            return [permissions.IsAuthenticated() and perms.IsEmployer() and perms.OwnerPerms()]
+            return [permissions.IsAuthenticated(), perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
 
@@ -105,11 +105,11 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['patch'], url_path='update-company', detail=True)
-    def update_company_info(self, request, pk= None):
+    @action(methods=['patch'], url_path='update-company', detail=False)
+    def update_company_info(self, request):
         try:
             company = request.user.employer_profile
-            import pdb; pdb.set_trace()
+
             serializer = CompanySerializer(company, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
