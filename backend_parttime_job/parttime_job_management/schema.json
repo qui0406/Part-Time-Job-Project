@@ -1,0 +1,517 @@
+openapi: 3.0.3
+info:
+  title: Tên API của bạn
+  version: 1.0.0
+  description: Mô tả ngắn về API
+paths:
+  /api/password_reset/:
+    post:
+      operationId: api_password_reset_create
+      description: |-
+        An Api View which provides a method to request a password reset token based on an e-mail address
+
+        Sends a signal reset_password_token_created when a reset token was created
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+        required: true
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Email'
+          description: ''
+  /api/password_reset/confirm/:
+    post:
+      operationId: api_password_reset_confirm_create
+      description: An Api View which provides a method to reset a password based on
+        a unique token
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordTokenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordTokenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordTokenRequest'
+        required: true
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordToken'
+          description: ''
+  /api/password_reset/validate_token/:
+    post:
+      operationId: api_password_reset_validate_token_create
+      description: An Api View which provides a method to verify that a token is valid
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetTokenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetTokenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetTokenRequest'
+        required: true
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetToken'
+          description: ''
+  /company-list/:
+    get:
+      operationId: company_list_list
+      tags:
+      - company-list
+      security:
+      - tokenAuth: []
+      - Bearer: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Company'
+          description: ''
+  /company/{id}/:
+    get:
+      operationId: company_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this company.
+        required: true
+      tags:
+      - company
+      security:
+      - tokenAuth: []
+      - Bearer: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+          description: ''
+  /company/{id}/update-company/:
+    patch:
+      operationId: company_update_company_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this company.
+        required: true
+      tags:
+      - company
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCompanyRequest'
+      security:
+      - tokenAuth: []
+      - Bearer: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+          description: ''
+  /company/current-company/:
+    post:
+      operationId: company_current_company_create
+      tags:
+      - company
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CompanyRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - Bearer: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+          description: ''
+  /user/:
+    post:
+      operationId: user_create
+      tags:
+      - user
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - Bearer: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /user/current-user/:
+    get:
+      operationId: user_current_user_retrieve
+      tags:
+      - user
+      security:
+      - tokenAuth: []
+      - Bearer: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /user/update-user/:
+    patch:
+      operationId: user_update_user_partial_update
+      tags:
+      - user
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - tokenAuth: []
+      - Bearer: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    Company:
+      type: object
+      properties:
+        user:
+          type: string
+          format: uuid
+          readOnly: true
+        company_name:
+          type: string
+          maxLength: 255
+        company_address:
+          type: string
+        company_phone:
+          type: string
+          maxLength: 20
+        company_email:
+          type: string
+          format: email
+          maxLength: 254
+        description:
+          type: string
+        tax_id:
+          type: string
+          maxLength: 100
+      required:
+      - company_name
+      - tax_id
+      - user
+    CompanyImage:
+      type: object
+      properties:
+        image:
+          type: string
+      required:
+      - image
+    CompanyImageRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          minLength: 1
+      required:
+      - image
+    CompanyRequest:
+      type: object
+      properties:
+        company_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        company_address:
+          type: string
+        company_phone:
+          type: string
+          maxLength: 20
+        company_email:
+          type: string
+          format: email
+          maxLength: 254
+        description:
+          type: string
+        tax_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanyImageRequest'
+          writeOnly: true
+      required:
+      - company_name
+      - images
+      - tax_id
+    Email:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    EmailRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - email
+    PasswordToken:
+      type: object
+      properties:
+        password:
+          type: string
+        token:
+          type: string
+      required:
+      - password
+      - token
+    PasswordTokenRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 1
+        token:
+          type: string
+          minLength: 1
+      required:
+      - password
+      - token
+    PatchedCompanyRequest:
+      type: object
+      properties:
+        company_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        company_address:
+          type: string
+        company_phone:
+          type: string
+          maxLength: 20
+        company_email:
+          type: string
+          format: email
+          maxLength: 254
+        description:
+          type: string
+        tax_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanyImageRequest'
+          writeOnly: true
+    PatchedUserRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        avatar:
+          type: string
+          minLength: 1
+          nullable: true
+    ResetToken:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+      - token
+    ResetTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 1
+      required:
+      - token
+    RoleEnum:
+      enum:
+      - admin
+      - employer
+      - candidate
+      type: string
+      description: |-
+        * `admin` - Quản trị viên
+        * `employer` - Nhà tuyển dụng
+        * `candidate` - Ứng viên
+    User:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        avatar:
+          type: string
+          nullable: true
+      required:
+      - username
+    UserRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        avatar:
+          type: string
+          minLength: 1
+          nullable: true
+      required:
+      - password
+      - username
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

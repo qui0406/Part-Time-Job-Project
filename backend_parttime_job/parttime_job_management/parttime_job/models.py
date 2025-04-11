@@ -46,7 +46,7 @@ class User(AbstractUser, BaseModel):
     modified_date = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['email']
 
     def __str__(self):
         return self.username
@@ -62,19 +62,22 @@ class User(AbstractUser, BaseModel):
 #     def __str__(self):
 #         return self.full_name
     
-# class EmployerProfile(BaseModel):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="employer_profile")
-#     company_name = models.CharField(max_length=255)
-#     tax_id = models.CharField(max_length=100)
-#     description = models.TextField(blank=True)
-#     is_approved = models.BooleanField(default=False)
+class Company(BaseModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="employer_profile")
+    company_name = models.CharField(max_length=255)
+    tax_id = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    company_address = models.TextField(blank=True)
+    company_phone = models.CharField(max_length=20, blank=True)
+    company_email = models.EmailField(blank=True)
+    is_approved = models.BooleanField(default=False)
 
-#     def __str__(self):
-#         return self.company_name
+    def __str__(self):
+        return self.company_name
     
-# class EmployerImage(models.Model):
-#     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name="images")
-#     image = models.ImageField(upload_to="employer_images/") # up load hinh anh nha tuyen dung
+class CompanyImage(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="images")
+    image = CloudinaryField() 
 
 # class Job(models.Model):
 #     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name="jobs")

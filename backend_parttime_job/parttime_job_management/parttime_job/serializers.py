@@ -1,13 +1,9 @@
 from rest_framework import serializers # type: ignore
-from parttime_job.models import User
+from parttime_job.models import User, Company, CompanyImage
 from rest_framework.views import APIView # type: ignore
 from rest_framework.response import Response # type: ignore
 from django.contrib.auth import authenticate # type: ignore
 import re
-
-from django.utils.encoding import smart_str, force_bytes, DjangoUnicodeDecodeError # type: ignore
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 
 class ItemSerializer(serializers.ModelSerializer):
@@ -18,10 +14,14 @@ class ItemSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email này đã được sử dụng!")
+        return value
+    
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Tên đăng nhập đã được sử dụng!")
         return value
 
     def create(self, validated_data):
@@ -41,5 +41,70 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'username', 'email', 'phone_number', 'password', 'role', 'avatar']
         extra_kwargs = {'password': {'write_only': True}}
 
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, min_length=6)
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'email', 'phone_number', 'password']
+
+    def validate_email(self, value):
+        user = self.instance
+        if User.objects.filter(email=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Email này đã được sử dụng!")
+        return value
+
+    def validate_username(self, value):
+        user = self.instance
+        if User.objects.filter(username=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Tên đăng nhập đã được sử dụng!")
+        return value
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            instance.set_password(validated_data.pop('password'))
+        return super().update(instance, validated_data)
+
+
+
+class CompanyImageSerializer(ItemSerializer):
+    class Meta:
+        model = CompanyImage
+        fields = ['image']
+
+class CompanySerializer(serializers.ModelSerializer):
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=True
+    )
+    image_list = CompanyImageSerializer(source='images', many=True, read_only=True)
+
+    def validate_images(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError("Cần ít nhất 3 hình ảnh môi trường làm việc.")
+        return value
+
+    def create(self, validated_data):
+        images_data = validated_data.pop('images')
+        user = self.context['request'].user
+        company = Company.objects.create(user=user, **validated_data)
+        for image in images_data:
+            CompanyImage.objects.create(company=company, image=image)
+        return company
+
+    def update(self, instance, validated_data):
+        validated_data.pop('images', None)
+        return super().update(instance, validated_data)
+
+    class Meta:
+        model = Company
+        fields = ['user', 'company_name', 'company_address', 'company_phone',
+                  'company_email', 'description', 'tax_id', 'images', 'image_list', 'is_approved']
+        extra_kwargs = {
+            'user': {'read_only': True}
+        }
+        
 
         
