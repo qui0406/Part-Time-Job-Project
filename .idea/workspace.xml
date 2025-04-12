@@ -6,8 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="e46d42a2-1ad1-4cce-8656-bb3ae19208c9" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/EmployerRegister.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/EmployerRegister.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Login.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Login.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Profile.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Profile.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Register.js" beforeDir="false" afterPath="$PROJECT_DIR$/PartTimeJobApp/components/Auth/Register.js" afterDir="false" />
@@ -43,7 +43,7 @@
     "ScreenshotViewer.SavePath": "D:/K2N3/CNLTHD/BTL_PartTimeJob_Project/PartTimeJobApp/assets",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "TranThuong",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/K2N3/CNLTHD/BTL_PartTimeJob_Project/PartTimeJobApp/assets"
   }

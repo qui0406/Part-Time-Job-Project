@@ -137,7 +137,7 @@ export default function EmployerRegister() {
                 Alert.alert(
                     'Thành công',
                     'Đăng ký thông tin nhà tuyển dụng thành công!',
-                    [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+                    [{ text: 'OK', onPress: () => navigation.navigate('EmployerSubmittedScreen') }]
                 );
             }
         } catch (error) {
