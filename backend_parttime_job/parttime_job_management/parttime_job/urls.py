@@ -13,6 +13,8 @@ router = DefaultRouter()
 router.register('user', views.UserViewSet, basename='register')
 router.register('company', views.CompanyViewSet, basename='company')
 router.register('company-list', views.CompanyListViewSet, basename='company-list')
+router.register('company-approved', views.CompanyIsApprovedViewSet, basename='company-approved')
+router.register('job', views.JobViewSet, basename='job')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -18,6 +18,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 
 from rest_framework.authtoken.models import Token
+from django.conf import settings
+
 
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)
@@ -71,6 +73,7 @@ class Company(BaseModel):
     company_phone = models.CharField(max_length=20, blank=True)
     company_email = models.EmailField(blank=True)
     is_approved = models.BooleanField(default=False)
+    is_rejected = models.BooleanField(default=False)
 
     def __str__(self):
         return self.company_name
@@ -79,18 +82,29 @@ class CompanyImage(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="images")
     image = CloudinaryField() 
 
-# class Job(models.Model):
-#     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name="jobs")
-#     title = models.CharField(max_length=255)
-#     description = models.TextField()
-#     skills = models.TextField()
-#     salary = models.CharField(max_length=100)
-#     working_time = models.CharField(max_length=100)
-#     location = models.CharField(max_length=255)
-#     created_at = models.DateTimeField(auto_now_add=True)
+class CompanyApprovalHistory(models.Model):
+    company = models.ForeignKey("Company", on_delete=models.CASCADE, related_name="approval_history")
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    is_approved = models.BooleanField()
+    is_rejected = models.BooleanField()
+    reason = models.TextField(blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
-#     def __str__(self):
-#         return self.title
+    def __str__(self):
+        status = "Phê duyệt" if self.is_approved else "Từ chối"
+        return f"{status} - {self.company.name} - {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+class Job(BaseModel):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="jobs")
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    skills = models.TextField()
+    salary = models.CharField(max_length=100)
+    working_time = models.CharField(max_length=100)
+    location = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.title
 
 
 # class Application(models.Model):

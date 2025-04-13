@@ -2,10 +2,10 @@ from rest_framework import viewsets, generics, status, parsers, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from parttime_job.models import User, Company, CompanyImage
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job 
 from rest_framework.views import APIView
 from . import perms
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -120,14 +120,137 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
 
 class CompanyListViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = Company.objects.filter(active=True)
+    queryset = Company.objects.filter(active=True, is_approved=True)
     serializer_class = CompanySerializer
     permission_classes = [permissions.AllowAny]
+    parser_classes = [parsers.MultiPartParser]
 
     def list(self, request):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+
+class CompanyIsApprovedViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Company.objects.filter(active=True, is_approved=False, is_rejected=False)
+    serializer_class = CompanySerializer
+    permission_classes = [permissions.IsAuthenticated, perms.IsAdmin]
+
+
+    @action(detail=True, methods=['post'], url_path='is-approved')
+    def approve_company(self, request, pk=None):
+        is_approved = request.data.get('is_approved')
+        reason = request.data.get('reason', '')  # Lý do phê duyệt hoặc từ chối
+
+        if is_approved is None:
+            return Response({"detail": "Vui lòng cung cấp giá trị 'is_approved'."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            company = Company.objects.get(pk=pk, active=True)
+
+            is_approved = bool(is_approved)
+
+            company.is_approved = is_approved
+            company.is_rejected = not is_approved
+            
+            company.save()
+
+            CompanyApprovalHistory.objects.create(
+                company=company,
+                approved_by=request.user,
+                is_approved=is_approved,
+                is_rejected=not is_approved,
+                reason=reason
+            )
+
+            # Nếu duyệt => cập nhật vai trò employer
+            if is_approved:
+                employer = company.user
+                if employer.role != 'employer':
+                    employer.role = 'employer'
+                    employer.save()
+
+            return Response({
+                "detail": f"Công ty đã được {'phê duyệt' if is_approved else 'từ chối'}."
+            }, status=status.HTTP_200_OK)
+
+        except Company.DoesNotExist:
+            return Response({"detail": "Không tìm thấy công ty."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+
+class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Job.objects.filter(active=True)
+    serializer_class = JobSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        if self.action in ['create_job', 'update_job', 'delete_job']:
+            return [
+                permissions.IsAuthenticated(), perms.IsEmployer(),perms.OwnerPerms() 
+            ]
+        return [permissions.AllowAny()]  # Mặc định cho các action còn lại (list, retrieve...)
+
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(methods=['post'], url_path='create-job', detail=False)
+    def create_job(self, request):
+        try:
+            # Tìm công ty của user
+            company = Company.objects.get(user=request.user, active=True, is_approved=True)
+        except Company.DoesNotExist:
+            return Response({"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."},
+                            status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(data=request.data, context={'request': request, 'company': company})
+
+        if serializer.is_valid():
+            serializer.save()  # company sẽ được gán trong serializer.create
+            return Response({"message": "Tin tuyển dụng đã được tạo thành công!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+    @action(methods=['put', 'patch'], url_path='update-job/(?P<job_id>[^/.]+)', detail=False)
+    def update_job(self, request, job_id):
+        try:
+            company = Company.objects.get(user=request.user, active=True, is_approved=True)
+        except Company.DoesNotExist:
+            return Response({"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."},
+                            status=status.HTTP_403_FORBIDDEN)
+        try:
+            job = Job.objects.get(id=job_id, company=company)
+        except Job.DoesNotExist:
+            return Response({"detail": "Tin tuyển dụng không tồn tại hoặc bạn không có quyền sửa."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(job, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Tin tuyển dụng đã được cập nhật thành công."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+    @action(methods=['delete'], url_path='delete-job/(?P<job_id>[^/.]+)', detail=False)
+    def delete_job(self, request, job_id):
+        try:
+            company = Company.objects.get(user=request.user, active=True, is_approved=True)
+        except Company.DoesNotExist:
+            return Response({"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            job = Job.objects.get(id=job_id, company=company, active=True)
+        except Job.DoesNotExist:
+            return Response({"detail": "Tin tuyển dụng không tồn tại hoặc bạn không có quyền xóa."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # Xóa mềm
+        job.active = False
+        job.save()
+
+        return Response({"message": "Tin tuyển dụng đã được xóa."}, status=status.HTTP_200_OK)

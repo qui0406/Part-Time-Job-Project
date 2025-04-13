@@ -1,5 +1,5 @@
 from rest_framework import serializers # type: ignore
-from parttime_job.models import User, Company, CompanyImage
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job
 from rest_framework.views import APIView # type: ignore
 from rest_framework.response import Response # type: ignore
 from django.contrib.auth import authenticate # type: ignore
@@ -101,10 +101,29 @@ class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = ['user', 'company_name', 'company_address', 'company_phone',
-                  'company_email', 'description', 'tax_id', 'images', 'image_list', 'is_approved']
+                  'company_email', 'description', 'tax_id', 'images', 'image_list', 'is_approved', 'is_rejected']
         extra_kwargs = {
             'user': {'read_only': True}
         }
         
-
+class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyApprovalHistory
+        fields = ['company', 'approved_by', 'is_approved', 'is_rejected', 'reason', 'timestamp']
         
+
+class JobSerializer(serializers.ModelSerializer): 
+    class Meta:
+        model = Job
+        fields = ['company', 'title', 'description', 'skills', 'salary', 'working_time', 'location']
+        extra_kwargs = {
+            'company': {'read_only': True}
+        }
+    
+    def create(self, validated_data):
+        company = self.context.get('company')
+        if not company:
+            raise serializers.ValidationError({"company": "Công ty không hợp lệ."})
+    
+        job = Job.objects.create(company=company, **validated_data)
+        return job
