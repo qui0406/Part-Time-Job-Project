@@ -242,15 +242,13 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         except Company.DoesNotExist:
             return Response({"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."},
                             status=status.HTTP_403_FORBIDDEN)
-
+        
         try:
             job = Job.objects.get(id=job_id, company=company, active=True)
         except Job.DoesNotExist:
             return Response({"detail": "Tin tuyển dụng không tồn tại hoặc bạn không có quyền xóa."},
                             status=status.HTTP_404_NOT_FOUND)
-
         # Xóa mềm
         job.active = False
         job.save()
-
         return Response({"message": "Tin tuyển dụng đã được xóa."}, status=status.HTTP_200_OK)
