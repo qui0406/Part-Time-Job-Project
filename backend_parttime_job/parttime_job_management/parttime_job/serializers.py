@@ -100,7 +100,7 @@ class CompanySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Company
-        fields = ['user', 'company_name', 'company_address', 'company_phone',
+        fields = ['id', 'user', 'company_name', 'company_address', 'company_phone',
                   'company_email', 'description', 'tax_id', 'images', 'image_list', 'is_approved', 'is_rejected']
         extra_kwargs = {
             'user': {'read_only': True}
@@ -115,7 +115,7 @@ class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
 class JobSerializer(serializers.ModelSerializer): 
     class Meta:
         model = Job
-        fields = ['company', 'title', 'description', 'skills', 'salary', 'working_time', 'location']
+        fields = ['id', 'company', 'title', 'description', 'skills', 'salary', 'working_time', 'location']
         extra_kwargs = {
             'company': {'read_only': True}
         }
