@@ -19,6 +19,8 @@ import PostJob from './components/Auth/PostJob';
 import AdminAnalytics from './components/Auth/AdminAnalytics';
 import AdminNotifications from './components/Auth/AdminNotifications';
 
+import CompanyApprovalScreen from './components/Auth/CompanyApprovalScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -69,7 +71,6 @@ const MainTab = () => {
           />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name="VerifyPassword" component={VerifyPassword} />
-          {/* <Stack.Screen name="EmployerRegister" component={EmployerRegister} /> */}
         </>
       ) : (
         <>
@@ -125,6 +126,11 @@ export default function App() {
             <RootStack.Screen name="EmployerRegister" component={EmployerRegister} />
             <RootStack.Screen name="EmployerSubmittedScreen" component={EmployerSubmittedScreen} />
             <RootStack.Screen name="PostJob" component={PostJob} />
+            <RootStack.Screen 
+              name="CompanyApprovalScreen" 
+              component={CompanyApprovalScreen} 
+             
+            />
           </RootStack.Navigator>
         </MyDispacthContext.Provider>
       </MyUserContext.Provider>

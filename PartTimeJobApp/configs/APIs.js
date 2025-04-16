@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.11:8000'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.140:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -9,9 +9,16 @@ export const endpoints = {
     'password-reset':'/api/password_reset/',
     'password-reset-confirm':'/api/password_reset/confirm/',
     'password-reset-token': '/api/password_reset/:token/',
-    // Thêm endpoint cho employer
+    // Thông tin công ty và đăng ký
     'create-employer': '/company/create-company/',
-    'create-post-job': '/jobs/create-post/',
+    'company-details': '/company/', // /:id/ sẽ được thêm vào trong code
+    'company-approval-list': '/company-approved/',
+    'company-approval': '/company-approved/', 
+    'create-employer': '/company/create-company/',
+    // 'current-company': '/company/current-company/',
+    // 'update-company': '/company/update-company/',
+
+    'create-post-job': '/job/create-job/',
 }
 
 export const authApi = (token) =>{
