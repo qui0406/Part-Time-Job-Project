@@ -1,5 +1,5 @@
 from rest_framework import serializers # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Location
 from rest_framework.views import APIView # type: ignore
 from rest_framework.response import Response # type: ignore
 from django.contrib.auth import authenticate # type: ignore
@@ -110,20 +110,51 @@ class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = CompanyApprovalHistory
         fields = ['company', 'approved_by', 'is_approved', 'is_rejected', 'reason', 'timestamp']
-        
 
-class JobSerializer(serializers.ModelSerializer): 
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = '__all__'
+
+    def create(self, validated_data):
+        # Lấy job từ validated_data
+        job = validated_data.pop('job')
+        # Tạo Location với job đã lấy
+        location = Location.objects.create(job=job, **validated_data)
+        return location
+
+
+
+class JobSerializer(serializers.ModelSerializer):
+    locations = LocationSerializer(many=True, read_only=True)
+
     class Meta:
         model = Job
-        fields = ['id', 'company', 'title', 'description', 'skills', 'salary', 'working_time', 'location']
+        fields = ['id', 'company', 'title', 'description', 'skills', 'salary', 'working_time', 'locations', 'active']
         extra_kwargs = {
-            'company': {'read_only': True}
+            'company': {'read_only': True},
+            'active': {'read_only': True}
         }
-    
+
     def create(self, validated_data):
-        company = self.context.get('company')
-        if not company:
-            raise serializers.ValidationError({"company": "Công ty không hợp lệ."})
-    
-        job = Job.objects.create(company=company, **validated_data)
+        locations_data = validated_data.pop('locations', [])
+        job = Job.objects.create(**validated_data)
+        for location_data in locations_data:
+            Location.objects.create(job=job, **location_data)
         return job
+
+    def update(self, instance, validated_data):
+        locations_data = validated_data.pop('locations', None)
+
+        # Update basic fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if locations_data is not None:
+            instance.locations.all().delete()  # clear old locations
+            for location_data in locations_data:
+                Location.objects.create(job=instance, **location_data)
+
+        return instance
