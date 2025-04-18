@@ -24,7 +24,7 @@ const Profile = () => {
     //     </View>
     // );
     return (
-        <SafeAreaView style={[MyStyles.container, {flex:1, backgroundColor: Colors.WHITE }]}>
+        <SafeAreaView style={[MyStyles.container, { flex: 1, backgroundColor: Colors.WHITE }]}>
             {/* Phần thông tin người dùng */}
             <View style={[MyStyles.p, MyStyles.m, { backgroundColor: Colors.WHITE, borderRadius: 10, elevation: 5 }]}>
                 <View style={[MyStyles.row, { alignItems: "center" }]}>
@@ -49,18 +49,65 @@ const Profile = () => {
                     </View>
                 </View>
             </View>
-            {/* Nút đăng xuất */}
+            <TouchableOpacity
+                onPress={() => nav.navigate('PostJob')}
+                style={[
+                    MyStyles.m,
+                    {
+                        backgroundColor: Colors.PRIMARY,
+                        borderRadius: 10,
+                        paddingVertical: 10,
+                        paddingHorizontal: 14,
+                        alignItems: 'center',
+                    }
+                ]}
+                activeOpacity={0.6}
+            >
+                <Text
+                    style={{
+                        color: Colors.WHITE,
+                        fontSize: 16,
+                        fontWeight: '600'
+                    }}
+                >
+                    Đăng tin tuyển dụng
+                </Text>
+                
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => nav.navigate('EmployerRegister')}
+                style={[
+                    MyStyles.m,
+                    {
+                        backgroundColor: Colors.PRIMARY,
+                        borderRadius: 10,
+                        paddingVertical: 10,
+                        paddingHorizontal: 14,
+                        alignItems: 'center',
+                    }
+                ]}
+                activeOpacity={0.6}
+            >
+                <Text
+                    style={{
+                        color: Colors.WHITE,
+                        fontSize: 16,
+                        fontWeight: '600'
+                    }}
+                >
+                    Đăng ký nhà tuyển dụng
+                </Text>
+            </TouchableOpacity>
             <Button
                 icon="logout"
                 onPress={() => dispatch({ type: "logout" })}
                 style={[MyStyles.m, { backgroundColor: Colors.PRIMARY, borderRadius: 12 }]}
                 labelStyle={{ color: Colors.WHITE, fontSize: 18, fontWeight: "bold" }}
+                activeOpacity={0.6}
             >
                 Đăng xuất
             </Button>
-            <TouchableOpacity onPress={()=> nav.navigate('EmployerRegister')} style={[MyStyles.m, { backgroundColor: Colors.SECONDARY, borderRadius: 12, padding: 10 }]}>
-                <Text>Đăng ký nhà tuyển dụng</Text>
-            </TouchableOpacity>
+
         </SafeAreaView>
     );
 };

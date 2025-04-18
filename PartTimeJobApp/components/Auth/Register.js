@@ -32,6 +32,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState({});
   const [error, setError] = useState(false);
+  const [usernameError, setUsernameError] = useState(''); // Thêm trạng thái lỗi cho username
+  const [emailError, setEmailError] = useState(''); // Thêm trạng thái lỗi cho email
   const nav = useNavigation();
   const userRef = useRef();
 
@@ -78,6 +80,8 @@ export default function Register() {
     } else {
       setError(false);
       setLoading(true);
+      setUsernameError(''); // Xóa lỗi trước đó
+      setEmailError(''); // Xóa lỗi trước đó
   
       try {
         let form = new FormData();
@@ -112,7 +116,12 @@ export default function Register() {
           const errors = e.response.data;
           let messages = [];
           for (let field in errors) {
-            console.log(`${field}: ${errors[field].join(', ')} Nó nằm ở đây nè. Sửa lỗi trùng username, email ở đây nha cục dàng <3 `);
+            const errorMsg = errors[field].join(', ');
+            if (field === 'username') {
+              setUsernameError(errorMsg);
+            } else if (field === 'email') {
+              setEmailError(errorMsg);
+            }
           }
         } else {
           console.error('Lỗi không xác định:', e);
@@ -179,6 +188,7 @@ export default function Register() {
               style={styles.logo}
               resizeMode="contain" />
             {fields.map((f) => (
+               <View key={f.field} style={{ width: '100%' }}>
               <TextInput
                 placeholderTextColor={Colors.GRAY}
                 style={styles.input}
@@ -188,6 +198,17 @@ export default function Register() {
                 placeholder={f.label}
                 secureTextEntry={f.secureTextEntry}
               />
+              {f.field === 'username' && usernameError !== '' && (
+                <HelperText type="error" visible={true}>
+                  {usernameError}
+                </HelperText>
+              )}
+              {f.field === 'email' && emailError !== '' && (
+                <HelperText type="error" visible={true}>
+                  {emailError}
+                </HelperText>
+              )}
+              </View>
             ))}
 
             <TouchableOpacity

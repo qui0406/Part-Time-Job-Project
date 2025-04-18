@@ -14,6 +14,12 @@ import VerifyPassword from './components/Auth/VerifyPassword';
 import Profile from './components/Auth/Profile';
 import HomeScreen from './components/Home/Home';
 import EmployerRegister from './components/Auth/EmployerRegister';
+import EmployerSubmittedScreen from './components/Auth/EmployerSubmittedScreen';
+import PostJob from './components/Auth/PostJob';
+import AdminAnalytics from './components/Auth/AdminAnalytics';
+import AdminNotifications from './components/Auth/AdminNotifications';
+
+import CompanyApprovalScreen from './components/Auth/CompanyApprovalScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -26,7 +32,7 @@ const HomeStack = () => (
     <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ title: "Quên mật khẩu" }} />
     <Stack.Screen name="VerifyPassword" component={VerifyPassword} options={{ title: "Xác thực tài khoản" }} />
     <Stack.Screen name="Login" component={Login} options={{ title: "Đăng nhập" }} />
-    <Stack.Screen name="EmployerRegister" component={EmployerRegister} options={{ title: "Đăng ký nhà tuyển dụng" }} />
+
   </Stack.Navigator>
 );
 
@@ -35,8 +41,8 @@ const MainTab = () => {
   const user = useContext(MyUserContext);
 
   return (
-    <Tab.Navigator 
-    screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={{ headerShown: false }}>
       <Tab.Screen
         name="Home"
         component={HomeStack}
@@ -65,17 +71,44 @@ const MainTab = () => {
           />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name="VerifyPassword" component={VerifyPassword} />
-          {/* <Stack.Screen name="EmployerRegister" component={EmployerRegister} /> */}
         </>
       ) : (
-        <Tab.Screen
-          name="Profile"
-          component={Profile}
-          options={{
-            title: user.username,
-            tabBarIcon: () => <Icon size={30} color="#1b4089" source="account" />,
-          }}
-        />
+        <>
+          {/* Khi đã đăng nhập, hiển thị các tab khác */}
+          {/* Tab Notifications - Hiển thị nếu là admin */}
+          {user.role === 'admin' && (
+            <Tab.Screen
+              name="Notifications"
+              component={AdminNotifications}
+              options={{
+                title: 'Thông báo',
+                tabBarIcon: () => <Icon size={30} color="#1b4089" source="bell" />,
+              }}
+            />
+          )}
+
+          {/* Tab Analytics - Hiển thị nếu là admin */}
+          {user.role === 'admin' && (
+            <Tab.Screen
+              name="Analytics"
+              component={AdminAnalytics}
+              options={{
+                title: 'Thống kê',
+                tabBarIcon: () => <Icon size={30} color="#1b4089" source="chart-line" />,
+              }}
+            />
+          )}
+
+          {/* Tab Profile - Luôn hiển thị khi đã đăng nhập */}
+          <Tab.Screen
+            name="Profile"
+            component={Profile}
+            options={{
+              title: user.username,
+              tabBarIcon: () => <Icon size={30} color="#1b4089" source="account" />,
+            }}
+          />
+        </>
       )}
     </Tab.Navigator>
   );
@@ -91,6 +124,13 @@ export default function App() {
           <RootStack.Navigator screenOptions={{ headerShown: false }}>
             <RootStack.Screen name="MainTab" component={MainTab} />
             <RootStack.Screen name="EmployerRegister" component={EmployerRegister} />
+            <RootStack.Screen name="EmployerSubmittedScreen" component={EmployerSubmittedScreen} />
+            <RootStack.Screen name="PostJob" component={PostJob} />
+            <RootStack.Screen 
+              name="CompanyApprovalScreen" 
+              component={CompanyApprovalScreen} 
+             
+            />
           </RootStack.Navigator>
         </MyDispacthContext.Provider>
       </MyUserContext.Provider>
