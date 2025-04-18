@@ -6,6 +6,7 @@ export const endpoints = {
     'register': '/user/',
     'login':'/o/token/',
     'current-user':'/user/current-user/',
+    'update-user':'/user/update-user/',
     'password-reset':'/api/password_reset/',
     'password-reset-confirm':'/api/password_reset/confirm/',
     'password-reset-token': '/api/password_reset/:token/',
@@ -15,8 +16,8 @@ export const endpoints = {
     'company-approval-list': '/company-approved/',
     'company-approval': '/company-approved/', 
     'create-employer': '/company/create-company/',
-    // 'current-company': '/company/current-company/',
-    // 'update-company': '/company/update-company/',
+    'current-company': '/company/current-company/',
+    'update-company': '/company/update-company/',
 
     'create-post-job': '/job/create-job/',
 }

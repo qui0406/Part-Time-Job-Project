@@ -1,154 +1,371 @@
-import { useContext } from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { useContext, useEffect, useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from "react-native-paper";
+import { Button, Icon } from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
 import Colors from "./../../constants/Colors";
 import { MyDispacthContext, MyUserContext } from "./../../contexts/UserContext";
 import MyStyles from "./../../styles/MyStyles";
-import { useNavigation } from "@react-navigation/native";
+import { endpoints, authApi } from "../../configs/APIs";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Profile = () => {
     const user = useContext(MyUserContext);
     const dispatch = useContext(MyDispacthContext);
     const nav = useNavigation();
+    const [companyDetails, setCompanyDetails] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (user && user.role === 'employer') {
+            fetchCompanyDetails();
+        }
+    }, [user]);
+
+    const fetchCompanyDetails = async () => {
+        try {
+            setLoading(true);
+            const token = await AsyncStorage.getItem('token');
+            if (token) {
+                const response = await authApi(token).get(endpoints['current-company']);
+                setCompanyDetails(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching company details:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const navigateToEditProfile = () => {
+        nav.navigate('EditProfile', { user, companyDetails });
+    };
+
+    const navigateToEmployerRegister = () => {
+        nav.navigate('EmployerRegister');
+    };
+
+    const navigateToPostJob = () => {
+        nav.navigate('PostJob');
+    };
 
     if (!user) {
-        return <Text>Không có thông tin người dùng</Text>; // Tạm thời xử lý lỗi
+        return (
+            <SafeAreaView style={[MyStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ fontSize: 18, color: Colors.GRAY }}>Không có thông tin người dùng</Text>
+            </SafeAreaView>
+        );
     }
-    // return (
-    //     <View style={styles.container}>
-    //         <Text style={styles.title}>Thông tin tài khoản</Text>
-    //         <Text style={styles.username}> {user.last_name + user.first_name}</Text>
-    //         <Image source={{ uri: user.avatar }} style={styles.avatar} />
-    //         <Button icon="logout" onPress={() => dispatch({ "type": "logout" })} style={styles.button} labelStyle={styles.buttonText}>Đăng xuất</Button>
-    //     </View>
-    // );
+
     return (
         <SafeAreaView style={[MyStyles.container, { flex: 1, backgroundColor: Colors.WHITE }]}>
-            {/* Phần thông tin người dùng */}
-            <View style={[MyStyles.p, MyStyles.m, { backgroundColor: Colors.WHITE, borderRadius: 10, elevation: 5 }]}>
-                <View style={[MyStyles.row, { alignItems: "center" }]}>
-                    <View style={[MyStyles.avatar, { backgroundColor: Colors.LIGHT_GREEN, justifyContent: "center", alignItems: "center" }]}>
-                        <Text style={{ fontSize: 40, color: Colors.PRIMARY, fontWeight: "bold" }}>
-                            {user.username ? user.username[0].toUpperCase() : "T"}
-                        </Text>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => nav.goBack()}>
+                    <Icon source="arrow-left" size={24} color={Colors.WHITE} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Hồ Sơ</Text>
+                <Icon source="cog" size={24} color={Colors.WHITE} />
+            </View>
+
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+                {/* Profile Card with Avatar and Basic Info */}
+                <View style={styles.profileCard}>
+                    <View style={styles.profileHeader}>
+                        <View style={styles.avatarContainer}>
+                            <Text style={styles.avatarText}>
+                                {user.username ? user.username[0].toUpperCase() : "?"}
+                            </Text>
+                            <View style={styles.cameraIcon}>
+                                <Icon source="camera" size={16} color={Colors.GRAY} />
+                            </View>
+                        </View>
+
+                        <View style={styles.statsContainer}>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statLabel}>Lượt xem hồ sơ</Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statLabel}>Thông báo việc làm</Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statLabel}>Việc làm ứng tuyên</Text>
+                            </View>
+                        </View>
                     </View>
-                    <View style={{ marginLeft: 10 }}>
-                        <Text style={{ fontSize: 20, fontWeight: "bold", color: Colors.BLACK }}>
-                            {user.last_name + user.first_name}
+
+                    <View style={styles.userInfoContainer}>
+                        <Text style={styles.userName}>{user.last_name} {user.first_name}</Text>
+                        <Text style={styles.userRole}>
+                            {user.role === 'employer' ? 'Nhà tuyển dụng' : user.role === 'admin' ? 'Quản trị viên' : 'Sinh viên'}
                         </Text>
-                        <Text style={{ fontSize: 16, color: Colors.GRAY }}>
-                            Sinh viên
-                        </Text>
-                        <Text style={{ fontSize: 16, color: Colors.GRAY }}>
-                            Chưa có kinh nghiệm
-                        </Text>
-                        <Text style={{ fontSize: 16, color: Colors.GRAY }}>
-                            Hồ Sơ Của Tói
-                        </Text>
+                        {user.role !== 'employer' && (
+                            <Text style={styles.userExperience}>Chưa có kinh nghiệm</Text>
+                        )}
+                        <View style={styles.contactRow}>
+                            <Icon source="email" size={20} color={Colors.PRIMARY} />
+                            <Text style={styles.contactText}>{user.email}</Text>
+                        </View>
+                        <View style={styles.contactRow}>
+                            <Icon source="briefcase" size={20} color={Colors.PRIMARY} />
+                            <Text style={styles.contactText}>Thực tập sinh/Sinh viên</Text>
+                        </View>
+                        <View style={styles.contactRow}>
+                            <Icon source="school" size={20} color={Colors.PRIMARY} />
+                            <Text style={styles.contactText}>Trung học</Text>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        <TouchableOpacity style={styles.editButton} onPress={navigateToEditProfile}>
+                            <Icon source="pencil" size={20} color={Colors.PRIMARY} />
+                            <Text style={styles.editButtonText}>Chỉnh sửa thông tin cơ bản</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
-            </View>
-            <TouchableOpacity
-                onPress={() => nav.navigate('PostJob')}
-                style={[
-                    MyStyles.m,
-                    {
-                        backgroundColor: Colors.PRIMARY,
-                        borderRadius: 10,
-                        paddingVertical: 10,
-                        paddingHorizontal: 14,
-                        alignItems: 'center',
-                    }
-                ]}
-                activeOpacity={0.6}
-            >
-                <Text
-                    style={{
-                        color: Colors.WHITE,
-                        fontSize: 16,
-                        fontWeight: '600'
-                    }}
-                >
-                    Đăng tin tuyển dụng
-                </Text>
-                
-            </TouchableOpacity>
-            <TouchableOpacity
-                onPress={() => nav.navigate('EmployerRegister')}
-                style={[
-                    MyStyles.m,
-                    {
-                        backgroundColor: Colors.PRIMARY,
-                        borderRadius: 10,
-                        paddingVertical: 10,
-                        paddingHorizontal: 14,
-                        alignItems: 'center',
-                    }
-                ]}
-                activeOpacity={0.6}
-            >
-                <Text
-                    style={{
-                        color: Colors.WHITE,
-                        fontSize: 16,
-                        fontWeight: '600'
-                    }}
-                >
-                    Đăng ký nhà tuyển dụng
-                </Text>
-            </TouchableOpacity>
-            <Button
-                icon="logout"
-                onPress={() => dispatch({ type: "logout" })}
-                style={[MyStyles.m, { backgroundColor: Colors.PRIMARY, borderRadius: 12 }]}
-                labelStyle={{ color: Colors.WHITE, fontSize: 18, fontWeight: "bold" }}
-                activeOpacity={0.6}
-            >
-                Đăng xuất
-            </Button>
 
+                {/* Employer Specific Options */}
+                {user.role === 'employer' ? (
+                    <View>
+                        {/* Company Information Section */}
+                        <View style={styles.sectionCard}>
+                            <Text style={styles.sectionTitle}>
+                                Thông tin công ty
+                            </Text>
+                            {loading ? (
+                                <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                            ) : (
+                                <>
+                                    <Text style={styles.companyName}>
+                                        {companyDetails?.company_name || "Đang tải thông tin công ty..."}
+                                    </Text>
+                                    <Text style={styles.companyDetail}>
+                                        {companyDetails?.company_address || ""}
+                                    </Text>
+                                    <Text style={styles.companyDetail}>
+                                        {companyDetails?.company_email || ""}
+                                    </Text>
+                                </>
+                            )}
+                        </View>
+
+                        {/* Post Job Button for employers */}
+                        <TouchableOpacity
+                            onPress={navigateToPostJob}
+                            style={styles.actionButton}
+                        >
+                            <Text style={styles.actionButtonText}>
+                                Đăng tin tuyển dụng
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    // Candidate-specific options
+                    <TouchableOpacity
+                        onPress={navigateToEmployerRegister}
+                        style={styles.actionButton}
+                    >
+                        <Text style={styles.actionButtonText}>
+                            Đăng ký nhà tuyển dụng
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Logout Button */}
+                <Button
+                    icon="logout"
+                    onPress={() => dispatch({ type: "logout" })}
+                    style={styles.logoutButton}
+                    labelStyle={styles.logoutButtonText}
+                    activeOpacity={0.6}
+                >
+                    Đăng xuất
+                </Button>
+            </ScrollView>
         </SafeAreaView>
     );
 };
 
-const styles = {
-    container: {
+const styles = StyleSheet.create({
+    header: {
+        backgroundColor: Colors.PRIMARY,
+        padding: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    headerTitle: {
+        color: Colors.WHITE,
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    profileCard: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 8,
+        marginHorizontal: 10,
+        marginTop: 10,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1.5,
+    },
+    profileHeader: {
+        flexDirection: 'row',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    avatarContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#e6f0ff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+    },
+    avatarText: {
+        fontSize: 40,
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+    },
+    cameraIcon: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 15,
+        width: 30,
+        height: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+    },
+    statsContainer: {
         flex: 1,
-        backgroundColor: Colors.BG_GRAY,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        paddingLeft: 10,
+    },
+    statItem: {
+        alignItems: 'center',
+    },
+    statNumber: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: Colors.BLACK,
+    },
+    statLabel: {
+        fontSize: 12,
+        color: Colors.GRAY,
+        textAlign: 'center',
+        maxWidth: 80,
+    },
+    userInfoContainer: {
+        padding: 15,
+    },
+    userName: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.BLACK,
+    },
+    userRole: {
+        fontSize: 16,
+        color: Colors.GRAY,
+        marginTop: 5,
+    },
+    userExperience: {
+        fontSize: 16,
+        color: Colors.GRAY,
+        marginTop: 2,
+    },
+    contactRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    contactText: {
+        marginLeft: 10,
+        fontSize: 14,
+        color: Colors.BLACK,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#f0f0f0',
+        marginVertical: 15,
+    },
+    editButton: {
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
+        paddingVertical: 10,
     },
-    title: {
-        fontSize: 32,
-        fontWeight: 'bold',
+    editButtonText: {
         color: Colors.PRIMARY,
-        marginBottom: 40,
+        fontSize: 16,
+        fontWeight: '500',
+        marginLeft: 8,
     },
-    avatar: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        marginBottom: 20,
-        borderWidth: 2,
-        borderColor: Colors.SECONDARY,
+    sectionCard: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 8,
+        padding: 15,
+        marginHorizontal: 10,
+        marginTop: 15,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1.5,
     },
-    username: {
-        fontSize: 24,
-        color: Colors.BLACK, marginBottom: 40,
-    },
-    button: {
-        backgroundColor: Colors.PRIMARY,
-        paddingVertical: 5,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-    },
-    buttonText: {
-        color: Colors.WHITE,
+    sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
+        color: Colors.PRIMARY,
+        marginBottom: 10,
     },
-};
+    companyName: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: Colors.BLACK,
+        marginBottom: 5,
+    },
+    companyDetail: {
+        fontSize: 14,
+        color: Colors.GRAY,
+        marginBottom: 3,
+    },
+    actionButton: {
+        backgroundColor: Colors.PRIMARY,
+        borderRadius: 8,
+        padding: 15,
+        marginHorizontal: 10,
+        marginTop: 15,
+        alignItems: 'center',
+        elevation: 2,
+    },
+    actionButtonText: {
+        color: Colors.WHITE,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    logoutButton: {
+        backgroundColor: Colors.PRIMARY,
+        borderRadius: 8,
+        marginHorizontal: 10,
+        marginTop: 20,
+        paddingVertical: 8,
+    },
+    logoutButtonText: {
+        color: Colors.WHITE,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+});
 
 export default Profile;

@@ -79,7 +79,7 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
     @action(methods=['get'], url_path='current-company', detail=False)
     def get_current_company(self, request):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         try:
             # Nếu user chưa có công ty
             if not hasattr(request.user, 'employer_profile'):
