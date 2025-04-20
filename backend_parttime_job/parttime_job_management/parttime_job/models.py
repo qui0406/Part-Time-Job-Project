@@ -54,16 +54,6 @@ class User(AbstractUser, BaseModel):
         return self.username
     
     
-# class CandidateProfile(BaseModel):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="candidate_profile")
-#     full_name = models.CharField(max_length=255)
-#     phone = models.CharField(max_length=20)
-#     address = models.TextField(blank=True)
-#     cv = models.FileField(upload_to="cvs/", null=True, blank=True) # up load CV
-
-#     def __str__(self):
-#         return self.full_name
-    
 class Company(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="employer_profile")
     company_name = models.CharField(max_length=255)
@@ -116,21 +106,38 @@ class Location(models.Model):
         return self.name
 
 
-    
-# class Application(models.Model):
-#     STATUS_CHOICES = (
-#         ('pending', 'Đang chờ'),
-#         ('accepted', 'Đã chấp nhận'),
-#         ('rejected', 'Đã từ chối'),
-#     )
-#     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="applications")
-#     candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name="applications")
-#     cv = models.FileField(upload_to="applications/", null=True, blank=True)
-#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-#     created_at = models.DateTimeField(auto_now_add=True)
+class CandidateProfile(BaseModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="candidate_profile")
+    address = models.TextField(blank=True)
+    cv = models.FileField(upload_to="cvs/", null=False) # up load CV
 
-#     class Meta:
-#         unique_together = ('job', 'candidate')
+    def __str__(self):
+        return self.user.last_name + " " + self.user.first_name
+    
+
+class Application(BaseModel):
+    STATUS_CHOICES = (
+        ('pending', 'Đang chờ'),
+        ('accepted', 'Đã chấp nhận'),
+        ('rejected', 'Đã từ chối'),
+    )
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="applications")
+    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name="applications")
+    cv = models.FileField(upload_to="applications/", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    class Meta:
+        unique_together = ('job', 'candidate')
+
+class VerificationDocument(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    document = models.FileField(upload_to="verifications/")
+    status = models.CharField(max_length=20, choices=(
+        ('pending', 'Đang chờ'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối'),
+    ), default='pending')
+    submitted_at = models.DateTimeField(auto_now_add=True)
 
 
 # class FollowCompany(BaseModel):
@@ -157,13 +164,5 @@ class Location(models.Model):
 #     created_at = models.DateTimeField(auto_now_add=True)
 
 
-# class VerificationDocument(BaseModel):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     document = models.FileField(upload_to="verifications/")
-#     status = models.CharField(max_length=20, choices=(
-#         ('pending', 'Đang chờ'),
-#         ('approved', 'Đã duyệt'),
-#         ('rejected', 'Từ chối'),
-#     ), default='pending')
-#     submitted_at = models.DateTimeField(auto_now_add=True)
+
 

@@ -191,6 +191,30 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
 
     def list(self, request):
         queryset = self.get_queryset()
+
+        title = request.query_params.get('title')
+        min_salary = request.query_params.get('min_salary')
+        max_salary = request.query_params.get('max_salary')
+        location = request.query_params.get('location')
+        work_time = request.query_params.get('work_time')
+
+        if title:
+            queryset = queryset.filter(title__icontains=title)
+        
+        if min_salary:
+            queryset = queryset.filter(salary__gte=min_salary)
+        if max_salary:
+            queryset = queryset.filter(salary__lte=max_salary)
+        
+        if location:
+            queryset = queryset.filter(locations__name__icontains=location)
+
+        if work_time:
+            queryset = queryset.filter(working_time__icontains=work_time)
+
+         # Tránh trùng dữ liệu nếu một job có nhiều location phù hợp
+        queryset = queryset.distinct()
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -301,3 +325,4 @@ class LocationViewSet(viewsets.ViewSet, generics.ListAPIView):
         
         location.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
