@@ -21,9 +21,9 @@ export default function PostJob() {
     const [job, setJob] = useState({
         title: '',
         description: '',
-        requirements: '',
+        skills: '',
         salary: '',
-        location: '',
+        working_time: '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -37,13 +37,15 @@ export default function PostJob() {
     };
 
     const postJob = async () => {
-        if (!job.title || !job.description || !job.requirements || !job.salary || !job.location) {
+        if (!job.title || !job.description || !job.skills || !job.salary || !job.working_time) {
             setError('Vui lòng điền đầy đủ thông tin bắt buộc');
             return;
         }
 
         setLoading(true);
         setError('');
+
+        console.log('Job data:', job); // Log the job data to check its structure
 
         try {
             const token = await AsyncStorage.getItem('token');
@@ -52,12 +54,20 @@ export default function PostJob() {
                 setLoading(false);
                 return;
             }
+            
+            const formData = new FormData();
+            for (const key in job) {
+                formData.append(key, job[key]);
+            }
 
-            const res = await authApi(token).post(endpoints['create-post-job'], job, {
+            const res = await authApi(token).post(endpoints['create-post-job'], formData, {
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'multipart/form-data',  // hoặc bỏ luôn cho axios tự thêm
                 },
             });
+
+
+            
 
             if (res.status === 201) {
                 Alert.alert(
@@ -88,7 +98,7 @@ export default function PostJob() {
         },
         {
             label: 'Yêu cầu ứng viên *',
-            field: 'requirements',
+            field: 'skills',
             placeholder: 'Yêu cầu kỹ năng, kinh nghiệm, v.v.',
             multiline: true,
         },
@@ -98,9 +108,9 @@ export default function PostJob() {
             placeholder: 'Nhập mức lương (VD: 10-15 triệu)',
         },
         {
-            label: 'Địa điểm làm việc *',
-            field: 'location',
-            placeholder: 'Nhập địa điểm làm việc',
+            label: 'Thời gian làm việc *',
+            field: 'working_time',
+            placeholder: 'Thời gian làm việc (VD: 8h-17h)',
         },
     ];
 
