@@ -12,6 +12,8 @@ import Register from './components/Auth/Register';
 import ForgotPassword from './components/Auth/ForgotPassword';
 import VerifyPassword from './components/Auth/VerifyPassword';
 import Profile from './components/Auth/Profile';
+
+import EditProfile from './components/Auth/EditProfile';
 import HomeScreen from './components/Home/Home';
 import EmployerRegister from './components/Auth/EmployerRegister';
 import EmployerSubmittedScreen from './components/Auth/EmployerSubmittedScreen';
@@ -131,6 +133,7 @@ export default function App() {
               component={CompanyApprovalScreen} 
              
             />
+            <RootStack.Screen name="EditProfile" component={EditProfile} />
           </RootStack.Navigator>
         </MyDispacthContext.Provider>
       </MyUserContext.Provider>
