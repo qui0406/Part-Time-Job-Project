@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.140:8000'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -18,7 +18,6 @@ export const endpoints = {
     'create-employer': '/company/create-company/',
     'current-company': '/company/current-company/',
     'update-company': '/company/update-company/',
-
     'create-post-job': '/job/create-job/',
 }
 

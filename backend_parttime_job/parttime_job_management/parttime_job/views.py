@@ -17,7 +17,7 @@ from django.http import JsonResponse
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-
+from rest_framework.parsers import JSONParser, FormParser
 
 @csrf_exempt
 def debug_token_view(request):
@@ -219,20 +219,21 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    
     @action(methods=['post'], url_path='create-job', detail=False)
     def create_job(self, request):
+
         try:
             # Find the company associated with the user
             company = Company.objects.get(user=request.user, active=True, is_approved=True)
         except Company.DoesNotExist:
             return Response({"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."}, status=status.HTTP_403_FORBIDDEN)
-
         serializer = JobSerializer(data=request.data, context={'request': request, 'company': company})
-
         if serializer.is_valid():
+            
             serializer.save(company=company)  # Gán company vào serializer trước khi lưu
             return Response({"message": "Tin tuyển dụng đã được tạo thành công!"}, status=status.HTTP_201_CREATED)
-
+            
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['put', 'patch'], url_path='update-job/(?P<job_id>[^/.]+)', detail=False)
