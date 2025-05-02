@@ -196,7 +196,7 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         title = request.query_params.get('title')
         min_salary = request.query_params.get('min_salary')
         max_salary = request.query_params.get('max_salary')
-        location = request.query_params.get('location')
+        # location = request.query_params.get('location')
         work_time = request.query_params.get('work_time')
 
         if title:
@@ -207,8 +207,8 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         if max_salary:
             queryset = queryset.filter(salary__lte=max_salary)
         
-        if location:
-            queryset = queryset.filter(locations__name__icontains=location)
+        # if location:
+        #     queryset = queryset.filter(locations__name__icontains=location)
 
         if work_time:
             queryset = queryset.filter(working_time__icontains=work_time)

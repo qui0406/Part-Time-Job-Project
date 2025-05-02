@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.18']
+ALLOWED_HOSTS = ['192.168.1.6']
 
 
 
@@ -168,7 +168,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'parttimejobmanagement',
         'USER': 'root',
-        'PASSWORD': '12345678',
+        'PASSWORD': 'Think!7688',
         'HOST': '' # mặc định localhost
     }
 }
@@ -245,3 +245,6 @@ LOGOUT_REDIRECT_URL = '/'
 
 CLIENT_ID= 'w1O2z0ABBBpJEqx0OwwnefLaZsI54cszC2TzUWqk'
 CLIENT_SECRET='94DQx75eW8F1vzaVGvE62psfWgcLRPcyFBaBbbYUooH18YGp0rFOcO7Aj8OrMZJIKsaHjxYBSp6Sln4gBOptnyEzHk9Jr8pll22FUCR7Hq4RMKoU5u6WHUVRFoGb7oDP'
+
+client_id: 'yrxHM4IVS0VYNk49UPborlwuxLby1EUH91ASxfUo'
+client_secret: 'DjJegQAdcXZjvbKz52L9FVyMxxyXv92pDr8UuOE4I3FhtIaYHQRgXnm9oJHT8xMcezvGVmFf0fE2yJaApSlchJwSD2gUbwmnA5nszfSEeOPBSlXZ7JUsbOpz473qpaoJ'

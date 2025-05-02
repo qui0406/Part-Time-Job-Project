@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, ActivityIndicator, FlatList } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Icon } from "react-native-paper";
+import { Button, Icon, Card, Divider } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import Colors from "./../../constants/Colors";
 import { MyDispacthContext, MyUserContext } from "./../../contexts/UserContext";
@@ -14,11 +14,14 @@ const Profile = () => {
     const dispatch = useContext(MyDispacthContext);
     const nav = useNavigation();
     const [companyDetails, setCompanyDetails] = useState(null);
+    const [companyJobs, setCompanyJobs] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [jobsLoading, setJobsLoading] = useState(false);
 
     useEffect(() => {
         if (user && user.role === 'employer') {
             fetchCompanyDetails();
+            fetchCompanyJobs();
         }
     }, [user]);
 
@@ -36,6 +39,21 @@ const Profile = () => {
             setLoading(false);
         }
     };
+    
+    const fetchCompanyJobs = async () => {
+        try {
+            setJobsLoading(true);
+            const token = await AsyncStorage.getItem('token');
+            if (token) {
+                const response = await authApi(token).get(endpoints['company-jobs']);
+                setCompanyJobs(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching company jobs:", error);
+        } finally {
+            setJobsLoading(false);
+        }
+    };
 
     const navigateToEditProfile = () => {
         nav.navigate('EditProfile', { user, companyDetails });
@@ -48,6 +66,11 @@ const Profile = () => {
     const navigateToPostJob = () => {
         nav.navigate('PostJob');
     };
+    
+    const navigateToJobDetail = (job) => {
+        // Thêm chức năng điều hướng đến chi tiết công việc nếu cần
+        nav.navigate('JobDetail', { job });
+    };
 
     if (!user) {
         return (
@@ -56,6 +79,36 @@ const Profile = () => {
             </SafeAreaView>
         );
     }
+
+    const renderJobItem = ({ item }) => (
+        <TouchableOpacity onPress={() => navigateToJobDetail(item)}>
+            <Card style={styles.jobCard}>
+                <Card.Content>
+                    <Text style={styles.jobTitle}>{item.title}</Text>
+                    <View style={styles.jobInfo}>
+                        <Icon source="cash" size={16} color={Colors.PRIMARY} />
+                        <Text style={styles.jobDetailText}>{item.salary}</Text>
+                    </View>
+                    <View style={styles.jobInfo}>
+                        <Icon source="clock-outline" size={16} color={Colors.PRIMARY} />
+                        <Text style={styles.jobDetailText}>{item.working_time}</Text>
+                    </View>
+                    {item.locations && item.locations.length > 0 && (
+                        <View style={styles.jobInfo}>
+                            <Icon source="map-marker" size={16} color={Colors.PRIMARY} />
+                            <Text style={styles.jobDetailText}>
+                                {item.locations.map(loc => loc.name).join(', ')}
+                            </Text>
+                        </View>
+                    )}
+                    <Divider style={styles.divider} />
+                    <Text numberOfLines={2} style={styles.jobDescription}>
+                        {item.description}
+                    </Text>
+                </Card.Content>
+            </Card>
+        </TouchableOpacity>
+    );
 
     return (
         <SafeAreaView style={[MyStyles.container, { flex: 1, backgroundColor: Colors.WHITE }]}>
@@ -160,6 +213,33 @@ const Profile = () => {
                                 Đăng tin tuyển dụng
                             </Text>
                         </TouchableOpacity>
+                        
+                        {/* Company Jobs Section */}
+                        <View style={styles.sectionCard}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>
+                                    Tin tuyển dụng của công ty
+                                </Text>
+                                <Text style={styles.jobCount}>
+                                    {companyJobs.length} tin
+                                </Text>
+                            </View>
+                            
+                            {jobsLoading ? (
+                                <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                            ) : companyJobs.length > 0 ? (
+                                <FlatList
+                                    data={companyJobs}
+                                    renderItem={renderJobItem}
+                                    keyExtractor={item => item.id.toString()}
+                                    scrollEnabled={false}
+                                />
+                            ) : (
+                                <Text style={styles.noJobsText}>
+                                    Công ty chưa có tin tuyển dụng nào. Hãy đăng tin ngay!
+                                </Text>
+                            )}
+                        </View>
                     </View>
                 ) : (
                     // Candidate-specific options
@@ -323,11 +403,20 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 1.5,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
-        marginBottom: 10,
+    },
+    jobCount: {
+        fontSize: 14,
+        color: Colors.GRAY,
     },
     companyName: {
         fontSize: 16,
@@ -355,7 +444,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     logoutButton: {
-        backgroundColor: Colors.PRIMARY,
+        backgroundColor: "#d9534f",
         borderRadius: 8,
         marginHorizontal: 10,
         marginTop: 20,
@@ -366,6 +455,39 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    jobCard: {
+        marginBottom: 10,
+        elevation: 1,
+        borderRadius: 8,
+    },
+    jobTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.BLACK,
+        marginBottom: 8,
+    },
+    jobInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    jobDetailText: {
+        fontSize: 14,
+        color: Colors.GRAY,
+        marginLeft: 8,
+    },
+    jobDescription: {
+        fontSize: 14,
+        color: Colors.GRAY,
+        marginTop: 5,
+    },
+    noJobsText: {
+        fontSize: 14,
+        color: Colors.GRAY,
+        fontStyle: 'italic',
+        textAlign: 'center',
+        paddingVertical: 20,
+    }
 });
 
 export default Profile;
