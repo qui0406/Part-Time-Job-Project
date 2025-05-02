@@ -61,12 +61,12 @@ export default function Login() {
     }
     console.log(user)
     try {
-      
+
       let res = await APIs.post(endpoints['login'],
         qs.stringify({
           ...user,
-          client_id: 'w1O2z0ABBBpJEqx0OwwnefLaZsI54cszC2TzUWqk',
-          client_secret: '94DQx75eW8F1vzaVGvE62psfWgcLRPcyFBaBbbYUooH18YGp0rFOcO7Aj8OrMZJIKsaHjxYBSp6Sln4gBOptnyEzHk9Jr8pll22FUCR7Hq4RMKoU5u6WHUVRFoGb7oDP',
+          client_id: 'Z79txCfxhQDClcXIxfzZUsyh7gm5AbzYCOHmJaxj',
+          client_secret: 'A2FFyr0Je6WlIlhTFGYuKSHfzXvGVYlEXDiCB1XaPocpNB3qBcOXMdwYxNuRi403c2yezr4YbO1MjTmSSv7o6ZWflmaOVF6aQgxe9xrXXqTXQkygKg9k1CBK0MSvFGDr',
           grant_type: 'password',
         }),
         {
@@ -81,7 +81,7 @@ export default function Login() {
 
 
         let user = await authApi(res.data.access_token).get(endpoints['current-user']);
-        
+
         dispatch({ "type": 'login', "payload": user.data });
 
         // Lưu access_token vào AsyncStorage
@@ -94,7 +94,7 @@ export default function Login() {
     } catch (ex) {
       console.log(ex)
     }
-    
+
     finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ export default function Login() {
               source={require('./../../assets/logo.png')} // Thay bằng đường dẫn logo của bạn
               style={styles.logo}
               resizeMode="contain"
-            />            
+            />
             {fields.map((f) => (
               <TextInput
                 placeholderTextColor={Colors.GRAY}
@@ -136,7 +136,7 @@ export default function Login() {
                 secureTextEntry={f.secureTextEntry}
               />
             ))}
-            <TouchableOpacity onPress={()=> router.push('ForgotPassword')}>
+            <TouchableOpacity onPress={() => router.push('ForgotPassword')}>
               <Text style={styles.forgotPassword}>Quên Mật Khẩu?</Text>
             </TouchableOpacity>
             <HelperText type="error" visible={error}>
