@@ -10,8 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import pymysql  # type: ignore
+from cloudinary.utils import cloudinary_url  # type: ignore
+import cloudinary.uploader  # type: ignore
+import cloudinary  # type: ignore
 from pathlib import Path
-import os 
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,7 +53,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'django_rest_passwordreset',
     'django_extensions',
-    'drf_spectacular',  
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -77,12 +81,12 @@ SWAGGER_SETTINGS = {
 }
 
 REDOC_SETTINGS = {
-   'LAZY_RENDERING': False,
+    'LAZY_RENDERING': False,
 }
 
 AUTHENTICATION_BACKENDS = [
-   'parttime_job.auth_backend.EmailAuthBackend',
-    'django.contrib.auth.backends.ModelBackend'  
+    'parttime_job.auth_backend.EmailAuthBackend',
+    'django.contrib.auth.backends.ModelBackend'
 ]
 
 
@@ -92,22 +96,19 @@ ROOT_URLCONF = 'parttime_job_management.urls'
 
 LOGIN_URL = '/login/'
 
-import cloudinary # type: ignore
-import cloudinary.uploader # type: ignore
-from cloudinary.utils import cloudinary_url # type: ignore
 
 # Configuration
 cloudinary.config(
-    cloud_name = "do43r8nr0",
-    api_key = "947875495844325",
-    api_secret = "evQEPk5TbxIMpCWbbXl8sLMbo6A", # Click 'View API Keys' above to copy your API secret
+    cloud_name="do43r8nr0",
+    api_key="947875495844325",
+    # Click 'View API Keys' above to copy your API secret
+    api_secret="evQEPk5TbxIMpCWbbXl8sLMbo6A",
     secure=True
 )
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication'
     ),
@@ -136,7 +137,6 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-import pymysql # type: ignore
 pymysql.install_as_MySQLdb()
 
 TEMPLATES = [
@@ -191,7 +191,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 
 # Internationalization

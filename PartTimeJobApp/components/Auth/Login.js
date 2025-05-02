@@ -61,7 +61,7 @@ export default function Login() {
     }
     console.log(user)
     try {
-      
+
       let res = await APIs.post(endpoints['login'],
         qs.stringify({
           ...user,
@@ -81,7 +81,7 @@ export default function Login() {
 
 
         let user = await authApi(res.data.access_token).get(endpoints['current-user']);
-        
+
         dispatch({ "type": 'login', "payload": user.data });
 
         // Lưu access_token vào AsyncStorage
@@ -94,7 +94,7 @@ export default function Login() {
     } catch (ex) {
       console.log(ex)
     }
-    
+
     finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ export default function Login() {
               source={require('./../../assets/logo.png')} // Thay bằng đường dẫn logo của bạn
               style={styles.logo}
               resizeMode="contain"
-            />            
+            />
             {fields.map((f) => (
               <TextInput
                 placeholderTextColor={Colors.GRAY}
@@ -136,7 +136,7 @@ export default function Login() {
                 secureTextEntry={f.secureTextEntry}
               />
             ))}
-            <TouchableOpacity onPress={()=> router.push('ForgotPassword')}>
+            <TouchableOpacity onPress={() => router.push('ForgotPassword')}>
               <Text style={styles.forgotPassword}>Quên Mật Khẩu?</Text>
             </TouchableOpacity>
             <HelperText type="error" visible={error}>
