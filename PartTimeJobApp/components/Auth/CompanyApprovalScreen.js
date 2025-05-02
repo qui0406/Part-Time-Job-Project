@@ -52,31 +52,41 @@ export default function CompanyApprovalScreen({ route, navigation }) {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem('token');
-            
-            const approvalData = {
-                is_approved: isApproved,
-                reason: isApproved ? 'Đã phê duyệt' : rejectReason,
-            };
 
-            await authApi(token).post(`/company-approved/${companyId}/is-approved/`, approvalData);
-            
+            // Tạo FormData
+            const formData = new FormData();
+            formData.append('is_approved', isApproved.toString());
+            formData.append('reason', isApproved ? 'Đã phê duyệt' : rejectReason);
+
+            // Gửi yêu cầu POST với FormData
+            await authApi(token).post(`/company-approved/${companyId}/is-approved/`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
             Alert.alert(
                 'Thành công',
                 `Đã ${isApproved ? 'phê duyệt' : 'từ chối'} yêu cầu đăng ký nhà tuyển dụng`,
                 [{
                     text: 'OK',
                     onPress: () => {
-                        // Điều hướng đến tab Notifications trong MainTab
                         navigation.navigate('MainTab', {
                             screen: 'Notifications',
-                            params: { refresh: true }
+                            params: { refresh: true },
                         });
-                    }
-                }]
+                    },
+                }],
             );
         } catch (error) {
             console.error('Error approving/rejecting company:', error);
-            Alert.alert('Lỗi', 'Không thể xử lý yêu cầu');
+            if (error.response) {
+                console.log('Error details:', error.response.data);
+                Alert.alert('Lỗi', `Không thể xử lý yêu cầu: ${JSON.stringify(error.response.data)}`);
+            } else {
+                Alert.alert('Lỗi', 'Không thể xử lý yêu cầu');
+            }
         } finally {
             setLoading(false);
             setModalVisible(false);
@@ -96,12 +106,12 @@ export default function CompanyApprovalScreen({ route, navigation }) {
         return (
             <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Không tìm thấy thông tin công ty</Text>
-                <Button 
-                    mode="contained" 
+                <Button
+                    mode="contained"
                     onPress={() => navigation.goBack()}
                     style={styles.backButton}
                 >
-                    Quay lại
+                    <Text style={styles.buttonLabel}>Quay lại</Text>
                 </Button>
             </View>
         );
@@ -111,36 +121,36 @@ export default function CompanyApprovalScreen({ route, navigation }) {
         <SafeAreaView style={styles.container}>
             <ScrollView>
                 <Card style={styles.card}>
-                    <Card.Title 
-                        title="Thông tin công ty" 
-                        titleStyle={styles.cardTitle}
-                    />
+                    <Card.Title title="Thông tin công ty" titleStyle={styles.cardTitle} />
                     <Card.Content>
                         <View style={styles.infoSection}>
                             <Text style={styles.label}>Tên công ty:</Text>
-                            <Text style={styles.value}>{company.company_name}</Text>
+                            <Text style={styles.value}>{company.company_name || 'Chưa cung cấp'}</Text>
                         </View>
-
                         <View style={styles.infoSection}>
                             <Text style={styles.label}>Địa chỉ:</Text>
-                            <Text style={styles.value}>{company.company_address}</Text>
+                            <Text style={styles.value}>{company.address || 'Chưa cung cấp'}</Text>
                         </View>
-
                         <View style={styles.infoSection}>
                             <Text style={styles.label}>Email:</Text>
-                            <Text style={styles.value}>{company.company_email}</Text>
+                            <Text style={styles.value}>{company.company_email || 'Chưa cung cấp'}</Text>
                         </View>
-
                         <View style={styles.infoSection}>
                             <Text style={styles.label}>Số điện thoại:</Text>
                             <Text style={styles.value}>{company.company_phone || 'Chưa cung cấp'}</Text>
                         </View>
-
                         <View style={styles.infoSection}>
                             <Text style={styles.label}>Mã số thuế:</Text>
                             <Text style={styles.value}>{company.tax_id || 'Chưa cung cấp'}</Text>
                         </View>
-
+                        <View style={styles.infoSection}>
+                            <Text style={styles.label}>Vĩ độ:</Text>
+                            <Text style={styles.value}>{company.latitude || 'Chưa cung cấp'}</Text>
+                        </View>
+                        <View style={styles.infoSection}>
+                            <Text style={styles.label}>Kinh độ:</Text>
+                            <Text style={styles.value}>{company.longitude || 'Chưa cung cấp'}</Text>
+                        </View>
                         <View style={styles.infoSection}>
                             <Text style={styles.label}>Mô tả:</Text>
                             <Text style={styles.value}>{company.description || 'Không có mô tả'}</Text>
@@ -149,19 +159,22 @@ export default function CompanyApprovalScreen({ route, navigation }) {
                 </Card>
 
                 <Card style={styles.card}>
-                    <Card.Title 
-                        title="Hình ảnh môi trường làm việc" 
-                        titleStyle={styles.cardTitle}
-                    />
+                    <Card.Title title="Hình ảnh môi trường làm việc" titleStyle={styles.cardTitle} />
                     <Card.Content>
                         <ScrollView horizontal={true} style={styles.imagesContainer}>
-                            {company.image_list && company.image_list.map((image, index) => (
-                                <Image
-                                    key={index}
-                                    source={{ uri: image.image }}
-                                    style={styles.companyImage}
-                                />
-                            ))}
+                            {company.image_list && company.image_list.length > 0 ? (
+                                company.image_list.map((image, index) =>
+                                    image.image ? (
+                                        <Image
+                                            key={index}
+                                            source={{ uri: image.image }}
+                                            style={styles.companyImage}
+                                        />
+                                    ) : null,
+                                )
+                            ) : (
+                                <Text style={styles.value}>Không có hình ảnh</Text>
+                            )}
                         </ScrollView>
                     </Card.Content>
                 </Card>
@@ -173,7 +186,7 @@ export default function CompanyApprovalScreen({ route, navigation }) {
                         style={[styles.approvalButton, { backgroundColor: Colors.PRIMARY }]}
                         labelStyle={styles.buttonLabel}
                     >
-                        Phê duyệt
+                        <Text style={styles.buttonLabel}>Phê duyệt</Text>
                     </Button>
                     <Button
                         mode="contained"
@@ -181,12 +194,11 @@ export default function CompanyApprovalScreen({ route, navigation }) {
                         style={[styles.approvalButton, { backgroundColor: Colors.RED }]}
                         labelStyle={styles.buttonLabel}
                     >
-                        Từ chối
+                        <Text style={styles.buttonLabel}>Từ chối</Text>
                     </Button>
                 </View>
             </ScrollView>
 
-            {/* Modal từ chối */}
             <Modal
                 animationType="slide"
                 transparent={true}

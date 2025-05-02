@@ -87,7 +87,7 @@ export default function Login() {
         // Lưu access_token vào AsyncStorage
         // Lưu thông tin người dùng vào AsyncStorage
         AsyncStorage.setItem('user', JSON.stringify(user.data));
-        nav.navigate('Home');
+        nav.replace('MainTab')
       }, 100)
 
 
@@ -136,7 +136,7 @@ export default function Login() {
                 secureTextEntry={f.secureTextEntry}
               />
             ))}
-            <TouchableOpacity onPress={() => router.push('ForgotPassword')}>
+            <TouchableOpacity onPress={() => nav.navigate('ForgotPassword')}>
               <Text style={styles.forgotPassword}>Quên Mật Khẩu?</Text>
             </TouchableOpacity>
             <HelperText type="error" visible={error}>

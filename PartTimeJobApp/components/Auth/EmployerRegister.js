@@ -12,26 +12,28 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
-    Image, // Thêm Image để hiển thị hình ảnh đã chọn
+    Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from './../../constants/Colors';
 import APIs, { authApi, endpoints } from './../../configs/APIs';
 import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker'; // Thêm expo-image-picker
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EmployerRegister() {
     const [loading, setLoading] = useState(false);
     const [employer, setEmployer] = useState({
         company_name: '',
-        company_address: '',
+        address: '',
         company_email: '',
         tax_id: '',
         company_phone: '',
         description: '',
-        images: [], // Thêm trường images để lưu danh sách hình ảnh
+        latitude: '', // Lưu dưới dạng chuỗi trong state
+        longitude: '', // Lưu dưới dạng chuỗi trong state
+        images: [],
     });
     const [error, setError] = useState('');
     const navigation = useNavigation();
@@ -89,7 +91,7 @@ export default function EmployerRegister() {
 
     const registerEmployer = async () => {
         // Kiểm tra các trường bắt buộc
-        if (!employer.company_name || !employer.company_address || !employer.company_email) {
+        if (!employer.company_name || !employer.address || !employer.company_email) {
             setError('Vui lòng điền đầy đủ thông tin bắt buộc');
             return;
         }
@@ -100,7 +102,6 @@ export default function EmployerRegister() {
             return;
         }
 
-        
         setLoading(true);
         setError('');
 
@@ -108,30 +109,43 @@ export default function EmployerRegister() {
             const token = await AsyncStorage.getItem('token');
             console.log('token:', token);
             let form = new FormData();
+
             // Thêm các trường thông tin khác
             for (let field in employer) {
                 if (field !== 'images') {
-                    form.append(field, employer[field]);
+                    // Chuyển đổi latitude và longitude từ chuỗi sang số thực
+                    if (field === 'latitude' || field === 'longitude') {
+                        const value = employer[field] ? parseFloat(employer[field].replace(',', '.')) : 0;
+                        form.append(field, value);
+                    } else {
+                        form.append(field, employer[field]);
+                    }
                 }
             }
 
-            // Thêm hình ảnh vào form
+            // Thêm hình ảnh vào form với tên trường là "images"
             employer.images.forEach((image, index) => {
                 form.append('images', {
                     name: image.fileName || `image_${index}.jpg`,
-                    type: image.type || 'image/jpeg',
+                    type: image.mimeType || 'image/jpeg',
                     uri: Platform.OS === 'ios' ? image.uri.replace('file://', '') : image.uri,
                 });
             });
+
+            // Log dữ liệu form để kiểm tra
+            const formDataEntries = [];
             for (var pair of form.entries()) {
-                console.log(`${pair[0]}:`, pair[1]);
-            }            
-            console.log('Form data:', form); // Kiểm tra dữ liệu form trước khi gửi
+                formDataEntries.push([pair[0], pair[1]]);
+            }
+            console.log('Form data entries:', formDataEntries);
+
+            // Gửi yêu cầu đến endpoint đúng
             let res = await authApi(token).post(endpoints['create-employer'], form, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
+
             console.log('Response:', res.data);
             if (res.status === 201) {
                 Alert.alert(
@@ -142,7 +156,16 @@ export default function EmployerRegister() {
             }
         } catch (error) {
             console.error('Error registering employer:', error);
-            setError('Đã xảy ra lỗi khi đăng ký thông tin nhà tuyển dụng');
+            if (error.response && error.response.data) {
+                const errors = error.response.data;
+                let errorMessage = '';
+                for (let field in errors) {
+                    errorMessage += `${field}: ${errors[field].join(', ')}\n`;
+                }
+                setError(errorMessage || 'Đã xảy ra lỗi khi đăng ký thông tin nhà tuyển dụng');
+            } else {
+                setError('Đã xảy ra lỗi khi đăng ký thông tin nhà tuyển dụng');
+            }
         } finally {
             setLoading(false);
         }
@@ -156,7 +179,7 @@ export default function EmployerRegister() {
         },
         {
             label: 'Địa chỉ công ty *',
-            field: 'company_address',
+            field: 'address',
             placeholder: 'Nhập địa chỉ công ty',
         },
         {
@@ -175,6 +198,16 @@ export default function EmployerRegister() {
             label: 'Mã số thuế',
             field: 'tax_id',
             placeholder: 'Nhập mã số thuế',
+        },
+        {
+            label: 'Kinh độ',
+            field: 'latitude',
+            placeholder: 'Nhập kinh độ (ví dụ: 10.722)',
+        },
+        {
+            label: 'Vĩ độ',
+            field: 'longitude',
+            placeholder: 'Nhập vĩ độ (ví dụ: 106.29282)',
         },
         {
             label: 'Mô tả công ty',
@@ -270,12 +303,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.PRIMARY,
         marginBottom: 40,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 16,
-        color: Colors.GRAY,
-        marginBottom: 20,
         textAlign: 'center',
     },
     fieldContainer: {

@@ -28,17 +28,19 @@ const EditProfile = () => {
     // Company state (only for employers)
     const [companyData, setCompanyData] = useState({
         company_name: companyDetails?.company_name || "",
-        company_address: companyDetails?.company_address || "",
+        address: companyDetails?.address || "",
         company_phone: companyDetails?.company_phone || "",
         company_email: companyDetails?.company_email || "",
         description: companyDetails?.description || "",
+        tax_id: companyDetails?.tax_id || "",
+        latitude: companyDetails?.latitude ? String(companyDetails.latitude) : "",
+        longitude: companyDetails?.longitude ? String(companyDetails.longitude) : "",
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        // If we're missing company details for an employer, fetch them
         if (currentUser?.role === 'employer' && !companyDetails) {
             fetchCompanyDetails();
         }
@@ -52,10 +54,13 @@ const EditProfile = () => {
                 const response = await authApi(token).get(endpoints['current-company']);
                 setCompanyData({
                     company_name: response.data.company_name || "",
-                    company_address: response.data.company_address || "",
+                    address: response.data.address || "",
                     company_phone: response.data.company_phone || "",
                     company_email: response.data.company_email || "",
                     description: response.data.description || "",
+                    tax_id: response.data.tax_id || "",
+                    latitude: response.data.latitude ? String(response.data.latitude) : "",
+                    longitude: response.data.longitude ? String(response.data.longitude) : "",
                 });
             }
         } catch (error) {
@@ -86,22 +91,30 @@ const EditProfile = () => {
             return false;
         }
         
-        // Basic email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(userData.email)) {
             setError("Email không hợp lệ");
             return false;
         }
 
-        // If user is employer, validate company fields
         if (currentUser?.role === 'employer') {
-            if (!companyData.company_name || !companyData.company_address) {
-                setError("Tên công ty và địa chỉ không được để trống");
+            if (!companyData.company_name || !companyData.address || !companyData.tax_id) {
+                setError("Tên công ty, địa chỉ và mã số thuế không được để trống");
                 return false;
             }
             
             if (companyData.company_email && !emailRegex.test(companyData.company_email)) {
                 setError("Email công ty không hợp lệ");
+                return false;
+            }
+
+            if (companyData.latitude && isNaN(parseFloat(companyData.latitude))) {
+                setError("Vĩ độ phải là một số hợp lệ");
+                return false;
+            }
+
+            if (companyData.longitude && isNaN(parseFloat(companyData.longitude))) {
+                setError("Kinh độ phải là một số hợp lệ");
                 return false;
             }
         }
@@ -119,18 +132,14 @@ const EditProfile = () => {
                 return null;
             }
 
-            // Create FormData object
             const formData = new FormData();
             Object.keys(userData).forEach(key => {
-                // Only add non-empty fields
                 if (userData[key] !== null && userData[key] !== undefined && userData[key] !== "") {
                     formData.append(key, userData[key]);
                 }
             });
 
-            // Use the base API configuration but modify headers for this specific request
             const api = authApi(token);
-            
             const response = await api.patch(endpoints['update-user'], formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -153,18 +162,14 @@ const EditProfile = () => {
                 return null;
             }
 
-            // Create FormData object for company details
             const formData = new FormData();
             Object.keys(companyData).forEach(key => {
-                // Only add non-empty fields
                 if (companyData[key] !== null && companyData[key] !== undefined && companyData[key] !== "") {
                     formData.append(key, companyData[key]);
                 }
             });
 
-            // Use the base API configuration but modify headers for this specific request
             const api = authApi(token);
-            
             const response = await api.patch(endpoints['update-company'], formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -186,15 +191,12 @@ const EditProfile = () => {
         try {
             setLoading(true);
             
-            // Update user profile
             await updateUserProfile();
             
-            // If employer, also update company details
             if (currentUser?.role === 'employer' && companyDetails) {
                 await updateCompanyDetails();
             }
 
-            // IMPORTANT: Refresh user data in the context
             const token = await AsyncStorage.getItem('token');
             if (token) {
                 const userResponse = await authApi(token).get(endpoints['current-user']);
@@ -212,7 +214,7 @@ const EditProfile = () => {
         } catch (error) {
             const errorMessage = error.response?.data?.detail || 
                                 error.response?.data?.message || 
-                                "Có lỗi xảy ra khi cập nhật thông tin";
+                                "Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.";
             Alert.alert("Lỗi", errorMessage);
         } finally {
             setLoading(false);
@@ -307,11 +309,21 @@ const EditProfile = () => {
                         </View>
 
                         <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Mã số thuế:</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={companyData.tax_id}
+                                onChangeText={(text) => handleCompanyInputChange("tax_id", text)}
+                                placeholder="Nhập mã số thuế"
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
                             <Text style={styles.label}>Địa chỉ:</Text>
                             <TextInput
                                 style={[styles.input, { height: 80 }]}
-                                value={companyData.company_address}
-                                onChangeText={(text) => handleCompanyInputChange("company_address", text)}
+                                value={companyData.address}
+                                onChangeText={(text) => handleCompanyInputChange("address", text)}
                                 placeholder="Nhập địa chỉ công ty"
                                 multiline
                             />
@@ -336,6 +348,28 @@ const EditProfile = () => {
                                 onChangeText={(text) => handleCompanyInputChange("company_email", text)}
                                 placeholder="Nhập email công ty"
                                 keyboardType="email-address"
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Vĩ độ:</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={companyData.latitude}
+                                onChangeText={(text) => handleCompanyInputChange("latitude", text)}
+                                placeholder="Nhập vĩ độ (latitude)"
+                                keyboardType="numeric"
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Kinh độ:</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={companyData.longitude}
+                                onChangeText={(text) => handleCompanyInputChange("longitude", text)}
+                                placeholder="Nhập kinh độ (longitude)"
+                                keyboardType="numeric"
                             />
                         </View>
 

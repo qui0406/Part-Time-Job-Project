@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Icon } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
@@ -14,14 +14,21 @@ const Profile = () => {
     const dispatch = useContext(MyDispacthContext);
     const nav = useNavigation();
     const [companyDetails, setCompanyDetails] = useState(null);
+    const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [jobsLoading, setJobsLoading] = useState(false);
 
     useEffect(() => {
         if (user && user.role === 'employer') {
             fetchCompanyDetails();
+            fetchJobs();
         }
     }, [user]);
-
+    useEffect(() => {
+        if (companyDetails && user && user.role === 'employer') {
+            fetchJobs(); // Cập nhật jobs khi companyDetails thay đổi
+        }
+    }, [companyDetails]);
     const fetchCompanyDetails = async () => {
         try {
             setLoading(true);
@@ -37,6 +44,23 @@ const Profile = () => {
         }
     };
 
+    const fetchJobs = async () => {
+        try {
+            setJobsLoading(true);
+            const token = await AsyncStorage.getItem('token');
+            if (token && companyDetails && companyDetails.id) {
+                const response = await authApi(token).get(endpoints['job']);
+                // Lọc chỉ các công việc thuộc công ty của người dùng hiện tại
+                const companyJobs = response.data.filter(job => job.company === companyDetails.id);
+                setJobs(companyJobs);
+            }
+        } catch (error) {
+            console.error("Error fetching jobs:", error);
+        } finally {
+            setJobsLoading(false);
+        }
+    };
+
     const navigateToEditProfile = () => {
         nav.navigate('EditProfile', { user, companyDetails });
     };
@@ -46,7 +70,7 @@ const Profile = () => {
     };
 
     const navigateToPostJob = () => {
-        nav.navigate('PostJob');
+        nav.navigate('PostJob', { onJobPosted: fetchJobs });
     };
 
     if (!user) {
@@ -91,7 +115,7 @@ const Profile = () => {
                             </View>
                             <View style={styles.statItem}>
                                 <Text style={styles.statNumber}>0</Text>
-                                <Text style={styles.statLabel}>Việc làm ứng tuyên</Text>
+                                <Text style={styles.statLabel}>Việc làm ứng tuyển</Text>
                             </View>
                         </View>
                     </View>
@@ -131,23 +155,48 @@ const Profile = () => {
                     <View>
                         {/* Company Information Section */}
                         <View style={styles.sectionCard}>
-                            <Text style={styles.sectionTitle}>
-                                Thông tin công ty
-                            </Text>
+                            <Text style={styles.sectionTitle}>Thông tin công ty</Text>
                             {loading ? (
                                 <ActivityIndicator size="small" color={Colors.PRIMARY} />
-                            ) : (
+                            ) : companyDetails ? (
                                 <>
                                     <Text style={styles.companyName}>
-                                        {companyDetails?.company_name || "Đang tải thông tin công ty..."}
+                                        {companyDetails.company_name || "Chưa có thông tin công ty"}
                                     </Text>
                                     <Text style={styles.companyDetail}>
-                                        {companyDetails?.company_address || ""}
+                                        {companyDetails.address || ""}
                                     </Text>
                                     <Text style={styles.companyDetail}>
-                                        {companyDetails?.company_email || ""}
+                                        {companyDetails.company_email || ""}
                                     </Text>
+                                    {companyDetails.is_approved === false && (
+                                        <Text style={styles.approvalStatus}>
+                                            Công ty đang chờ phê duyệt
+                                        </Text>
+                                    )}
                                 </>
+                            ) : (
+                                <Text style={styles.noJobsText}>Chưa có thông tin công ty.</Text>
+                            )}
+                        </View>
+
+                        {/* Job Listings Section */}
+                        <View style={styles.sectionCard}>
+                            <Text style={styles.sectionTitle}>Tin tuyển dụng</Text>
+                            {jobsLoading ? (
+                                <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                            ) : jobs.length > 0 ? (
+                                jobs.map((job, index) => (
+                                    <View key={index} style={styles.jobCard}>
+                                        <Text style={styles.jobTitle}>{job.title}</Text>
+                                        <Text style={styles.jobDetail}>Địa điểm: {job.location}</Text>
+                                        <Text style={styles.jobDetail}>Kỹ năng: {job.skills}</Text>
+                                        <Text style={styles.jobDetail}>Lương: {job.salary}</Text>
+                                        <Text style={styles.jobDetail}>Thời gian làm việc: {job.working_time}</Text>
+                                    </View>
+                                ))
+                            ) : (
+                                <Text style={styles.noJobsText}>Chưa có tin tuyển dụng nào.</Text>
                             )}
                         </View>
 
@@ -156,9 +205,7 @@ const Profile = () => {
                             onPress={navigateToPostJob}
                             style={styles.actionButton}
                         >
-                            <Text style={styles.actionButtonText}>
-                                Đăng tin tuyển dụng
-                            </Text>
+                            <Text style={styles.actionButtonText}>Đăng tin tuyển dụng</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -167,9 +214,7 @@ const Profile = () => {
                         onPress={navigateToEmployerRegister}
                         style={styles.actionButton}
                     >
-                        <Text style={styles.actionButtonText}>
-                            Đăng ký nhà tuyển dụng
-                        </Text>
+                        <Text style={styles.actionButtonText}>Đăng ký nhà tuyển dụng</Text>
                     </TouchableOpacity>
                 )}
 
@@ -339,6 +384,36 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: Colors.GRAY,
         marginBottom: 3,
+    },
+    approvalStatus: {
+        fontSize: 14,
+        color: Colors.PRIMARY,
+        marginTop: 5,
+        fontWeight: 'bold',
+    },
+    jobCard: {
+        backgroundColor: '#f9f9f9',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+    },
+    jobTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.BLACK,
+        marginBottom: 5,
+    },
+    jobDetail: {
+        fontSize: 14,
+        color: Colors.GRAY,
+        marginBottom: 3,
+    },
+    noJobsText: {
+        fontSize: 14,
+        color: Colors.GRAY,
+        textAlign: 'center',
     },
     actionButton: {
         backgroundColor: Colors.PRIMARY,
