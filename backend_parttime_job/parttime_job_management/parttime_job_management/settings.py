@@ -10,8 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import pymysql  # type: ignore
+from cloudinary.utils import cloudinary_url  # type: ignore
+import cloudinary.uploader  # type: ignore
+import cloudinary  # type: ignore
 from pathlib import Path
-import os 
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +31,6 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 DEBUG = True
 
 ALLOWED_HOSTS = ['192.168.1.18']
-
 
 
 # Application definition
@@ -49,7 +52,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'django_rest_passwordreset',
     'django_extensions',
-    'drf_spectacular',  
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -77,12 +80,12 @@ SWAGGER_SETTINGS = {
 }
 
 REDOC_SETTINGS = {
-   'LAZY_RENDERING': False,
+    'LAZY_RENDERING': False,
 }
 
 AUTHENTICATION_BACKENDS = [
-   'parttime_job.auth_backend.EmailAuthBackend',
-    'django.contrib.auth.backends.ModelBackend'  
+    'parttime_job.auth_backend.EmailAuthBackend',
+    'django.contrib.auth.backends.ModelBackend'
 ]
 
 
@@ -92,22 +95,19 @@ ROOT_URLCONF = 'parttime_job_management.urls'
 
 LOGIN_URL = '/login/'
 
-import cloudinary # type: ignore
-import cloudinary.uploader # type: ignore
-from cloudinary.utils import cloudinary_url # type: ignore
 
 # Configuration
 cloudinary.config(
-    cloud_name = "do43r8nr0",
-    api_key = "947875495844325",
-    api_secret = "evQEPk5TbxIMpCWbbXl8sLMbo6A", # Click 'View API Keys' above to copy your API secret
+    cloud_name="do43r8nr0",
+    api_key="947875495844325",
+    # Click 'View API Keys' above to copy your API secret
+    api_secret="evQEPk5TbxIMpCWbbXl8sLMbo6A",
     secure=True
 )
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication'
     ),
@@ -136,7 +136,6 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-import pymysql # type: ignore
 pymysql.install_as_MySQLdb()
 
 TEMPLATES = [
@@ -168,8 +167,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'parttimejobmanagement',
         'USER': 'root',
-        'PASSWORD': '12345678',
-        'HOST': '' # mặc định localhost
+        'PASSWORD': 'matkhau_moi',
+        'HOST': ''  # mặc định localhost
     }
 }
 
@@ -191,7 +190,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 
 # Internationalization
@@ -243,5 +241,5 @@ LOGOUT_REDIRECT_URL = '/'
 # ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
 
-CLIENT_ID= 'w1O2z0ABBBpJEqx0OwwnefLaZsI54cszC2TzUWqk'
-CLIENT_SECRET='94DQx75eW8F1vzaVGvE62psfWgcLRPcyFBaBbbYUooH18YGp0rFOcO7Aj8OrMZJIKsaHjxYBSp6Sln4gBOptnyEzHk9Jr8pll22FUCR7Hq4RMKoU5u6WHUVRFoGb7oDP'
+CLIENT_ID = 'Z79txCfxhQDClcXIxfzZUsyh7gm5AbzYCOHmJaxj'
+CLIENT_SECRET = 'A2FFyr0Je6WlIlhTFGYuKSHfzXvGVYlEXDiCB1XaPocpNB3qBcOXMdwYxNuRi403c2yezr4YbO1MjTmSSv7o6ZWflmaOVF6aQgxe9xrXXqTXQkygKg9k1CBK0MSvFGDr'
