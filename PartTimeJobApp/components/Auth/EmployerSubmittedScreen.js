@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
 import Colors from './../../constants/Colors';
 
+
+
 export default function EmployerSubmittedScreen() {
     const nav = useNavigation();
 

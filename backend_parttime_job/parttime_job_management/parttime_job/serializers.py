@@ -78,17 +78,21 @@ class CompanyImageSerializer(ItemSerializer):
 
 class CompanySerializer(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(),
-        write_only=True,
-        required=True
+        child=serializers.ImageField(), write_only=True, required=True
     )
     image_list = CompanyImageSerializer(
         source='images', many=True, read_only=True)
 
     def validate_images(self, value):
         if len(value) < 3:
-            raise serializers.ValidationError(
-                "Cần ít nhất 3 hình ảnh môi trường làm việc.")
+            raise serializers.ValidationError("Cần ít nhất 3 hình ảnh môi trường làm việc.")
+
+        for image in value:
+            if image.content_type not in ['image/jpeg', 'image/png']:
+                raise serializers.ValidationError("Chỉ chấp nhận ảnh JPEG hoặc PNG.")
+            if image.size > 5 * 1024 * 1024:
+                raise serializers.ValidationError("Ảnh phải nhỏ hơn 5MB.")
+
         return value
 
     def validate_company_name(self, value):
@@ -110,10 +114,7 @@ class CompanySerializer(serializers.ModelSerializer):
         # Tạo công ty
         company = Company.objects.create(user=user, **validated_data)
 
-        # Kiểm tra và tạo hình ảnh công ty
-        if len(images_data) < 3:
-            raise serializers.ValidationError(
-                "Cần ít nhất 3 hình ảnh môi trường làm việc.")
+        # Tạo hình ảnh công ty
         for image in images_data:
             CompanyImage.objects.create(company=company, image=image)
 
