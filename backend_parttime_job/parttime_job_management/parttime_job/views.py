@@ -114,6 +114,7 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     @action(methods=['post'], url_path='create-company', detail=False)
     def create_current_company(self, request):
         try:
+           
             if hasattr(request.user, 'employer_profile'):
                 return Response({"detail": "Tài khoản này đã có công ty"}, status=status.HTTP_400_BAD_REQUEST)
             data = request.data.copy()
@@ -203,14 +204,40 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
     serializer_class = JobSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = paginators.JobPagination
+    
 
     def list(self, request):
         queryset = self.get_queryset()
+        title = request.query_params.get('title')
+        min_salary = request.query_params.get('min_salary')
+        max_salary = request.query_params.get('max_salary')
+        work_time = request.query_params.get('working_time')
+
+        if title:
+            queryset = queryset.filter(title__icontains=title)
+        if min_salary:
+            try:
+                min_salary = float(min_salary)
+                queryset = queryset.filter(salary__gte=min_salary)
+            except ValueError:
+                return Response({"error": "Invalid value for min_salary"}, status=400)
+        if max_salary:
+            try:
+                max_salary = float(max_salary)
+                queryset = queryset.filter(salary__lte=max_salary)
+            except ValueError:
+                return Response({"error": "Invalid value for max_salary"}, status=400)
+        if work_time:
+            queryset = queryset.filter(working_time__icontains=work_time)
+
+        queryset = queryset.distinct()
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
+        # Return response with serialized data
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -218,13 +245,7 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
 class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Job.objects.filter(active=True)
     serializer_class = JobSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get_permissions(self):
-        if self.action in ['create_job', 'update_job', 'delete_job']:
-            return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
-        # Default permission for other actions (list, retrieve)
-        return [permissions.AllowAny()]
+    permission_classes = [perms.IsEmployer, permissions.IsAuthenticated, perms.OwnerPerms]
 
     def list(self, request):
         queryset = self.get_queryset()
