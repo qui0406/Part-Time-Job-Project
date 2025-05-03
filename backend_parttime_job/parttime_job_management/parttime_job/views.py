@@ -4,10 +4,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from . import paginators, perms, models
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, CandidateProfile
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -284,3 +284,103 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"message": "Tin tuyển dụng đã được tạo thành công!"}, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Application.objects.filter(active=True)
+    serializer_class = ApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [parsers.MultiPartParser]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
+    @action(methods=['post'], url_path='apply', detail=False)
+    def create_application(self, request):
+        user = request.user
+        job_id = request.data.get('job_id') 
+
+        if not job_id:
+            return Response({"detail": "Thiếu job_id."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            job = Job.objects.get(pk=job_id, active=True)
+        except Job.DoesNotExist:
+            return Response({"detail": "Không tìm thấy công việc."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            candidate_profile = user.candidate_profile
+        except CandidateProfile.DoesNotExist:
+            return Response({"detail": "Bạn chưa tạo hồ sơ ứng viên."}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = request.data.copy()
+        data['job'] = job.id
+        serializer = self.get_serializer(data=data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(candidate=candidate_profile, job=job)
+            return Response({"message": "Đơn ứng tuyển đã được gửi thành công!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['patch'], url_path='my-applications', detail=False)
+    def update_application(self, request):
+        try:
+            application = self.get_object()
+        except Application.DoesNotExist:
+            return Response({"detail": "Không tìm thấy đơn ứng tuyển."}, status=status.HTTP_404_NOT_FOUND)
+
+        if application.status != 'pending':
+            return Response({
+                "detail": "Chỉ được cập nhật đơn ứng tuyển khi đang ở trạng thái chờ duyệt (pending)."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(application, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Application.objects.filter(active=True, status='pending')
+    serializer_class = ApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated, perms.IsEmployer, perms.OwnerPerms]
+    parser_classes = [parsers.MultiPartParser]
+    pagination_class = paginators.ApplicationPagination
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
+    @action(methods=['post'], url_path='review', detail=True)
+    def review_application(self, request, pk=None):
+        try:
+            application = self.get_object()
+        except Application.DoesNotExist:
+            return Response({"detail": "Không tìm thấy đơn ứng tuyển."}, status=status.HTTP_404_NOT_FOUND)
+        status_choice = request.data.get('status')
+        application.status = status_choice
+        application.save()
+        return Response({
+            "detail": f"Đơn ứng tuyển đã {'được chấp nhận' if status_choice == 'accepted' else 'bị từ chối'}."
+        }, status=status.HTTP_200_OK)

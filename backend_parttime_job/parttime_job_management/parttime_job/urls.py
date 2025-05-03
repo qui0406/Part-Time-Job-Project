@@ -16,6 +16,8 @@ router.register('company-list', views.CompanyListViewSet, basename='company-list
 router.register('company-approved', views.CompanyIsApprovedViewSet, basename='company-approved')
 router.register('job-list', views.JobListViewSet, basename='job-list')
 router.register('job', views.JobViewSet, basename='job')
+router.register('application-profile', views.ApplicationViewSet, basename='application-profile')
+router.register('review-application', views.EmployerReviewApplicationViewSet, basename='review-application')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -109,43 +109,53 @@ class Job(BaseModel):
         return self.title
 
 
+# Hồ sơ ứng viên
 class CandidateProfile(BaseModel):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="candidate_profile")
     address = models.TextField(blank=True)
-    cv = models.FileField(upload_to="cvs/", null=False)  # up load CV
 
     def __str__(self):
         return self.user.last_name + " " + self.user.first_name
 
 
+# Đơn ứng tuyển
 class Application(BaseModel):
     STATUS_CHOICES = (
         ('pending', 'Đang chờ'),
         ('accepted', 'Đã chấp nhận'),
         ('rejected', 'Đã từ chối'),
     )
-    job = models.ForeignKey(Job, on_delete=models.CASCADE,
-                            related_name="applications")
-    candidate = models.ForeignKey(
-        CandidateProfile, on_delete=models.CASCADE, related_name="applications")
-    cv = models.FileField(upload_to="applications/", null=True, blank=True)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="applications")
+    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name="applications")
+
+    education = models.TextField(blank=True)
+    experience = models.TextField(blank=True)
+    current_job = models.TextField(blank=True)
+    hope_salary = models.CharField(max_length=100, blank=True)
+    cv = CloudinaryField(null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    employer_note = models.TextField(blank=True)
 
     class Meta:
         unique_together = ('job', 'candidate')
 
+    def __str__(self):
+        return f"{self.candidate.user.username()} ứng tuyển {self.job.title}"
 
-class VerificationDocument(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    document = models.FileField(upload_to="verifications/")
-    status = models.CharField(max_length=20, choices=(
-        ('pending', 'Đang chờ'),
-        ('approved', 'Đã duyệt'),
-        ('rejected', 'Từ chối'),
-    ), default='pending')
-    submitted_at = models.DateTimeField(auto_now_add=True)
+
+
+# class VerificationDocument(BaseModel):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     document = models.FileField(upload_to="verifications/")
+#     status = models.CharField(max_length=20, choices=(
+#         ('pending', 'Đang chờ'),
+#         ('approved', 'Đã duyệt'),
+#         ('rejected', 'Từ chối'),
+#     ), default='pending')
+#     submitted_at = models.DateTimeField(auto_now_add=True)
 
 
 # class FollowCompany(BaseModel):

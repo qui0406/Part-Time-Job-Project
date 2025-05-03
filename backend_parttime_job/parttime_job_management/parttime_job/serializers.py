@@ -1,9 +1,11 @@
 from rest_framework import serializers  # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, CandidateProfile, Application
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from django.contrib.auth import authenticate  # type: ignore
 import re
+from django.core.exceptions import ValidationError
+from cloudinary.uploader import upload
 
 
 class ItemSerializer(serializers.ModelSerializer):
@@ -182,3 +184,49 @@ class JobSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Thời gian làm việc không được để trống.")
         return value
+
+
+class CandidateProfileSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = CandidateProfile
+        fields = ['id', 'user']
+
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
+    candidate = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    cv = serializers.FileField(required=True)
+
+    class Meta:
+        model = Application
+        fields = [
+            'id', 'job', 'education', 'experience', 'current_job',
+            'hope_salary', 'cv', 'status', 'employer_note', 'candidate'
+        ]
+        read_only_fields = ['status', 'employer_note']
+
+    def validate(self, data):
+        user = self.context['request'].user
+        try:
+            candidate_profile = user.candidate_profile
+        except CandidateProfile.DoesNotExist:
+            raise serializers.ValidationError("Bạn chưa tạo hồ sơ ứng viên.")
+
+        if Application.objects.filter(job=data['job'], candidate=candidate_profile).exists():
+            raise serializers.ValidationError("Bạn đã nộp đơn cho công việc này rồi.")
+        return data
+    
+    def validate_cv(self, value):
+        if not value.name.endswith(('.pdf', '.docx', '.jpg', '.jpeg', '.png')):
+            raise serializers.ValidationError("Unsupported file type. Please upload a PDF, DOCX, or image file.")
+        return value
+
+    def create(self, validated_data):
+        cv_file = validated_data.pop('cv', None)
+        if cv_file:
+            # Upload to Cloudinary as a raw file
+            upload_result = upload(cv_file, resource_type='raw')
+            validated_data['cv'] = upload_result['secure_url']
+        return super().create(validated_data)
