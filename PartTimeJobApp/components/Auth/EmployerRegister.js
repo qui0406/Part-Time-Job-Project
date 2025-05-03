@@ -127,7 +127,7 @@ export default function EmployerRegister() {
             employer.images.forEach((image, index) => {
                 form.append('images', {
                     name: image.fileName || `image_${index}.jpg`,
-                    type: image.mimeType || 'image/jpeg',
+                    type: image.type  || 'image/jpeg',
                     uri: Platform.OS === 'ios' ? image.uri.replace('file://', '') : image.uri,
                 });
             });

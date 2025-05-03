@@ -21,6 +21,7 @@ export const endpoints = {
     'create-post-job': '/job/create-job/',
     'create-location': '/location/',
     'job': '/job/',
+    'job-list': '/job-list/',
     'company-jobs': '/job/company-jobs/',
 }
 

@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from './../../constants/Colors';
 import { Card, Button, IconButton } from 'react-native-paper';
+import useLatestCallback from 'use-latest-callback';
 
 export default function CompanyApprovalScreen({ route, navigation }) {
     const [loading, setLoading] = useState(true);
