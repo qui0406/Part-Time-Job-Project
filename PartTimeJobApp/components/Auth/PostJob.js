@@ -15,7 +15,7 @@ import {
 import Colors from '../../constants/Colors';
 import APIs, { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation,useRoute } from '@react-navigation/native';
 
 export default function PostJob() {
     const [job, setJob] = useState({
@@ -28,7 +28,8 @@ export default function PostJob() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigation = useNavigation();
-
+    const route = useRoute(); // Thêm useRoute
+    const { onJobPosted } = route.params || {}; // Lấy callback từ params nếu có
     const change = (field, value) => {
         setJob((current) => ({
             ...current,
@@ -73,7 +74,13 @@ export default function PostJob() {
                 Alert.alert(
                     'Thành công',
                     'Đăng tin tuyển dụng thành công!',
-                    [{ text: 'OK', onPress: () => navigation.goBack() }]
+                    [{
+                        text: 'OK',
+                        onPress: () => {
+                            if (onJobPosted) onJobPosted(); // Thêm gọi callback
+                            navigation.goBack();
+                        }
+                    }]
                 );
             }
         } catch (error) {
@@ -111,6 +118,11 @@ export default function PostJob() {
             label: 'Thời gian làm việc *',
             field: 'working_time',
             placeholder: 'Thời gian làm việc (VD: 8h-17h)',
+        },
+        {
+            label: 'Địa điểm *', // Thêm field location
+            field: 'location',
+            placeholder: 'Nhập địa điểm làm việc (VD: Hà Nội)',
         },
     ];
 

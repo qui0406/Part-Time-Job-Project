@@ -65,8 +65,8 @@ export default function Login() {
       let res = await APIs.post(endpoints['login'],
         qs.stringify({
           ...user,
-          client_id: 'Z79txCfxhQDClcXIxfzZUsyh7gm5AbzYCOHmJaxj',
-          client_secret: 'A2FFyr0Je6WlIlhTFGYuKSHfzXvGVYlEXDiCB1XaPocpNB3qBcOXMdwYxNuRi403c2yezr4YbO1MjTmSSv7o6ZWflmaOVF6aQgxe9xrXXqTXQkygKg9k1CBK0MSvFGDr',
+          client_id: 'yrxHM4IVS0VYNk49UPborlwuxLby1EUH91ASxfUo',
+          client_secret: 'DjJegQAdcXZjvbKz52L9FVyMxxyXv92pDr8UuOE4I3FhtIaYHQRgXnm9oJHT8xMcezvGVmFf0fE2yJaApSlchJwSD2gUbwmnA5nszfSEeOPBSlXZ7JUsbOpz473qpaoJ',
           grant_type: 'password',
         }),
         {
@@ -87,7 +87,7 @@ export default function Login() {
         // Lưu access_token vào AsyncStorage
         // Lưu thông tin người dùng vào AsyncStorage
         AsyncStorage.setItem('user', JSON.stringify(user.data));
-        nav.navigate('Home');
+        nav.replace('MainTab')
       }, 100)
 
 
@@ -136,7 +136,7 @@ export default function Login() {
                 secureTextEntry={f.secureTextEntry}
               />
             ))}
-            <TouchableOpacity onPress={() => router.push('ForgotPassword')}>
+            <TouchableOpacity onPress={() => nav.navigate('ForgotPassword')}>
               <Text style={styles.forgotPassword}>Quên Mật Khẩu?</Text>
             </TouchableOpacity>
             <HelperText type="error" visible={error}>
