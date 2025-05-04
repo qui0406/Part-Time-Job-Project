@@ -18,6 +18,7 @@ router.register('job-list', views.JobListViewSet, basename='job-list')
 router.register('job', views.JobViewSet, basename='job')
 router.register('application-profile', views.ApplicationViewSet, basename='application-profile')
 router.register('review-application', views.EmployerReviewApplicationViewSet, basename='review-application')
+router.register('notification', views.NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('', include(router.urls)),

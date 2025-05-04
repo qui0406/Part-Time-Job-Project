@@ -5,4 +5,6 @@ class JobPagination(PageNumberPagination):
 
 class ApplicationPagination(PageNumberPagination):
     page_size =  5
-    
+
+class NotificationPagination(PageNumberPagination):
+    page_size =  5
