@@ -245,6 +245,7 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
 class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Job.objects.filter(active=True)
     serializer_class = JobSerializer
+
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
@@ -252,6 +253,10 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
+    def get_permissions(self):
+        if self.action in ['create_job']:
+            return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
+        return [permissions.AllowAny()]
     def list(self, request):
         queryset = self.get_queryset()
         title = request.query_params.get('title')
