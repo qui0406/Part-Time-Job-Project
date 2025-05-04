@@ -2,7 +2,7 @@
 from rest_framework import viewsets, generics, status, parsers, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from . import paginators, perms, models
+from . import paginators, perms, models, signals
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, CandidateProfile, Follow, Notification
 from rest_framework.views import APIView
@@ -17,7 +17,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser, FormParser
 from django.views.decorators.cache import cache_page
-from signals import send_job_notification
+
 
 @csrf_exempt
 def debug_token_view(request):
@@ -248,16 +248,21 @@ class CompanyIsApprovedViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 
 class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
-    @cache_page(60 * 15)
-    def list(self, request):
-        queryset = self.get_queryset()
-        title = request.query_params.get('title')
-        min_salary = request.query_params.get('min_salary')
-        max_salary = request.query_params.get('max_salary')
-        work_time = request.query_params.get('working_time')
+    queryset = Job.objects.filter(active=True)
+    serializer_class = JobSerializer
+    permission_classes = [permissions.AllowAny]
+    parser_classes = [parsers.MultiPartParser]
+    pagination_class = paginators.JobPagination  
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        title = self.request.query_params.get('title')
+        min_salary = self.request.query_params.get('min_salary')
+        max_salary = self.request.query_params.get('max_salary')
+        work_time = self.request.query_params.get('working_time')
 
         if title:
-            queryset = queryset.filter(title__search=title) 
+            queryset = queryset.filter(title__icontains=title)
         if min_salary:
             queryset = queryset.filter(salary__gte=float(min_salary))
         if max_salary:
@@ -265,14 +270,13 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
         if work_time:
             queryset = queryset.filter(working_time__icontains=work_time)
 
-        page = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(page, many=True)
-        return self.get_paginated_response(serializer.data)
-
+        return queryset.distinct()
+    
 
 class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Job.objects.filter(active=True)
     serializer_class = JobSerializer
+
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
@@ -280,6 +284,10 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
+    def get_permissions(self):
+        if self.action in ['create_job']:
+            return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
+        return [permissions.AllowAny()]
     def list(self, request):
         queryset = self.get_queryset()
         title = request.query_params.get('title')
@@ -302,7 +310,7 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
 
     @action(methods=['post'], url_path='create-job', detail=False)
     def create_job(self, request):
-
+      
         try:
             company = Company.objects.get(
                 user=request.user, active=True, is_approved=True)
@@ -312,9 +320,11 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                                    'request': request, 'company': company})
         if serializer.is_valid():
 
-            # Gán company vào serializer trước khi lưu
             job= serializer.save(company=company)
-            send_job_notification.delay(job.id)
+            try:
+                signals.send_job_notification(job.id)
+            except Exception as e:
+                return Response({"detail": "Có lỗi xảy ra khi gửi thông báo."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response({"message": "Tin tuyển dụng đã được tạo thành công!"}, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -328,8 +338,8 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
+        if hasattr(self, 'action') and self.action in ['list', 'create_application', 'update_application']:
+            return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
     def list(self, request):
@@ -369,10 +379,13 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"message": "Đơn ứng tuyển đã được gửi thành công!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['patch'], url_path='my-applications', detail=False)
-    def update_application(self, request):
+    @action(methods=['patch'], url_path='my-applications', detail=True)
+    def update_application(self, request, pk=None):
+        if request.user.role != User.CANDIDATE:
+            return Response({"detail": "Chỉ ứng viên mới có thể cập nhật đơn ứng tuyển."}, status=status.HTTP_403_FORBIDDEN)
+        
         try:
-            application = self.get_object()
+            application = Application.objects.get(pk=pk, candidate__user=request.user)
         except Application.DoesNotExist:
             return Response({"detail": "Không tìm thấy đơn ứng tuyển."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -381,11 +394,24 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
                 "detail": "Chỉ được cập nhật đơn ứng tuyển khi đang ở trạng thái chờ duyệt (pending)."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(application, data=request.data, partial=True)
+        # Xử lý dữ liệu job_id nếu có
+        job_id = request.data.get('job_id')
+        data = request.data.copy()
+
+        if job_id:
+            try:
+                job = Job.objects.get(pk=job_id, active=True)
+            except Job.DoesNotExist:
+                return Response({"detail": "Không tìm thấy công việc."}, status=status.HTTP_404_NOT_FOUND)
+            data['job'] = job.id
+
+        # Tiến hành cập nhật
+        serializer = self.get_serializer(application, data=data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):

@@ -26,7 +26,7 @@ def password_reset_token_created(sender, instance, reset_password_token, **kwarg
     msg.send()
 
 
-@shared_task
+# @shared_task
 def send_job_notification(job_id):
     job = Job.objects.get(id=job_id)
     company = job.company
@@ -48,10 +48,11 @@ def send_job_notification(job_id):
                 f"- Xem chi tiết: {settings.SITE_URL}/jobs/{job.id}/\n\n"
                 f"Trân trọng,\nHệ thống PartTime Job"
             )
-            send_mail(
+            msg = EmailMultiAlternatives(
                 subject=subject,
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
                 fail_silently=True,
             )
+            msg.send()

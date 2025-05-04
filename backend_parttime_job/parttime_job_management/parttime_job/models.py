@@ -134,7 +134,7 @@ class Application(BaseModel):
     experience = models.TextField(blank=True)
     current_job = models.TextField(blank=True)
     hope_salary = models.CharField(max_length=100, blank=True)
-    cv = CloudinaryField(null=True, blank=True)
+    cv = CloudinaryField('cv', resource_type='raw', blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     employer_note = models.TextField(blank=True)

@@ -222,8 +222,24 @@ class ApplicationSerializer(serializers.ModelSerializer):
         except CandidateProfile.DoesNotExist:
             raise serializers.ValidationError("Bạn chưa tạo hồ sơ ứng viên.")
 
-        if Application.objects.filter(job=data['job'], candidate=candidate_profile).exists():
+        job = data.get('job') 
+
+        
+
+        if job is None:
+            raise serializers.ValidationError("Thiếu thông tin công việc.")
+
+        # Tránh báo lỗi khi update đơn cũ
+        existing_application = Application.objects.filter(
+            job=job,
+            candidate=candidate_profile
+        )
+        if self.instance:
+            existing_application = existing_application.exclude(pk=self.instance.pk)
+
+        if existing_application.exists():
             raise serializers.ValidationError("Bạn đã nộp đơn cho công việc này rồi.")
+
         return data
     
     def validate_cv(self, value):
