@@ -4,10 +4,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from . import paginators, perms, models
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, CandidateProfile
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, CandidateProfile, Follow, Notification
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, CandidateProfileSerializer, CommentEmployerSerializer, NotificationSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -16,7 +16,8 @@ from oauth2_provider.models import AccessToken
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser, FormParser
-
+from django.views.decorators.cache import cache_page
+from signals import send_job_notification
 
 @csrf_exempt
 def debug_token_view(request):
@@ -114,7 +115,6 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     @action(methods=['post'], url_path='create-company', detail=False)
     def create_current_company(self, request):
         try:
-           
             if hasattr(request.user, 'employer_profile'):
                 return Response({"detail": "Tài khoản này đã có công ty"}, status=status.HTTP_400_BAD_REQUEST)
             data = request.data.copy()
@@ -139,7 +139,55 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return Response(serializer.errors, status=400)
         except Company.DoesNotExist:
             return Response({"detail": "Không tìm thấy công ty."}, status=404)
+        
 
+    @action(methods=['post'], url_path='follow', detail=True, permission_classes=[IsAuthenticated, perms.IsCandidate])
+    def follow(self, request, pk=None):
+        if request.user.role != User.CANDIDATE:
+            return Response({"detail": "Chỉ ứng viên mới có thể theo dõi công ty."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            candidate_profile = request.user.candidate_profile
+        except CandidateProfile.DoesNotExist:
+            return Response({"detail": "Bạn chưa tạo hồ sơ ứng viên."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+
+            company = self.get_object()
+            if not company.is_approved:
+                return Response({"detail": "Không thể theo dõi công ty chưa được phê duyệt."}, status=status.HTTP_400_BAD_REQUEST)
+        except Company.DoesNotExist:
+            return Response({"detail": "Không tìm thấy công ty."}, status=status.HTTP_404_NOT_FOUND)
+        
+        follow, created = Follow.objects.get_or_create(
+            candidate=candidate_profile,
+            employer=company,
+            defaults={'active': True}
+        )
+
+        if not created:
+            follow.active = not follow.active
+            follow.save()
+
+        serializer = FollowSerializer(follow)
+        return Response({
+            "detail": "Đã theo dõi công ty." if follow.active else "Đã bỏ theo dõi công ty.",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+        
+    @action(methods=['get', 'post'], url_path='comments', detail=True)
+    def get_comments(self, request, pk=None):
+        if request.method == "POST":
+            c = CommentEmployerSerializer(data={
+                "content": request.data.get("content"),
+                "company": pk,
+                "user": request.user.pk
+            })
+            c.is_valid(raise_exception=True)
+            c.save()
+            return Response(CommentEmployerSerializer(c).data, status=status.HTTP_201_CREATED)
+
+        comments = self.get_object().comment_set.filter(active=True).select_related('candidate_profile__user')
+        return Response(CommentEmployerSerializer(comments, many=True).data, status=status.HTTP_200_OK)
+            
 
 class CompanyListViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Company.objects.filter(active=True, is_approved=True)
@@ -151,7 +199,7 @@ class CompanyListViewSet(viewsets.ViewSet, generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
+    
 
 class CompanyIsApprovedViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Company.objects.filter(
@@ -200,12 +248,7 @@ class CompanyIsApprovedViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 
 class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = Job.objects.filter(active=True)
-    serializer_class = JobSerializer
-    permission_classes = [permissions.AllowAny]
-    pagination_class = paginators.JobPagination
-    
-
+    @cache_page(60 * 15)
     def list(self, request):
         queryset = self.get_queryset()
         title = request.query_params.get('title')
@@ -214,32 +257,17 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
         work_time = request.query_params.get('working_time')
 
         if title:
-            queryset = queryset.filter(title__icontains=title)
+            queryset = queryset.filter(title__search=title) 
         if min_salary:
-            try:
-                min_salary = float(min_salary)
-                queryset = queryset.filter(salary__gte=min_salary)
-            except ValueError:
-                return Response({"error": "Invalid value for min_salary"}, status=400)
+            queryset = queryset.filter(salary__gte=float(min_salary))
         if max_salary:
-            try:
-                max_salary = float(max_salary)
-                queryset = queryset.filter(salary__lte=max_salary)
-            except ValueError:
-                return Response({"error": "Invalid value for max_salary"}, status=400)
+            queryset = queryset.filter(salary__lte=float(max_salary))
         if work_time:
             queryset = queryset.filter(working_time__icontains=work_time)
 
-        queryset = queryset.distinct()
-
         page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        # Return response with serialized data
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
 
 class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -285,7 +313,8 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         if serializer.is_valid():
 
             # Gán company vào serializer trước khi lưu
-            serializer.save(company=company)
+            job= serializer.save(company=company)
+            send_job_notification.delay(job.id)
             return Response({"message": "Tin tuyển dụng đã được tạo thành công!"}, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -389,3 +418,24 @@ class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response({
             "detail": f"Đơn ứng tuyển đã {'được chấp nhận' if status_choice == 'accepted' else 'bị từ chối'}."
         }, status=status.HTTP_200_OK)
+
+
+
+class NotificationViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Notification.objects.filter(active=True)
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = paginators.NotificationPagination
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

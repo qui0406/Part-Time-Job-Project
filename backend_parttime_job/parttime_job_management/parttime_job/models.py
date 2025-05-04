@@ -8,7 +8,7 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
 import uuid
 from django.utils import timezone
-
+# from django.core.validators import MinValueValidator, MaxValueValidator
 
 from django_rest_passwordreset.signals import reset_password_token_created
 from django.dispatch import receiver
@@ -147,36 +147,57 @@ class Application(BaseModel):
 
 
 
+class Notification(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+
+
+class Interaction(BaseModel):
+    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE)
+    employer = models.ForeignKey(Company, on_delete=models.CASCADE)
+    class Meta:
+        abstract = True 
+
+
+class Follow(Interaction):
+    class Meta:
+        unique_together = ('candidate', 'employer')
+    def __str__(self):
+        return f"{self.candidate.user.username} follows {self.employer.company_name}"
+
+class Comment(Interaction):
+    content = models.CharField(max_length=255)
+    def __str__(self):
+        return self.content 
+
+
+class Rating(BaseModel):
+    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name="ratings_given")
+    employer = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="ratings_received")
+    job = models.ForeignKey(Job, on_delete=models.SET_NULL, null=True, blank=True)
+    rating = models.PositiveIntegerField()
+    comment = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('candidate', 'employer', 'job')  
+
+
 # class VerificationDocument(BaseModel):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     document = models.FileField(upload_to="verifications/")
-#     status = models.CharField(max_length=20, choices=(
-#         ('pending', 'Đang chờ'),
-#         ('approved', 'Đã duyệt'),
-#         ('rejected', 'Từ chối'),
-#     ), default='pending')
-#     submitted_at = models.DateTimeField(auto_now_add=True)
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="verifications")
+#     document_type = models.CharField(max_length=50, choices=[('ID_CARD', 'CMND/CCCD'), ('BUSINESS_LICENSE', 'Giấy phép kinh doanh'), ('DEGREE', 'Bằng cấp')])
+#     file = CloudinaryField()
+#     status = models.CharField(max_length=20, choices=[('PENDING', 'Đang chờ'), ('APPROVED', 'Đã duyệt'), ('REJECTED', 'Từ chối')])
+#     verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="verified_documents")
 
 
-# class FollowCompany(BaseModel):
-#     candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE)
-#     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE)
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     class Meta:
-#         unique_together = ('candidate', 'employer')
-
-# class Rating(BaseModel):
-#     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ratings_given")
-#     to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ratings_received")
+# class Conversation(BaseModel):
+#     participants = models.ManyToManyField(User, related_name="conversations")
 #     job = models.ForeignKey(Job, on_delete=models.SET_NULL, null=True, blank=True)
-#     rating = models.PositiveIntegerField()
-#     comment = models.TextField(blank=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
 
-
-# class Notification(BaseModel):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     message = models.TextField()
+# class Message(BaseModel):
+#     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+#     sender = models.ForeignKey(User, on_delete=models.CASCADE)
+#     content = models.TextField()
+#     sent_at = models.DateTimeField(auto_now_add=True)
 #     is_read = models.BooleanField(default=False)
-#     created_at = models.DateTimeField(auto_now_add=True)

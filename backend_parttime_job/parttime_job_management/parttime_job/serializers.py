@@ -1,5 +1,5 @@
 from rest_framework import serializers  # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, CandidateProfile, Application
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, CandidateProfile, Application, Follow, Comment, Notification
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from django.contrib.auth import authenticate  # type: ignore
@@ -16,12 +16,17 @@ class ItemSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    
     def validate_email(self, value):
+        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', value):
+            raise serializers.ValidationError("Email không hợp lệ.")
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email này đã được sử dụng!")
         return value
 
     def validate_username(self, value):
+        if not re.match(r'^[\w\d_-]{3,20}$', value):
+            raise serializers.ValidationError("Tên đăng nhập chỉ chứa chữ, số, dấu gạch dưới hoặc gạch ngang, dài 3-20 ký tự.")
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Tên đăng nhập đã được sử dụng!")
         return value
@@ -187,11 +192,14 @@ class JobSerializer(serializers.ModelSerializer):
 
 
 class CandidateProfileSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)
+    def to_presentation(self, instance):
+        data = super().to_representation(instance)
+        data['user'] = UserSerializer(instance.user).data
+        return data
 
     class Meta:
         model = CandidateProfile
-        fields = ['id', 'user']
+        fields = ['id', 'user', 'address']
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -221,6 +229,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
     def validate_cv(self, value):
         if not value.name.endswith(('.pdf', '.docx', '.jpg', '.jpeg', '.png')):
             raise serializers.ValidationError("Unsupported file type. Please upload a PDF, DOCX, or image file.")
+        if value.size > 5 * 1024 * 1024:  # Giới hạn 5MB
+            raise serializers.ValidationError("File size must be less than 5MB.")
         return value
 
     def create(self, validated_data):
@@ -230,3 +240,33 @@ class ApplicationSerializer(serializers.ModelSerializer):
             upload_result = upload(cv_file, resource_type='raw')
             validated_data['cv'] = upload_result['secure_url']
         return super().create(validated_data)
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Follow
+        fields = ['id', 'candidate', 'employer', 'created_date']
+
+
+class CommentEmployerSerializer(serializers.ModelSerializer):
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['user'] = UserSerializer(instance.user).data
+        return data
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'content', 'created_date', 'candidate', 'employer']
+        extra_kwargs = {
+            'candidate': {
+                'write_only': True
+            },
+            'employer': {
+                'write_only': True
+            }
+        }
+        
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'message', 'is_read', 'created_date']

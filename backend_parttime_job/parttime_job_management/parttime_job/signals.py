@@ -3,6 +3,10 @@ from django_rest_passwordreset.signals import reset_password_token_created
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from celery import shared_task
+from parttime_job.models import User, Job, Follow, Notification
+from django.conf import settings
+from django.core.mail import send_mail
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, **kwargs):
@@ -20,3 +24,34 @@ def password_reset_token_created(sender, instance, reset_password_token, **kwarg
     )
     msg.attach_alternative(html_message, "text/html")
     msg.send()
+
+
+@shared_task
+def send_job_notification(job_id):
+    job = Job.objects.get(id=job_id)
+    company = job.company
+    followers = Follow.objects.filter(employer=company, active=True).select_related('candidate__user')
+    
+    for follow in followers:
+        user = follow.candidate.user
+        if user.is_verified:  # Chỉ gửi cho người đã xác thực email
+            Notification.objects.create(
+                user=user,
+                message=f"Công ty {company.company_name} vừa đăng tin tuyển dụng mới: {job.title}",
+            )
+            subject = f"Tin tuyển dụng mới từ {company.company_name}"
+            message = (
+                f"Chào {user.username},\n\n"
+                f"Công ty {company.company_name} vừa đăng tin tuyển dụng mới:\n"
+                f"- Tiêu đề: {job.title}\n"
+                f"- Mô tả: {job.description[:200]}...\n"
+                f"- Xem chi tiết: {settings.SITE_URL}/jobs/{job.id}/\n\n"
+                f"Trân trọng,\nHệ thống PartTime Job"
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
