@@ -153,12 +153,13 @@ import VerifyPassword from './components/Auth/VerifyPassword';
 import Profile from './components/Auth/Profile';
 import EditProfile from './components/Auth/EditProfile';
 import HomeScreen from './components/Home/Home';
-import EmployerRegister from './components/Auth/EmployerRegister';
-import EmployerSubmittedScreen from './components/Auth/EmployerSubmittedScreen';
-import PostJob from './components/Auth/PostJob';
-import AdminAnalytics from './components/Auth/AdminAnalytics';
-import AdminNotifications from './components/Auth/AdminNotifications';
-import CompanyApprovalScreen from './components/Auth/CompanyApprovalScreen';
+import EmployerRegister from './components/Candidate/EmployerRegister';
+import EmployerSubmittedScreen from './components/Candidate/EmployerSubmittedScreen';
+import PostJob from './components/Company/PostJob';
+import CompanyNotifications from './components/Company/CompanyNotifications'; 
+import AdminAnalytics from './components/Admin/AdminAnalytics';
+import AdminNotifications from './components/Admin/AdminNotifications';
+import CompanyApprovalScreen from './components/Admin/CompanyApprovalScreen';
 import JobDetail from './components/Candidate/JobDetail';
 import CompanyDetail from './components/Candidate/CompanyDetail';
 import ApplyJob from './components/Candidate/ApplyJob';
@@ -227,6 +228,16 @@ const MainTab = () => {
           options={{
             title: 'Thống kê',
             tabBarIcon: () => <Icon size={30} color="#1b4089" source="chart-line" />,
+          }}
+        />
+      )}
+      {user.role === 'employer' && (
+        <Tab.Screen
+          name="CompanyNotifications"
+          component={CompanyNotifications}
+          options={{
+            title: 'Thông báo',
+            tabBarIcon: () => <Icon size={30} color="#1b4089" source="bell" />,
           }}
         />
       )}

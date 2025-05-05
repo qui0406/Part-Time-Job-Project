@@ -13,6 +13,7 @@ export const endpoints = {
     // Thông tin công ty và đăng ký
     'create-employer': '/company/create-company/',
     'company-details': '/company/', // /:id/ sẽ được thêm vào trong code
+    'company-follow': '/company/',
     'company-approval-list': '/company-approved/',
     'company-approval': '/company-approved/', 
     'create-employer': '/company/create-company/',
@@ -24,6 +25,7 @@ export const endpoints = {
     'job-list': '/job-list/',
     'company-jobs': '/job/company-jobs/',
     'application-profile-apply': '/application-profile/apply/',
+    'notification': '/notification/',
 }
 
 export const authApi = (token) =>{
