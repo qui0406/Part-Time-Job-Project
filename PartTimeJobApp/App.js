@@ -161,6 +161,7 @@ import AdminNotifications from './components/Auth/AdminNotifications';
 import CompanyApprovalScreen from './components/Auth/CompanyApprovalScreen';
 import JobDetail from './components/Candidate/JobDetail';
 import CompanyDetail from './components/Candidate/CompanyDetail';
+import ApplyJob from './components/Candidate/ApplyJob';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -181,6 +182,7 @@ const HomeStack = () => (
     <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ" }} />
     <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc" }} />
     <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} /> 
+    <Stack.Screen name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
   </Stack.Navigator>
 );
 

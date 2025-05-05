@@ -26,12 +26,12 @@ export default function JobDetail() {
             return;
         }
         try {
-            const token = await AsyncStorage.getItem('token');
-            await authApi(token).post(endpoints['job'] + `${job.id}/apply/`);
-            Alert.alert('Thành công', 'Ứng tuyển thành công!');
+            // Chuyển tới màn hình ứng tuyển với thông tin công việc
+            navigation.navigate('ApplyJob', { job });
+            console.log('Job data:', job);
         } catch (error) {
-            console.error('Error applying for job:', error);
-            Alert.alert('Lỗi', 'Không thể ứng tuyển, vui lòng thử lại');
+            console.error('Error navigating to application form:', error);
+            Alert.alert('Lỗi', 'Không thể mở form ứng tuyển, vui lòng thử lại');
         }
     };
 
