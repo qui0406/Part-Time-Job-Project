@@ -1,5 +1,5 @@
 from rest_framework import serializers  # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, CandidateProfile, Application, Follow, Comment, Notification
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from django.contrib.auth import authenticate  # type: ignore
@@ -97,8 +97,8 @@ class CompanySerializer(serializers.ModelSerializer):
         for image in value:
             if image.content_type not in ['image/jpeg', 'image/png']:
                 raise serializers.ValidationError("Chỉ chấp nhận ảnh JPEG hoặc PNG.")
-            if image.size > 5 * 1024 * 1024:
-                raise serializers.ValidationError("Ảnh phải nhỏ hơn 5MB.")
+            # if image.size > 5 * 1024 * 1024:
+            #     raise serializers.ValidationError("Ảnh phải nhỏ hơn 5MB.")
 
         return value
 
@@ -191,97 +191,54 @@ class JobSerializer(serializers.ModelSerializer):
         return value
 
 
-class CandidateProfileSerializer(serializers.ModelSerializer):
-    def to_presentation(self, instance):
-        data = super().to_representation(instance)
-        data['user'] = UserSerializer(instance.user).data
-        return data
-
-    class Meta:
-        model = CandidateProfile
-        fields = ['id', 'user', 'address']
-
 
 class ApplicationSerializer(serializers.ModelSerializer):
     job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
-    candidate = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     cv = serializers.FileField(required=True)
 
     class Meta:
         model = Application
         fields = [
             'id', 'job', 'education', 'experience', 'current_job',
-            'hope_salary', 'cv', 'status', 'employer_note', 'candidate'
+            'hope_salary', 'cv', 'status', 'employer_note', 'user'
         ]
         read_only_fields = ['status', 'employer_note']
 
     def validate(self, data):
         user = self.context['request'].user
-        try:
-            candidate_profile = user.candidate_profile
-        except CandidateProfile.DoesNotExist:
-            raise serializers.ValidationError("Bạn chưa tạo hồ sơ ứng viên.")
-
-        job = data.get('job') 
-
-        
-
+        job = data.get('job')
         if job is None:
-            raise serializers.ValidationError("Thiếu thông tin công việc.")
+            raise serializers.ValidationError("Job information is required.")
 
-        # Tránh báo lỗi khi update đơn cũ
-        existing_application = Application.objects.filter(
-            job=job,
-            candidate=candidate_profile
-        )
+        existing_application = Application.objects.filter(job=job, user=user)
         if self.instance:
             existing_application = existing_application.exclude(pk=self.instance.pk)
 
         if existing_application.exists():
-            raise serializers.ValidationError("Bạn đã nộp đơn cho công việc này rồi.")
+            raise serializers.ValidationError("You have already applied for this job.")
 
         return data
-    
+
     def validate_cv(self, value):
         if not value.name.endswith(('.pdf', '.docx', '.jpg', '.jpeg', '.png')):
             raise serializers.ValidationError("Unsupported file type. Please upload a PDF, DOCX, or image file.")
-        if value.size > 5 * 1024 * 1024:  # Giới hạn 5MB
+        if value.size > 5 * 1024 * 1024:
             raise serializers.ValidationError("File size must be less than 5MB.")
         return value
 
     def create(self, validated_data):
         cv_file = validated_data.pop('cv', None)
         if cv_file:
-            # Upload to Cloudinary as a raw file
             upload_result = upload(cv_file, resource_type='raw')
             validated_data['cv'] = upload_result['secure_url']
         return super().create(validated_data)
 
-
 class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
-        fields = ['id', 'candidate', 'employer', 'created_date']
+        fields = ['id', 'user', 'company', 'created_date']
 
-
-class CommentEmployerSerializer(serializers.ModelSerializer):
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['user'] = UserSerializer(instance.user).data
-        return data
-
-    class Meta:
-        model = Comment
-        fields = ['id', 'content', 'created_date', 'candidate', 'employer']
-        extra_kwargs = {
-            'candidate': {
-                'write_only': True
-            },
-            'employer': {
-                'write_only': True
-            }
-        }
-        
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification

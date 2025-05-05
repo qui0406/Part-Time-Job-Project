@@ -166,7 +166,7 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejobmanagement',
+        'NAME': 'parttimejob',
         'USER': 'root',
         'PASSWORD': '12345678',
         'HOST': '' # mặc định localhost
@@ -248,8 +248,8 @@ LOGOUT_REDIRECT_URL = '/'
 # ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
 
-CLIENT_ID= 'uhytNBsmqNyoXI7s7YYvSTB83am6Sire5O4Jqs4x'
-CLIENT_SECRET='smoa1j1t3a4Pu3qeFqOXYSmM73pwak1TdZhhqrLfvoLOxps9fi9bFoMSWs4MlVetl8YZ5vbHqXxKMNBLAMmi9EsxUvmCbLQfnZZNsv3BlLPaemzNZUGSWeGz6f7CRBVZ'
+CLIENT_ID= 'X5Dmib8HJ6WAmtxvRKgcWXv105tzfGxk0qOHt7M7'
+CLIENT_SECRET='vMwnCSZQibhsBzMMd5tmAxpslROBAQgBcJ6uYgFMKFwaglIwdCxYDtk7MpUYXNYeXFEtnklhCLZqJGv6kkLl6cm1B1zwvXplpR9NWkGElcjtOqnWlSUc90yikXT3KnQP'
 
 # client_id: 'yrxHM4IVS0VYNk49UPborlwuxLby1EUH91ASxfUo'
 # client_secret: 'DjJegQAdcXZjvbKz52L9FVyMxxyXv92pDr8UuOE4I3FhtIaYHQRgXnm9oJHT8xMcezvGVmFf0fE2yJaApSlchJwSD2gUbwmnA5nszfSEeOPBSlXZ7JUsbOpz473qpaoJ'
