@@ -26,19 +26,25 @@ def password_reset_token_created(sender, instance, reset_password_token, **kwarg
     msg.send()
 
 
-# @shared_task
 def send_job_notification(job_id):
-    job = Job.objects.get(id=job_id)
-    company = job.company
-    followers = Follow.objects.filter(employer=company, active=True).select_related('candidate__user')
-    
+    try:
+        job = Job.objects.select_related("company").get(id=job_id)
+        company = job.company
+    except Job.DoesNotExist:
+        return
+
+    followers = Follow.objects.filter(company=company, active=True).select_related("user")
+
     for follow in followers:
-        user = follow.candidate.user
-        if user.is_verified:  # Chỉ gửi cho người đã xác thực email
+        user = follow.user
+        if user.is_verified:
+            # Gửi notification trong hệ thống
             Notification.objects.create(
                 user=user,
                 message=f"Công ty {company.company_name} vừa đăng tin tuyển dụng mới: {job.title}",
             )
+
+            # Gửi email
             subject = f"Tin tuyển dụng mới từ {company.company_name}"
             message = (
                 f"Chào {user.username},\n\n"
@@ -48,11 +54,11 @@ def send_job_notification(job_id):
                 f"- Xem chi tiết: {settings.SITE_URL}/jobs/{job.id}/\n\n"
                 f"Trân trọng,\nHệ thống PartTime Job"
             )
+
             msg = EmailMultiAlternatives(
                 subject=subject,
-                message=message,
+                body=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
+                to=[user.email],
             )
-            msg.send()
+            msg.send(fail_silently=True)

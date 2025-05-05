@@ -109,41 +109,28 @@ class Job(BaseModel):
         return self.title
 
 
-# Hồ sơ ứng viên
-class CandidateProfile(BaseModel):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="candidate_profile")
-    address = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.user.last_name + " " + self.user.first_name
-
-
-# Đơn ứng tuyển
 class Application(BaseModel):
     STATUS_CHOICES = (
         ('pending', 'Đang chờ'),
         ('accepted', 'Đã chấp nhận'),
         ('rejected', 'Đã từ chối'),
     )
-
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="applications")
-    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name="applications")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='applications')
 
     education = models.TextField(blank=True)
     experience = models.TextField(blank=True)
     current_job = models.TextField(blank=True)
     hope_salary = models.CharField(max_length=100, blank=True)
     cv = CloudinaryField('cv', resource_type='raw', blank=True, null=True)
-
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     employer_note = models.TextField(blank=True)
 
     class Meta:
-        unique_together = ('job', 'candidate')
+        unique_together = ('job', 'user')
 
     def __str__(self):
-        return f"{self.candidate.user.username()} ứng tuyển {self.job.title}"
+        return f"{self.user.username if self.user else 'No User'} ứng tuyển {self.job.title}"
 
 
 
@@ -152,35 +139,27 @@ class Notification(BaseModel):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
 
+class Follow(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
 
-class Interaction(BaseModel):
-    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE)
-    employer = models.ForeignKey(Company, on_delete=models.CASCADE)
     class Meta:
-        abstract = True 
+        unique_together = ('user', 'company')
 
-
-class Follow(Interaction):
-    class Meta:
-        unique_together = ('candidate', 'employer')
     def __str__(self):
-        return f"{self.candidate.user.username} follows {self.employer.company_name}"
-
-class Comment(Interaction):
-    content = models.CharField(max_length=255)
-    def __str__(self):
-        return self.content 
+        return f"{self.user.username} follows {self.company.company_name}"
 
 
 class Rating(BaseModel):
-    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name="ratings_given")
-    employer = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="ratings_received")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
     job = models.ForeignKey(Job, on_delete=models.SET_NULL, null=True, blank=True)
     rating = models.PositiveIntegerField()
     comment = models.TextField(blank=True)
 
     class Meta:
-        unique_together = ('candidate', 'employer', 'job')  
+        unique_together = ('user', 'company', 'job')
+
 
 
 # class VerificationDocument(BaseModel):
