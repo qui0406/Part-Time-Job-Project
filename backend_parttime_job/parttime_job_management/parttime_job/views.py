@@ -331,8 +331,6 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         data = request.data.copy()
         data['job'] = job.id
-        import pdb
-        pdb.set_trace()
         serializer = self.get_serializer(data=data, context={'request': request})
         if serializer.is_valid():
             serializer.save(user=request.user, job=job)

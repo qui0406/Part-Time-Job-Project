@@ -25,6 +25,7 @@ export const endpoints = {
     'job-list': '/job-list/',
     'company-jobs': '/job/company-jobs/',
     'application-profile-apply': '/application-profile/apply/',
+    "my-applications": '/application-profile/',
     'notification': '/notification/',
 }
 

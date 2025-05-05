@@ -166,7 +166,7 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejobmanagementtt',
+        'NAME': 'parttimejobmanagementt',
         'USER': 'root',
         'PASSWORD': 'Think!7688',
         'HOST': '' # mặc định localhost
