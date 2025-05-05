@@ -48,9 +48,25 @@ export default function CompanyDetail() {
         }
     };
 
-    const handleFollow = () => {
-        setIsFollowing(!isFollowing);
-        // TODO: Thêm API follow/unfollow nếu cần
+    const handleFollow = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await authApi(token).post(`${endpoints['company-follow']}${company.id}/follow/`);
+            setIsFollowing(response.data.data.active);
+        } catch (error) {
+            console.error('Lỗi khi theo dõi công ty:', error);
+            Alert.alert('Lỗi', 'Không thể thực hiện hành động theo dõi. Vui lòng thử lại.');
+        }
+    };
+    
+    const checkFollowStatus = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await authApi(token).get(`${endpoints['company-follow']}${company.id}/follow/`);
+            setIsFollowing(response.data.data.active);
+        } catch (error) {
+            console.error('Lỗi khi kiểm tra trạng thái theo dõi:', error);
+        }
     };
 
     const renderJobItem = ({ item }) => (

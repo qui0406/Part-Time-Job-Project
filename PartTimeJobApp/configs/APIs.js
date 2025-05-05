@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.7:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -13,6 +13,7 @@ export const endpoints = {
     // Thông tin công ty và đăng ký
     'create-employer': '/company/create-company/',
     'company-details': '/company/', // /:id/ sẽ được thêm vào trong code
+    'company-follow': '/company/',
     'company-approval-list': '/company-approved/',
     'company-approval': '/company-approved/', 
     'create-employer': '/company/create-company/',
@@ -23,6 +24,9 @@ export const endpoints = {
     'job': '/job/',
     'job-list': '/job-list/',
     'company-jobs': '/job/company-jobs/',
+    'application-profile-apply': '/application-profile/apply/',
+    "my-applications": '/application-profile/',
+    'notification': '/notification/',
 }
 
 export const authApi = (token) =>{
