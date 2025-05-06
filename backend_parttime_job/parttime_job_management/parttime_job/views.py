@@ -17,6 +17,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser, FormParser
 from django.views.decorators.cache import cache_page
+from rest_framework import status as drf_status
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 
 
 @csrf_exempt
@@ -303,31 +306,61 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     serializer_class = ApplicationSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser]
+    pagination_class = paginators.ApplicationPagination
 
     def get_permissions(self):
-        if self.action in ['list', 'create_application', 'update_application']:
+        if self.action in ['create_application', 'update_application']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
-        return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
 
     def list(self, request):
-        queryset = self.get_queryset().filter(user=request.user)
+        user = request.user
+        company = Company.objects.filter(user=user, active=True, is_approved=True).first()
+        if not company:
+            return Response({"detail": "You do not have a verified company."}, status=403)
+
+        jobs = Job.objects.filter(company=company, active=True)
+        queryset = Application.objects.filter(active=True, job__in=jobs).distinct()
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'], url_path='update-status')
+    def update_status(self, request, pk=None):
+        user = request.user
+        application = get_object_or_404(Application, pk=pk, active=True)
+
+        # Chỉ employer thuộc công ty mới được cập nhật trạng thái
+        if application.job.company.user != user:
+            return Response({"detail": "You do not have permission to update this application."},
+                            status=drf_status.HTTP_403_FORBIDDEN)
+
+        new_status = request.data.get('status')
+        if new_status not in ['approved', 'rejected']:
+            return Response({"detail": "Invalid status. Must be 'approved' or 'rejected'."},
+                            status=drf_status.HTTP_400_BAD_REQUEST)
+
+        application.status = new_status
+        application.save()
+        return Response({"detail": f"Application status updated to '{new_status}'."})
 
     @action(methods=['post'], url_path='apply', detail=False)
     def create_application(self, request):
         job_id = request.data.get('job_id')
         if not job_id:
             return Response({"detail": "Job ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
             job = Job.objects.get(pk=job_id, active=True)
         except Job.DoesNotExist:
             return Response({"detail": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if Application.objects.filter(user=request.user, job=job).exists():
+            return Response({"detail": "Đã nộp cv rồi!"}, status=status.HTTP_400_BAD_REQUEST)
 
         data = request.data.copy()
         data['job'] = job.id
