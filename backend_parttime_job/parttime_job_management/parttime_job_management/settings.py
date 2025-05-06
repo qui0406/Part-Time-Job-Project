@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.7']
+ALLOWED_HOSTS = ['192.168.1.18']
 
 
 
@@ -166,9 +166,9 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejobmanagementt',
+        'NAME': 'parttimejob',
         'USER': 'root',
-        'PASSWORD': 'Think!7688',
+        'PASSWORD': '12345678',
         'HOST': '' # mặc định localhost
     }
 }
@@ -248,8 +248,8 @@ LOGOUT_REDIRECT_URL = '/'
 # ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
 
-CLIENT_ID= 'X5Dmib8HJ6WAmtxvRKgcWXv105tzfGxk0qOHt7M7'
-CLIENT_SECRET='vMwnCSZQibhsBzMMd5tmAxpslROBAQgBcJ6uYgFMKFwaglIwdCxYDtk7MpUYXNYeXFEtnklhCLZqJGv6kkLl6cm1B1zwvXplpR9NWkGElcjtOqnWlSUc90yikXT3KnQP'
+CLIENT_ID= 'mHDb32bA38o2cvKQx2kK3saV9mBC2fchz3dAb3Fj'
+CLIENT_SECRET='cmEQ0LkdY1qIF6Sfefy60afvZ9KgxacWtqmKULd3hsUoboL3ltPYpd56yvNSEDG4KiWqs319nk9V65wopQvtAqRMT38oL8pHB3tCZdCayVsdf1Flgu79QnJz62I6B8zU'
 
 # client_id: 'yrxHM4IVS0VYNk49UPborlwuxLby1EUH91ASxfUo'
 # client_secret: 'DjJegQAdcXZjvbKz52L9FVyMxxyXv92pDr8UuOE4I3FhtIaYHQRgXnm9oJHT8xMcezvGVmFf0fE2yJaApSlchJwSD2gUbwmnA5nszfSEeOPBSlXZ7JUsbOpz473qpaoJ'
