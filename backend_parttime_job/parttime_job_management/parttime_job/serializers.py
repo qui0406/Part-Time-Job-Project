@@ -89,6 +89,19 @@ class CompanySerializer(serializers.ModelSerializer):
     )
     image_list = CompanyImageSerializer(
         source='images', many=True, read_only=True)
+    
+    followed = serializers.SerializerMethodField()
+    follower_count = serializers.SerializerMethodField()
+
+    def get_followed(self, obj):    
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Follow.objects.filter(
+                user=request.user, company=obj).exists()
+        return False
+    
+    def get_follower_count(self, obj):
+        return Follow.objects.filter(company=obj).count()
 
     def validate_images(self, value):
         if len(value) < 3:
@@ -135,7 +148,7 @@ class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = ['id', 'user', 'company_name', 'company_phone',
-                  'company_email', 'description', 'tax_id', 'images',
+                  'company_email', 'description', 'tax_id', 'images', 'followed', 'follower_count',
                   'image_list', 'address', 'latitude', 'longitude', 'is_approved', 'is_rejected']
         extra_kwargs = {
             'user': {'read_only': True}

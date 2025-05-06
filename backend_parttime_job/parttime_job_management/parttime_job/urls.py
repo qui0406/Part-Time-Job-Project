@@ -19,6 +19,7 @@ router.register('job', views.JobViewSet, basename='job')
 router.register('application-profile', views.ApplicationViewSet, basename='application-profile')
 router.register('review-application', views.EmployerReviewApplicationViewSet, basename='review-application')
 router.register('notification', views.NotificationViewSet, basename='notification')
+# router.register('follow', views.FollowViewSet, basename='follow')
 
 urlpatterns = [
     path('', include(router.urls)),

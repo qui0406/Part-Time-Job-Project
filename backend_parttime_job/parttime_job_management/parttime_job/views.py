@@ -20,6 +20,10 @@ from django.views.decorators.cache import cache_page
 from rest_framework import status as drf_status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from rest_framework.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 @csrf_exempt
@@ -68,39 +72,13 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Company.objects.prefetch_related('images').filter(active=True)
     serializer_class = CompanySerializer
     parser_classes = [parsers.MultiPartParser]
-    permission_classes = [perms.IsEmployer, permissions.IsAuthenticated]
-
-    def get_permissions(self):
-        if self.action in ['update_company_info']:
-            return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
-        if self.action == 'create_current_company':
-            return [permissions.IsAuthenticated(), perms.OwnerPerms()]
-        return [permissions.AllowAny()]
-
-    @action(methods=['get'], url_path='current-company', detail=False)
-    def get_current_company(self, request):
-        try:
-            if not hasattr(request.user, 'employer_profile'):
-                return Response({"detail": "Người dùng chưa có công ty."}, status=status.HTTP_404_NOT_FOUND)
-            company = request.user.employer_profile
-            serializer = self.get_serializer(company)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-    queryset = Company.objects.prefetch_related('images').filter(active=True)
-    serializer_class = CompanySerializer
-    parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
         if self.action in ['create_current_company']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
-        if self.action in ['update_company_info']:
+        if self.action in ['update_company_info', 'get_count_followers']:
             return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
-
-        if self.action == 'follow':
+        if self.action.__eq__('follow'):
             return [permissions.IsAuthenticated(), perms.IsCandidate()]
         return [permissions.AllowAny()]
 
@@ -138,7 +116,6 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     def follow(self, request, pk=None):
         if request.user.role != User.CANDIDATE:
             return Response({"detail": "Only candidates can follow companies."}, status=status.HTTP_403_FORBIDDEN)
-        
         try:
             company = self.get_object()
             if not company.is_approved:
@@ -156,7 +133,17 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         serializer = FollowSerializer(follow)
         message = "Followed company." if follow.active else "Unfollowed company."
         return Response({"detail": message, "data": serializer.data}, status=status.HTTP_200_OK)
-        
+
+
+    @action(methods=['get'], url_path='followers-count', detail=True)  
+    def get_count_followers(self, request, pk=None):
+        try:
+            company = self.get_object()
+            followers_count = Follow.objects.filter(company=company, active=True).count()
+            return Response({"followers_count": followers_count}, status=status.HTTP_200_OK)
+        except Company.DoesNotExist:
+            return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
+
 
 class CompanyListViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Company.objects.filter(active=True, is_approved=True)
@@ -279,23 +266,54 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
 
     @action(methods=['post'], url_path='create-job', detail=False)
     def create_job(self, request):
-      
         try:
             company = Company.objects.get(
                 user=request.user, active=True, is_approved=True)
         except Company.DoesNotExist:
-            return Response({"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."}, status=status.HTTP_403_FORBIDDEN)
-        serializer = JobSerializer(data=request.data, context={
-                                   'request': request, 'company': company})
-        if serializer.is_valid():
+            return Response(
+                {"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-            job= serializer.save(company=company)
-            # try:
-            #     import pdb; pdb.set_trace()
-            #     signals.send_job_notification(job.id)
-            # except Exception as e:
-            #     return Response({"detail": "Có lỗi xảy ra khi gửi thông báo."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return Response({"message": "Tin tuyển dụng đã được tạo thành công!"}, status=status.HTTP_201_CREATED)
+        serializer = JobSerializer(data=request.data, context={
+            'request': request,
+            'company': company
+        })
+
+        if serializer.is_valid():
+            try:
+                job = serializer.save(company=company)
+                followers = Follow.objects.filter(company=company, active=True).select_related("user")
+                
+                for follow in followers:
+                    user = follow.user
+                    
+                    try:
+                        subject = f"Công ty {company.company_name} vừa đăng tin tuyển dụng mới!"
+                        message = (
+                            f"Chào {user.first_name},\n\n"
+                            f"Công ty {company.company_name} mà bạn theo dõi vừa đăng tin tuyển dụng: \"{job.title}\".\n"
+                            f"Hãy đăng nhập vào hệ thống để xem chi tiết và ứng tuyển nếu phù hợp.\n\n"
+                            f"Trân trọng,\n"
+                            f"Đội ngũ hỗ trợ"
+                        )
+                        from_email = settings.DEFAULT_FROM_EMAIL
+                        send_mail(subject, message, from_email, [user.email])
+                    except Exception as e:
+                        print(f"Lỗi khi gửi email đến {user.email}: {str(e)}")
+
+                return Response(
+                    {"message": "Tin tuyển dụng đã được tạo thành công!"},
+                    status=status.HTTP_201_CREATED
+                )
+
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return Response(
+                    {"detail": "Có lỗi xảy ra khi gửi thông báo."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -367,6 +385,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = self.get_serializer(data=data, context={'request': request})
         if serializer.is_valid():
             serializer.save(user=request.user, job=job)
+            
             return Response({"message": "Application submitted successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -440,7 +459,6 @@ class NotificationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Notification.objects.filter(active=True)
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = paginators.NotificationPagination
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
