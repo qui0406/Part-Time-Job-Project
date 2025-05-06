@@ -16,6 +16,7 @@ import cloudinary.uploader  # type: ignore
 import cloudinary  # type: ignore
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -54,6 +55,8 @@ INSTALLED_APPS = [
     'django_rest_passwordreset',
     'django_extensions',
     'drf_spectacular',
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -174,11 +177,34 @@ DATABASES = {
 }
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
+
+
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_BROKER_REDIS_URL="redis://localhost:6380"
 
+
+
+
+# DEBUG = True
+DEBUG = config("DEBUG", cast=bool, default=False)
+...
+
+# add our newly installed packages to INSTALLED_APPS
+
+# save Celery task results in Django's database
+CELERY_RESULT_BACKEND = "django-db"
+
+# This configures Redis as the datastore between Django + Celery
+CELERY_BROKER_URL = config('CELERY_BROKER_REDIS_URL', default='redis://192.168.1.18:6379')
+# if you out to use os.environ the config is:
+# CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_REDIS_URL', 'redis://localhost:6379')
+
+
+# this allows you to schedule items in the Django admin.
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -233,7 +259,7 @@ OAUTH2_PROVIDER = {
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'anhqui04062004@gmail.com'
-EMAIL_HOST_PASSWORD = "jwbx qyxp qhca shnf"
+EMAIL_HOST_PASSWORD = "vhqt qoqg vemh liqf"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'anhqui04062004@gmail.com'
@@ -246,6 +272,9 @@ LOGOUT_REDIRECT_URL = '/'
 # ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 # ACCOUNT_EMAIL_REQUIRED = True
 # ACCOUNT_AUTHENTICATION_METHOD = 'email'
+
+SITE_URL = 'http://192.168.1.18:8000'
+
 
 
 CLIENT_ID= 'mHDb32bA38o2cvKQx2kK3saV9mBC2fchz3dAb3Fj'

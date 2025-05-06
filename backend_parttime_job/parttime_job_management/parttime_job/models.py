@@ -138,6 +138,7 @@ class Notification(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, null=True, blank=True) 
 
 class Follow(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
