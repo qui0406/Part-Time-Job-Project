@@ -425,8 +425,8 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
 class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True, status='pending')
     serializer_class = ApplicationSerializer
-    permission_classes = [permissions.IsAuthenticated, perms.IsEmployer, perms.OwnerPerms]
-    parser_classes = [parsers.MultiPartParser]
+    permission_classes = [permissions.IsAuthenticated, perms.IsEmployer]
+    parser_classes = [parsers.MultiPartParser, JSONParser]
     pagination_class = paginators.ApplicationPagination
 
     def list(self, request):

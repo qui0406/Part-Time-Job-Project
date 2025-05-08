@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.18']
+ALLOWED_HOSTS = ['192.168.1.7']
 
 
 
@@ -169,9 +169,9 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejob',
+        'NAME': 'parttimejobmanagementt',
         'USER': 'root',
-        'PASSWORD': '12345678',
+        'PASSWORD': 'Think!7688',
         'HOST': '' # mặc định localhost
     }
 }
