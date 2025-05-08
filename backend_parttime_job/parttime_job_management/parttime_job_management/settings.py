@@ -31,8 +31,17 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.18']
+ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.18', 'localhost', '127.0.0.1']
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+
+ONFIDO_API_TOKEN= 'api_live.O50cvuLZRQm.dotpcowwuN_7B_LHwJwd40mo29X-vFJv'
+ONFIDO_WEBHOOK_SECRET='uVirHXhiwZuCyNvKX_0gMqQ6YlvOiPBL'
+ONFIDO_API_URL = 'https://api.onfido.com/v3.6/applicants'
+WORKFLOW_ID = 'b5e8c290-d48f-4cbc-b602-b2b52987f392'  # ID của workflow bạn đã tạo trên Onfido
+
+
+ID_ANALYZER_API_KEY= '1cmi6EWuJ0cbIT6yqsFQvYbUqNFLwfpe'
 
 
 # Application definition
@@ -112,10 +121,15 @@ cloudinary.config(
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication'
+        
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
 }
 
 SPECTACULAR_SETTINGS = {
@@ -277,8 +291,48 @@ SITE_URL = 'http://192.168.1.18:8000'
 
 
 
-CLIENT_ID= 'mHDb32bA38o2cvKQx2kK3saV9mBC2fchz3dAb3Fj'
-CLIENT_SECRET='cmEQ0LkdY1qIF6Sfefy60afvZ9KgxacWtqmKULd3hsUoboL3ltPYpd56yvNSEDG4KiWqs319nk9V65wopQvtAqRMT38oL8pHB3tCZdCayVsdf1Flgu79QnJz62I6B8zU'
+CLIENT_ID= '8Y4PM14zeiZMnu5hrj86vyf9MrwA6Yis2iHQLq9J'
+CLIENT_SECRET='6JrR2e167SJ9vOUrggq1HjTI9Pu03313LLLlVjLy1aXf8CKMpgP4gOyaPhVEsSW0vK0G8dqRxhzZ2Nf1TnsdMXAFRV3iWjDELuadf3OMkwbfEDMHpNX4tPGRYy6E9QUN'
 
 # client_id: 'yrxHM4IVS0VYNk49UPborlwuxLby1EUH91ASxfUo'
 # client_secret: 'DjJegQAdcXZjvbKz52L9FVyMxxyXv92pDr8UuOE4I3FhtIaYHQRgXnm9oJHT8xMcezvGVmFf0fE2yJaApSlchJwSD2gUbwmnA5nszfSEeOPBSlXZ7JUsbOpz473qpaoJ'
+
+SPECTACULAR_SETTINGS = {
+    'DEBUG': True,
+}
+
+
+ONFIDO_REGION = 'EU' 
+
+
+# parttime_job_management/settings.py
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
