@@ -4,10 +4,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from . import paginators, perms, models, signals
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -24,6 +24,14 @@ from django.utils.decorators import method_decorator
 from rest_framework.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.conf import settings
+from rest_framework import serializers
+from rest_framework.permissions import IsAdminUser
+from django.db.models.functions import TruncDay, TruncWeek, TruncMonth, TruncQuarter, TruncYear
+from django.db.models import Count
+from datetime import datetime, timedelta
+from django.utils import timezone
+
+# from parttime_job.services.onfido_service import create_onfido_applicant
 
 
 @csrf_exempt
@@ -314,10 +322,8 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                     {"detail": "Có lỗi xảy ra khi gửi thông báo."},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
 
 class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True)
@@ -421,11 +427,10 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True, status='pending')
     serializer_class = ApplicationSerializer
-    permission_classes = [permissions.IsAuthenticated, perms.IsEmployer, perms.OwnerPerms]
+    permission_classes = [permissions.IsAuthenticated, perms.IsEmployer]
     parser_classes = [parsers.MultiPartParser]
     pagination_class = paginators.ApplicationPagination
 
@@ -439,6 +444,7 @@ class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
+
 
     @action(methods=['post'], url_path='review', detail=True)
     def review_application(self, request, pk=None):
@@ -472,3 +478,269 @@ class NotificationViewSet(viewsets.ViewSet, generics.ListAPIView):
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+    
+
+class RatingViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = Rating.objects.all()
+    serializer_class = RatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['perform_create', 'update_rating']:
+            return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
+        return [permissions.IsAuthenticated()]
+    
+    def perform_create(self, serializer):
+        user = self.request.user
+        company = serializer.validated_data.get('company')
+        job = serializer.validated_data.get('job')
+        if Rating.objects.filter(user=user, company=company, job=job).exists():
+            raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
+        serializer.save(user=user)
+
+
+    @action(methods=['put','patch'], url_path='update-rating', detail=True)
+    def update_rating(self, request, pk=None):
+        try:
+            rating = self.get_object()
+        except Rating.DoesNotExist:
+            return Response({"detail": "Không tìm thấy đánh giá."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(rating, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    
+    @action(methods=['delete'], url_path='delete-rating', detail=True)
+    def delete_rating(self, request, pk=None):
+        try:
+            rating = self.get_object()
+            self.check_object_permissions(request, rating) 
+        except Rating.DoesNotExist:
+            return Response({"detail": "Không tìm thấy đánh giá."}, status=status.HTTP_404_NOT_FOUND)
+        except PermissionDenied:
+            return Response({"detail": "Bạn không có quyền xóa đánh giá này."}, status=status.HTTP_403_FORBIDDEN)
+
+        rating.delete()
+        return Response({"detail": "Đánh giá đã được xóa."}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+class EmployerRatingViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = EmployerRating.objects.all()
+    serializer_class = EmployerRatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Chỉ xem được đánh giá do chính employer tạo
+        return EmployerRating.objects.filter(employer=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(employer=self.request.user)  
+    
+    @action(methods=['put','patch'], url_path='update-rating', detail=True)
+    def update_rating(self, request, pk=None):
+        try:
+            rating = self.get_object()
+        except EmployerRating.DoesNotExist:
+            return Response({"detail": "Không tìm thấy đánh giá."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(rating, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StatsViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=['get'], url_path='report')
+    def report(self, request):
+        today = datetime.today()
+        six_months_ago = today - timedelta(days=180)
+
+        granularity = request.query_params.get("granularity", "month").lower()
+
+        if granularity == "day":
+            trunc_fn = TruncDay
+            label_format = "%d/%m"
+        elif granularity == "week":
+            trunc_fn = TruncWeek
+            label_format = "Tuần %W/%Y"
+        elif granularity == "month":
+            trunc_fn = TruncMonth
+            label_format = "%m/%Y"
+        elif granularity == "quarter":
+            trunc_fn = TruncQuarter
+            label_format = "Q%q/%Y"  # sẽ xử lý thủ công
+        elif granularity == "year":
+            trunc_fn = TruncYear
+            label_format = "%Y"
+        else:
+            return Response({"error": "Invalid granularity"}, status=400)
+
+        def get_stats(qs, date_field="created_date"):
+            return (
+                qs.filter(**{f"{date_field}__gte": six_months_ago})
+                .annotate(period=trunc_fn(date_field))
+                .values("period")
+                .annotate(count=Count("id"))
+                .order_by("period")
+            )
+
+        def format_stats(entries):
+            labels = []
+            for e in entries:
+                dt = e["period"]
+                if granularity == "quarter":
+                    quarter = (dt.month - 1) // 3 + 1
+                    labels.append(f"Q{quarter}/{dt.year}")
+                elif granularity == "week":
+                    labels.append(f"Tuần {dt.strftime('%W')}/{dt.year}")
+                else:
+                    labels.append(dt.strftime(label_format))
+            return {
+                "labels": labels,
+                "data": [e["count"] for e in entries]
+            }
+
+        return Response({
+            "job_stats": format_stats(get_stats(Job.objects.all())),
+            "candidate_stats": format_stats(get_stats(User.objects.filter(role='candidate'))),
+            "employer_stats": format_stats(get_stats(User.objects.filter(role='employer')))
+        })
+
+
+# from onfido import OnfidoAPI
+# from django.conf import settings
+# from onfido.exceptions import ApiError  
+# onfido_api = OnfidoAPI(api_key=settings.ONFIDO_API_KEY)
+
+# class UploadDocumentView(APIView):
+#     # Cho phép xử lý phương thức POST
+#     parser_classes = [parsers.MultiPartParser]
+
+#     def post(self, request, *args, **kwargs):
+#         # Lấy file tài liệu từ yêu cầu frontend
+#         document_file = request.FILES.get('document')
+
+#         if not document_file:
+#             return Response({'error': 'No document uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Tạo Applicant (nếu chưa có) từ dữ liệu người dùng
+#         applicant = onfido_api.applicant.create(
+#             first_name=request.data.get('first_name'),
+#             last_name=request.data.get('last_name'),
+#             email=request.data.get('email'),
+#         )
+
+#         # Tải lên giấy tờ (Document) cho ứng viên
+#         document = onfido_api.document.create(
+#             applicant_id=applicant['id'],
+#             file=document_file,
+#             file_type="passport",  # Hoặc loại tài liệu khác như "driving_licence", "identity_card", v.v.
+#         )
+
+#         return Response({'message': 'Document uploaded successfully', 'document_id': document['id']}, status=status.HTTP_200_OK)
+
+# class VerifyDocumentAPIView(APIView):
+#     permission_classes = [IsAdminUser]
+
+#     def post(self, request, doc_id):
+#         doc = get_object_or_404(VerificationDocument, id=doc_id)
+#         action = request.data.get("action")  
+#         reason = request.data.get("reason", "")
+
+#         if action == 'approve':
+#             doc.status = 'APPROVED'
+#             message = "Giấy tờ của bạn đã được phê duyệt."
+#         elif action == 'reject':
+#             doc.status = 'REJECTED'
+#             doc.reason = reason
+#             message = f"Giấy tờ của bạn bị từ chối. Lý do: {reason}"
+#         else:
+#             return Response({'error': 'Invalid action'}, status=400)
+
+#         doc.verified_by = request.user
+#         doc.verified_at = timezone.now()
+#         doc.save()
+
+#         send_mail(
+#             subject="Kết quả xác minh giấy tờ",
+#             message=message,
+#             from_email=settings.DEFAULT_FROM_EMAIL,
+#             recipient_list=[doc.user.email],
+#             fail_silently=True,
+#         )
+
+#         return Response({
+#             'success': True,
+#             'status': doc.status,
+#             'verified_by': request.user.username,
+#             'verified_at': doc.verified_at,
+#             'reason': doc.reason,
+#         })
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+from .serializers import DocumentVerificationSerializer
+from .services import IdAnalyzerService
+from .models import VerificationDocument
+import logging
+
+logger = logging.getLogger(__name__)
+
+class VerifyDocumentViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @action(methods=['post'], url_path='verify', detail=False)
+    def verify_document(self, request):
+        serializer = DocumentVerificationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Verify with IdAnalyzer
+            result = IdAnalyzerService.verify_document(
+                document_front=serializer.validated_data['document_front'],
+                document_back=serializer.validated_data.get('document_back'),
+                selfie_image=serializer.validated_data.get('selfie_image')
+            )
+
+            if not result['success']:
+                return Response({
+                    'error': 'Xác minh thất bại',
+                    'details': result['error'],
+                    'error_code': result['error_code']
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Save to database
+            document = VerificationDocument.objects.create(
+                user=request.user,
+                document_type=serializer.validated_data['document_type'],
+                document_front=serializer.validated_data['document_front'],
+                document_back=serializer.validated_data.get('document_back'),
+                selfie_image=serializer.validated_data.get('selfie_image'),
+                verified=result['verified']
+            )
+
+            return Response({
+                'verified': result['verified'],
+                'details': result['details'],
+                'document_id': document.id,
+                'response': result 
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Verification error: {str(e)}")
+            return Response({
+                'error': 'Lỗi không mong muốn xảy ra',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

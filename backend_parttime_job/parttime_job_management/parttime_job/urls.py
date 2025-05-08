@@ -19,7 +19,13 @@ router.register('job', views.JobViewSet, basename='job')
 router.register('application-profile', views.ApplicationViewSet, basename='application-profile')
 router.register('review-application', views.EmployerReviewApplicationViewSet, basename='review-application')
 router.register('notification', views.NotificationViewSet, basename='notification')
+router.register('ratings', views.RatingViewSet, basename='rating')
+router.register('employer-ratings', views.EmployerRatingViewSet, basename='employer-rating')
 # router.register('follow', views.FollowViewSet, basename='follow')
+router.register('stats', views.StatsViewSet, basename='stats')
+router.register('verify-document', views.VerifyDocumentViewSet, basename='verify-document')
+
+
 
 urlpatterns = [
     path('', include(router.urls)),
