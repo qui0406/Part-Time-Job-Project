@@ -1,3 +1,254 @@
+// import React, { useState, useEffect, useContext } from 'react';
+// import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+// import { useNavigation } from '@react-navigation/native';
+// import { MyUserContext } from '../../contexts/UserContext';
+// import { authApi, endpoints } from '../../configs/APIs';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import Colors from '../../constants/Colors';
+
+// export default function AcceptedApplications() {
+//     const [applications, setApplications] = useState([]);
+//     const [loading, setLoading] = useState(true);
+//     const [refreshing, setRefreshing] = useState(false);
+//     const navigation = useNavigation();
+//     const user = useContext(MyUserContext);
+
+//     useEffect(() => {
+//         if (user && user.role === 'employer') {
+//             loadApplications();
+//         }
+//     }, [user]);
+
+//     const loadApplications = async () => {
+//         try {
+//             setLoading(true);
+//             const token = await AsyncStorage.getItem('token');
+//             if (!token) {
+//                 throw new Error('Không tìm thấy token xác thực');
+//             }
+
+//             // Gọi API lấy danh sách đơn ứng tuyển với trạng thái accepted
+//             const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['application-profile']}?status=accepted`;
+//             console.log('Đang gọi API:', requestUrl);
+
+//             const res = await authApi(token).get(endpoints['application-profile'], {
+//                 params: { status: 'accepted' }
+//             });
+
+//             // Kiểm tra mã trạng thái HTTP
+//             if (res.status === 401) {
+//                 throw new Error('Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.');
+//             } else if (res.status === 403) {
+//                 throw new Error('Bạn không có quyền truy cập.');
+//             } else if (res.status === 500) {
+//                 throw new Error('Lỗi máy chủ nội bộ. Vui lòng thử lại sau.');
+//             } else if (res.status !== 200) {
+//                 throw new Error(`Lỗi HTTP: ${res.status}`);
+//             }
+
+//             // Kiểm tra dữ liệu trả về
+//             let acceptedApplications = [];
+//             if (Array.isArray(res.data)) {
+//                 acceptedApplications = res.data;
+//             } else if (res.data && Array.isArray(res.data.results)) {
+//                 acceptedApplications = res.data.results;
+//             } else if (res.data && res.data.detail) {
+//                 throw new Error(res.data.detail);
+//             } else {
+//                 console.error('Dữ liệu API không hợp lệ:', res.data);
+//                 throw new Error('Dữ liệu trả về không đúng định dạng');
+//             }
+
+//             console.log('Đơn ứng tuyển accepted:', acceptedApplications);
+
+//             // Lọc các đơn hợp lệ và đảm bảo trạng thái là accepted
+//             const validApplications = acceptedApplications.filter(
+//                 app => app.id && app.status === 'accepted'
+//             );
+//             console.log(`Đơn hợp lệ: ${validApplications.length}, Loại bỏ: ${acceptedApplications.length - validApplications.length}`);
+
+//             // Chuyển đổi dữ liệu đơn ứng tuyển thành thông tin hiển thị
+//             const applicationData = validApplications.map(application => ({
+//                 id: application.id,
+//                 title: application.job?.title || 'Công việc không xác định',
+//                 candidate: application.user?.username || 'Ứng viên không xác định',
+//                 time: formatDate(application.created_date || new Date().toISOString()),
+//             }));
+
+//             console.log('Dữ liệu ứng tuyển:', applicationData);
+//             setApplications(applicationData);
+//         } catch (error) {
+//             console.error('Lỗi khi tải danh sách ứng tuyển:', error);
+//             let errorMessage = 'Không thể tải danh sách đơn ứng tuyển. Vui lòng thử lại.';
+//             if (error.message.includes('Không tìm thấy token xác thực')) {
+//                 errorMessage = 'Vui lòng đăng nhập lại để tiếp tục.';
+//             } else if (error.message.includes('Token không hợp lệ')) {
+//                 errorMessage = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+//             } else if (error.message.includes('Bạn không có quyền truy cập')) {
+//                 errorMessage = 'Bạn không có quyền xem danh sách đơn ứng tuyển.';
+//             }
+//             Alert.alert('Lỗi', errorMessage);
+//             setApplications([]);
+//         } finally {
+//             setLoading(false);
+//             setRefreshing(false);
+//         }
+//     };
+
+//     const onRefresh = () => {
+//         setRefreshing(true);
+//         loadApplications();
+//     };
+
+//     const formatDate = (dateString) => {
+//         try {
+//             const date = new Date(dateString);
+//             if (isNaN(date.getTime())) {
+//                 return 'Không xác định';
+//             }
+//             const now = new Date();
+//             const diffTime = Math.abs(now - date);
+//             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+//             if (diffDays === 0) {
+//                 return 'Hôm nay';
+//             } else if (diffDays === 1) {
+//                 return 'Hôm qua';
+//             } else if (diffDays < 7) {
+//                 return `${diffDays} ngày trước`;
+//             } else {
+//                 return date.toLocaleDateString('vi-VN');
+//             }
+//         } catch {
+//             return 'Không xác định';
+//         }
+//     };
+
+//     const handleApplicationPress = (application) => {
+//         console.log('Điều hướng với applicationId:', application.id);
+//         navigation.navigate('ApplicationDetail', {
+//             applicationId: application.id,
+//         });
+//     };
+
+//     const renderItem = ({ item }) => {
+//         return (
+//             <TouchableOpacity
+//                 style={styles.applicationItem}
+//                 onPress={() => handleApplicationPress(item)}
+//             >
+//                 <Text style={styles.applicationTitle}>{item.title}</Text>
+//                 <Text style={styles.applicationMessage}>Ứng viên: {item.candidate}</Text>
+//                 <Text style={styles.applicationTime}>{item.time}</Text>
+//             </TouchableOpacity>
+//         );
+//     };
+
+//     if (loading) {
+//         return (
+//             <View style={styles.loadingContainer}>
+//                 <ActivityIndicator size="large" color={Colors.PRIMARY} />
+//                 <Text style={styles.loadingText}>Đang tải danh sách đơn ứng tuyển...</Text>
+//             </View>
+//         );
+//     }
+
+//     return (
+//         <SafeAreaView style={styles.safeArea}>
+//             <View style={styles.container}>
+//                 <Text style={styles.title}>Đơn ứng tuyển đã chấp nhận</Text>
+//                 <FlatList
+//                     data={applications}
+//                     renderItem={renderItem}
+//                     keyExtractor={(item) => String(item.id)}
+//                     ListEmptyComponent={
+//                         <View style={styles.emptyContainer}>
+//                             <Text style={styles.emptyText}>Không có đơn ứng tuyển nào được chấp nhận.</Text>
+//                             <Text style={styles.subText}>Xem lại các đơn ứng tuyển</Text>
+//                         </View>
+//                     }
+//                     refreshControl={
+//                         <RefreshControl
+//                             refreshing={refreshing}
+//                             onRefresh={onRefresh}
+//                             colors={[Colors.PRIMARY]}
+//                         />
+//                     }
+//                 />
+//             </View>
+//         </SafeAreaView>
+//     );
+// }
+
+// const styles = StyleSheet.create({
+//     safeArea: {
+//         flex: 1,
+//         backgroundColor: '#f8f8f8',
+//     },
+//     container: {
+//         flex: 1,
+//         padding: 16,
+//     },
+//     title: {
+//         fontSize: 20,
+//         fontWeight: 'bold',
+//         marginBottom: 16,
+//         color: Colors.PRIMARY,
+//     },
+//     applicationItem: {
+//         backgroundColor: 'white',
+//         padding: 16,
+//         borderRadius: 8,
+//         marginBottom: 12,
+//         elevation: 2,
+//         shadowColor: '#000',
+//         shadowOffset: { width: 0, height: 1 },
+//         shadowOpacity: 0.22,
+//         shadowRadius: 2.22,
+//     },
+//     applicationTitle: {
+//         fontSize: 16,
+//         fontWeight: 'bold',
+//         marginBottom: 4,
+//         color: Colors.PRIMARY,
+//     },
+//     applicationMessage: {
+//         fontSize: 14,
+//         color: '#333',
+//         marginBottom: 8,
+//         lineHeight: 20,
+//     },
+//     applicationTime: {
+//         fontSize: 12,
+//         color: '#666',
+//         alignSelf: 'flex-end',
+//     },
+//     loadingContainer: {
+//         flex: 1,
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//     },
+//     loadingText: {
+//         marginTop: 16,
+//         color: Colors.PRIMARY,
+//         fontSize: 16,
+//     },
+//     emptyContainer: {
+//         flex: 1,
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         paddingVertical: 48,
+//     },
+//     emptyText: {
+//         fontSize: 16,
+//         color: '#666',
+//     },
+//     subText: {
+//         fontSize: 14,
+//         color: Colors.PRIMARY,
+//         marginTop: 8,
+//     },
+// });
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -28,18 +279,16 @@ export default function AcceptedApplications() {
             }
 
             // Gọi API lấy danh sách đơn ứng tuyển với trạng thái accepted
-            const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['application-profile']}?status=accepted`;
+            const requestUrl = `${endpoints['application-profile']}all-accepted-applications/`;
             console.log('Đang gọi API:', requestUrl);
 
-            const res = await authApi(token).get(endpoints['application-profile'], {
-                params: { status: 'accepted' }
-            });
+            const res = await authApi(token).get(requestUrl);
 
             // Kiểm tra mã trạng thái HTTP
             if (res.status === 401) {
                 throw new Error('Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.');
             } else if (res.status === 403) {
-                throw new Error('Bạn không có quyền truy cập.');
+                throw new Error('Bạn không có quyền truy cập. Công ty có thể chưa được phê duyệt.');
             } else if (res.status === 500) {
                 throw new Error('Lỗi máy chủ nội bộ. Vui lòng thử lại sau.');
             } else if (res.status !== 200) {
@@ -71,8 +320,9 @@ export default function AcceptedApplications() {
             const applicationData = validApplications.map(application => ({
                 id: application.id,
                 title: application.job?.title || 'Công việc không xác định',
-                candidate: application.user?.username || 'Ứng viên không xác định',
+                candidate: application.user?.username || application.user?.first_name || 'Ứng viên không xác định',
                 time: formatDate(application.created_date || new Date().toISOString()),
+                application: application, // Lưu toàn bộ object application để truyền sang ApplicationDetail
             }));
 
             console.log('Dữ liệu ứng tuyển:', applicationData);
@@ -80,12 +330,14 @@ export default function AcceptedApplications() {
         } catch (error) {
             console.error('Lỗi khi tải danh sách ứng tuyển:', error);
             let errorMessage = 'Không thể tải danh sách đơn ứng tuyển. Vui lòng thử lại.';
-            if (error.message.includes('Không tìm thấy token xác thực')) {
+            if (error.message.includes('You do not have a verified company')) {
+                errorMessage = 'Công ty của bạn chưa được phê duyệt. Vui lòng chờ phê duyệt để xem đơn ứng tuyển.';
+            } else if (error.message.includes('Không tìm thấy token xác thực')) {
                 errorMessage = 'Vui lòng đăng nhập lại để tiếp tục.';
             } else if (error.message.includes('Token không hợp lệ')) {
                 errorMessage = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
             } else if (error.message.includes('Bạn không có quyền truy cập')) {
-                errorMessage = 'Bạn không có quyền xem danh sách đơn ứng tuyển.';
+                errorMessage = 'Công ty của bạn chưa được phê duyệt hoặc bạn không có quyền xem đơn ứng tuyển.';
             }
             Alert.alert('Lỗi', errorMessage);
             setApplications([]);
@@ -128,6 +380,7 @@ export default function AcceptedApplications() {
         console.log('Điều hướng với applicationId:', application.id);
         navigation.navigate('ApplicationDetail', {
             applicationId: application.id,
+            application: application.application, // Truyền toàn bộ object application
         });
     };
 

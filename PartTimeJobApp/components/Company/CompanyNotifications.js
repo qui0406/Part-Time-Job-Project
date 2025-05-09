@@ -17,7 +17,7 @@ export default function CompanyNotifications() {
         if (user && user.role === 'employer') {
             loadNotifications();
         }
-    }, []);
+    }, [user]);
 
     const loadNotifications = async () => {
         try {
@@ -26,20 +26,19 @@ export default function CompanyNotifications() {
             if (!token) {
                 throw new Error('Không tìm thấy token xác thực');
             }
-
-            // Gọi API lấy danh sách đơn ứng tuyển có trạng thái pending
-            const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['application-profile']}?status=pending`;
-            console.log('Đang gọi API danh sách:', requestUrl);
-
-            const res = await authApi(token).get(endpoints['application-profile'], {
-                params: { status: 'pending' }
+    
+            const requestUrl = endpoints['application-profile'];
+            console.log('Đang gọi API danh sách:', `${requestUrl}?status=pending`);
+    
+            const res = await authApi(token).get(requestUrl, {
+                params: { status: 'pending' } // Luôn gửi status=pending
             });
 
             // Kiểm tra mã trạng thái HTTP
             if (res.status === 401) {
                 throw new Error('Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.');
             } else if (res.status === 403) {
-                throw new Error('Bạn không có quyền truy cập. Công ty có thể chưa được phê duyệt.');
+                throw new Error('Bạn không có quyền truy cập. Công ty của bạn có thể chưa được phê duyệt.');
             } else if (res.status === 500) {
                 throw new Error('Lỗi máy chủ nội bộ. Vui lòng thử lại sau.');
             } else if (res.status !== 200) {
@@ -51,7 +50,7 @@ export default function CompanyNotifications() {
             if (Array.isArray(res.data)) {
                 pendingApplications = res.data;
             } else if (res.data && Array.isArray(res.data.results)) {
-                pendingApplications = res.data.results;
+                pendingApplications = res.data.results; // Hỗ trợ phân trang
             } else if (res.data && res.data.detail) {
                 throw new Error(res.data.detail);
             } else {
@@ -62,24 +61,26 @@ export default function CompanyNotifications() {
             console.log('Đơn ứng tuyển pending:', pendingApplications);
 
             // Lọc đơn ứng tuyển hợp lệ
-            const validApplications = pendingApplications.filter(application => application.id);
+            const validApplications = pendingApplications.filter(application => 
+                application.id && 
+                application.status === 'pending' && 
+                application.user && 
+                application.job
+            );
             console.log(`Đơn hợp lệ: ${validApplications.length}, Loại bỏ: ${pendingApplications.length - validApplications.length}`);
 
             // Chuyển đổi dữ liệu đơn ứng tuyển thành thông báo
             const notificationData = validApplications.map(application => {
-                // Không có thông tin user, sử dụng giá trị mặc định
-                const username = 'Ứng viên';
-
-                // Sử dụng ID của job vì không thể lấy chi tiết công việc
-                const jobTitle = `Công việc #${application.job || 'không xác định'}`;
+                const username = application.user?.username || application.user?.first_name || 'Ứng viên';
+                const jobTitle = application.job?.title || `Công việc #${application.job?.id || 'không xác định'}`;
 
                 return {
                     id: application.id,
                     title: 'Đơn ứng tuyển mới',
-                    message: `Có đơn ứng tuyển mới (${application.status_display || 'Đang chờ'}) cho ${jobTitle}.`,
+                    message: `${username} đã nộp đơn ứng tuyển cho ${jobTitle} (Trạng thái: ${application.status_display || 'Đang chờ'}).`,
                     time: formatDate(application.created_date || new Date().toISOString()),
                     applicationId: application.id,
-                    application: application, // Lưu toàn bộ object application để truyền sang ApplicationDetail
+                    application: application,
                     type: 'application_review'
                 };
             });
@@ -140,7 +141,7 @@ export default function CompanyNotifications() {
             console.log('Chuyển đến chi tiết đơn với applicationId:', notification.applicationId);
             navigation.navigate('ApplicationDetail', { 
                 applicationId: notification.applicationId,
-                application: notification.application // Truyền toàn bộ object application
+                application: notification.application
             });
         }
     };
