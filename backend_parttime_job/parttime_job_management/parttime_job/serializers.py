@@ -207,9 +207,6 @@ class JobSerializer(serializers.ModelSerializer):
         return value
 
 
-
-
-
 class ApplicationSerializer(serializers.ModelSerializer):
     # job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -257,7 +254,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
             validated_data['cv'] = upload_result['secure_url']
 
         validated_data['user'] = user
-        validated_data['company'] = job.company 
 
         return super().create(validated_data)
 
