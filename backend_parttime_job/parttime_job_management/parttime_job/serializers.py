@@ -97,7 +97,7 @@ class CompanySerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Follow.objects.filter(
-                user=request.user, company=obj).exists()
+                user=request.user, company=obj,active=True).exists()
         return False
     
     def get_follower_count(self, obj):

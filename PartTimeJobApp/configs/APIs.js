@@ -1,22 +1,21 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.7:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
-    'login':'/o/token/',
-    'current-user':'/user/current-user/',
-    'update-user':'/user/update-user/',
-    'password-reset':'/api/password_reset/',
-    'password-reset-confirm':'/api/password_reset/confirm/',
+    'login': '/o/token/',
+    'current-user': '/user/current-user/',
+    'update-user': '/user/update-user/',
+    'password-reset': '/api/password_reset/',
+    'password-reset-confirm': '/api/password_reset/confirm/',
     'password-reset-token': '/api/password_reset/:token/',
     // Thông tin công ty và đăng ký
     'create-employer': '/company/create-company/',
     'company-details': '/company/', // /:id/ sẽ được thêm vào trong code
     'company-follow': '/company/',
     'company-approval-list': '/company-approved/',
-    'company-approval': '/company-approved/', 
-    'create-employer': '/company/create-company/',
+    'company-approval': '/company-approved/',
     'current-company': '/company/current-company/',
     'update-company': '/company/update-company/',
     'create-post-job': '/job/create-job/',
@@ -24,21 +23,28 @@ export const endpoints = {
     'job': '/job/',
     'job-list': '/job-list/',
     'company-jobs': '/job/company-jobs/',
-    'application-profile-apply': '/application-profile/apply/',
-    "my-applications": '/application-profile/',
-    'notification': '/notification/',
+    // Applications
+    'application-profile': '/application-profile/', // Lấy danh sách đơn ứng tuyển cho nhà tuyển dụng
+    'job-applications': '/application-profile/', // Alias cho application-profile
+    'application-profile-apply': '/application-profile/apply/', // Nộp đơn ứng tuyển
+    'my-applications': '/application-profile/', // Danh sách đơn ứng tuyển của người dùng
+    'application-detail': '/application-profile/', // /:id/ sẽ được thêm vào để lấy chi tiết đơn
+    'review-application': '/review-application/', // /:id/ sẽ được thêm vào trong code
+    'review-application-action': '/review-application/', // /:id/review/ sẽ được thêm vào để phê duyệt/từ chối
+    'notification': '/notification/', // Thông báo
+    'ratings': '/ratings/',
+    'employer-ratings': '/employer-ratings/'
 }
 
-export const authApi = (token) =>{
+export const authApi = (token) => {
     return axios.create({
         baseURL: BASE_URL,
-        headers:{
+        headers: {
             Authorization: `Bearer ${token}`,
-          
         }
-    })
+    });
 }
 
 export default axios.create({
     baseURL: BASE_URL,
-})
+});
