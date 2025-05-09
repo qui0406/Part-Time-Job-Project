@@ -343,6 +343,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
 
+    
     def list(self, request):
         user = request.user
         company = Company.objects.filter(user=user, active=True, is_approved=True).first()
@@ -350,22 +351,52 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"detail": "You do not have a verified company."}, status=403)
 
         jobs = Job.objects.filter(company=company, active=True)
-        queryset = Application.objects.filter(active=True, job__in=jobs).distinct()
+        
+        # CHỈ lấy application có status = 'pending'
+        queryset = Application.objects.filter(
+            active=True,
+            job__in=jobs,
+            status='pending'  
+        ).distinct()
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = ApplicationDetailSerializer(page, many= True)
+            serializer = ApplicationDetailSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = ApplicationDetailSerializer(page, many = True)
+        serializer = ApplicationDetailSerializer(queryset, many=True)
         return Response(serializer.data)
+    
+    @action(methods=['get'], url_path='all-accepted-applications', detail=False, serializer_class= ApplicationDetailSerializer)
+    def all_accepted_applications(self, request):
+        user = request.user
+        company = Company.objects.filter(user=user, active=True, is_approved=True).first()
+        if not company:
+            return Response({"detail": "You do not have a verified company."}, status=403)
+
+        jobs = Job.objects.filter(company=company, active=True)
+        
+        queryset = Application.objects.filter(
+            active=True,
+            job__in=jobs,
+            status='accepted'  
+        ).distinct()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = ApplicationDetailSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = ApplicationDetailSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
 
     @action(detail=True, methods=['patch'], url_path='update-status')
     def update_status(self, request, pk=None):
         user = request.user
         application = get_object_or_404(Application, pk=pk, active=True)
 
-        # Chỉ employer thuộc công ty mới được cập nhật trạng thái
         if application.job.company.user != user:
             return Response({"detail": "You do not have permission to update this application."},
                             status=drf_status.HTTP_403_FORBIDDEN)
