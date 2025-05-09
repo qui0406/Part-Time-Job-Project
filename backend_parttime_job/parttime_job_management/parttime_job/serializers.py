@@ -163,6 +163,7 @@ class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
 
 
 class JobSerializer(serializers.ModelSerializer):
+    company = CompanySerializer()
     class Meta:
         model = Job
         fields = ['id', 'company', 'title', 'description',
@@ -204,11 +205,15 @@ class JobSerializer(serializers.ModelSerializer):
         return value
 
 
+
+
+
 class ApplicationSerializer(serializers.ModelSerializer):
     job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     cv = serializers.FileField(required=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+
 
     class Meta:
         model = Application
@@ -247,6 +252,16 @@ class ApplicationSerializer(serializers.ModelSerializer):
             validated_data['cv'] = upload_result['secure_url']
         return super().create(validated_data)
 
+
+class ApplicationDetailSerializer(ApplicationSerializer):
+    job = JobSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
+
+    class Meta(ApplicationSerializer.Meta):
+        fields = ApplicationSerializer.Meta.fields + ['job', 'user']
+        read_only_fields = ['status', 'employer_note', 'user']
+
+        
 class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
