@@ -354,10 +354,10 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = ApplicationDetailSerializer(page, many= True)
+            serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = ApplicationDetailSerializer(page, many = True)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'], url_path='update-status')
