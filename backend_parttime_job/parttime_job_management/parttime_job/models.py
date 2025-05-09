@@ -179,11 +179,6 @@ class EmployerRating(BaseModel):
     def __str__(self):
         return f"EmployerRating({self.employer.username} → {self.user.username}): {self.rating}★"
 
-
-from django.db import models
-from django.conf import settings
-from cloudinary.models import CloudinaryField
-
 class VerificationDocument(models.Model):
     DOCUMENT_TYPE_CHOICES = (
         ('id_card', 'CMND/CCCD'),
@@ -198,7 +193,6 @@ class VerificationDocument(models.Model):
         related_name="verification_documents"
     )
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
-
     document_front = CloudinaryField('document_front', resource_type='image', blank=True, null=True)
     document_back = CloudinaryField('document_back', resource_type='image', blank=True, null=True)
     selfie_image = CloudinaryField('selfie_image', resource_type='image', blank=True, null=True)

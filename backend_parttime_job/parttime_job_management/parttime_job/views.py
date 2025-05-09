@@ -350,7 +350,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"detail": "You do not have a verified company."}, status=403)
 
         jobs = Job.objects.filter(company=company, active=True)
-        queryset = Application.objects.filter(active=True, job__in=jobs, status='pending').distinct()
+        queryset = Application.objects.filter(active=True, job__in=jobs).distinct()
 
         page = self.paginate_queryset(queryset)
         if page is not None:
