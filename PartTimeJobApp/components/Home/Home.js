@@ -427,61 +427,39 @@ export default function Home() {
         if (!isInitial && nextUrl && hasMore) {
             url = nextUrl;
         }
-
-        // Xây dựng query parameters cho tìm kiếm
+    
         const queryParams = new URLSearchParams();
         if (filters.title) queryParams.append('title', filters.title);
         if (filters.min_salary) queryParams.append('min_salary', filters.min_salary);
         if (filters.max_salary) queryParams.append('max_salary', filters.max_salary);
         if (filters.working_time) queryParams.append('working_time', filters.working_time);
-
+    
         const queryString = queryParams.toString();
         const finalUrl = queryString ? `${url}?${queryString}` : url;
-
+    
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem('token');
             const response = await authApi(token).get(finalUrl);
             const jobsData = response.data.results || [];
-
+    
             if (!Array.isArray(jobsData)) {
                 throw new Error('Dữ liệu công việc không hợp lệ');
             }
-
-            // Loại bỏ công việc trùng lặp và cập nhật danh sách
+    
             const newJobs = isInitial ? jobsData : [...jobs, ...jobsData].filter((job, index, self) =>
                 index === self.findIndex((t) => t.id === job.id)
             );
             setJobs(newJobs);
-
+    
             if (isInitial) {
-                setVisibleJobs(jobsData);// Nếu là tải ban đầu, hiển thị dữ liệu mới
+                setVisibleJobs(jobsData);
             } else {
-                setVisibleJobs(newJobs);// Nếu là lazy loading, hiển thị danh sách tổng hợp
+                setVisibleJobs(newJobs);
             }
-
-            setNextUrl(response.data.next); // Cập nhật URL trang tiếp theo
-            setHasMore(!!response.data.next);// Kiểm tra còn dữ liệu để tải hay không
-
-            // Lấy thông tin công ty từ danh sách công việc
-            const companyIds = [...new Set(jobsData.map(job => job.company))];
-            const tokenHeader = await AsyncStorage.getItem('token');
-            const companyPromises = companyIds.map(async (companyId) => {
-                try {
-                    const url = `${endpoints['company-details']}${companyId}/`;
-                    const res = await authApi(tokenHeader).get(url);
-                    return { id: companyId, data: res.data };
-                } catch (e) {
-                    return { id: companyId, data: null };
-                }
-            });
-
-            const companiesData = await Promise.all(companyPromises);
-            const newCompanies = companiesData.reduce((acc, { id, data }) => {
-                if (data) acc[id] = data;
-                return acc;
-            }, {});
-            setCompanies(prev => ({ ...prev, ...newCompanies }));
+    
+            setNextUrl(response.data.next);
+            setHasMore(!!response.data.next);
         } catch (error) {
             Alert.alert('Lỗi', 'Không thể tải danh sách tin tuyển dụng');
         } finally {
@@ -575,7 +553,7 @@ export default function Home() {
     };
 
     const renderJobItem = ({ item }) => {
-        const company = companies[item.company];
+        const company = item.company; // Lấy trực tiếp từ item.company
         return (
             <TouchableOpacity
                 style={styles.jobCard}
@@ -593,7 +571,6 @@ export default function Home() {
                 <Text style={styles.jobTitle}>{item.title}</Text>
                 <Text style={styles.salary}>VNĐ {item.salary}</Text>
                 <Text style={styles.jobDetail}>{item.working_time}</Text>
-            
             </TouchableOpacity>
         );
     };

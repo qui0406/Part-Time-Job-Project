@@ -165,6 +165,10 @@ import CompanyDetail from './components/Candidate/CompanyDetail';
 import ApplyJob from './components/Candidate/ApplyJob';
 import ApplicationDetail from './components/Company/ApplicationDetail';
 import MyApplication from './components/Candidate/MyApplication';
+import RateJob from './components/Candidate/RateJob';
+import RateCandidate from './components/Company/RateCandidate';
+import AcceptedApplications from './components/Company/AcceptedApplications'; 
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -214,14 +218,7 @@ const MainTab = () => {
           tabBarIcon: () => <Icon size={30} color="#1b4089" source="home" />,
         }}
       />
-      <Tab.Screen
-        name="MyApplication"
-        component={MyApplication}
-        options={{
-          title: 'Đã ứng tuyển',
-          tabBarIcon: () => <Icon size={30} color="#1b4089" source="briefcase" />, // Sử dụng biểu tượng Briefcase
-        }}
-      />
+    
       {user.role === 'admin' && (
         <Tab.Screen
           name="Notifications"
@@ -242,6 +239,16 @@ const MainTab = () => {
           }}
         />
       )}
+       {user.role === 'employer' && (
+        <Tab.Screen
+          name="AcceptedApplications"
+          component={AcceptedApplications}
+          options={{
+            title: 'Đơn đã chấp nhận',
+            tabBarIcon: () => <Icon size={30} color="#1b4089" source="check-circle" />,
+          }}
+        />
+      )}
       {user.role === 'employer' && (
         <Tab.Screen
           name="CompanyNotifications"
@@ -249,6 +256,17 @@ const MainTab = () => {
           options={{
             title: 'Thông báo',
             tabBarIcon: () => <Icon size={30} color="#1b4089" source="bell" />,
+          }}
+        />
+      )}
+     
+      {user.role === 'candidate' && (
+          <Tab.Screen
+          name="MyApplication"
+          component={MyApplication}
+          options={{
+            title: 'Đã ứng tuyển',
+            tabBarIcon: () => <Icon size={30} color="#1b4089" source="briefcase" />, // Sử dụng biểu tượng Briefcase
           }}
         />
       )}
@@ -262,6 +280,7 @@ const MainTab = () => {
           }}
         />
       )}
+      
       <Tab.Screen
         name="Profile"
         component={Profile}
@@ -292,6 +311,8 @@ export default function App() {
             />
             <RootStack.Screen name="EditProfile" component={EditProfile} />
             <RootStack.Screen name="ApplicationDetail" component={ApplicationDetail} />
+            <RootStack.Screen name="RateJob" component={RateJob} />
+            <RootStack.Screen name="RateCandidate" component={RateCandidate} />
           </RootStack.Navigator>
         </MyDispacthContext.Provider>
       </MyUserContext.Provider>

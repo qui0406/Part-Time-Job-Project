@@ -6,7 +6,7 @@ import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '../../constants/Colors';
 
-export default function MyApplications() {
+export default function AcceptedApplications() {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -14,7 +14,7 @@ export default function MyApplications() {
     const user = useContext(MyUserContext);
 
     useEffect(() => {
-        if (user && user.role === 'candidate') {
+        if (user && user.role === 'employer') {
             loadApplications();
         }
     }, [user]);
@@ -28,10 +28,12 @@ export default function MyApplications() {
             }
 
             // Gọi API lấy danh sách đơn ứng tuyển với trạng thái accepted
-            const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['my-applications']}my-all-applications/`;
-            console.log('Đang gọi API danh sách:', requestUrl);
+            const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['application-profile']}?status=accepted`;
+            console.log('Đang gọi API:', requestUrl);
 
-            const res = await authApi(token).get(`${endpoints['my-applications']}my-all-applications/`);
+            const res = await authApi(token).get(endpoints['application-profile'], {
+                params: { status: 'accepted' }
+            });
 
             // Kiểm tra mã trạng thái HTTP
             if (res.status === 401) {
@@ -59,31 +61,31 @@ export default function MyApplications() {
 
             console.log('Đơn ứng tuyển accepted:', acceptedApplications);
 
-            // Lọc đơn ứng tuyển hợp lệ
-            const validApplications = acceptedApplications.filter(application => application.id);
+            // Lọc các đơn hợp lệ và đảm bảo trạng thái là accepted
+            const validApplications = acceptedApplications.filter(
+                app => app.id && app.status === 'accepted'
+            );
             console.log(`Đơn hợp lệ: ${validApplications.length}, Loại bỏ: ${acceptedApplications.length - validApplications.length}`);
 
             // Chuyển đổi dữ liệu đơn ứng tuyển thành thông tin hiển thị
             const applicationData = validApplications.map(application => ({
                 id: application.id,
-                title: application.job.title || 'Công việc không xác định',
-                company: application.job.company?.company_name || 'Công ty không xác định',
+                title: application.job?.title || 'Công việc không xác định',
+                candidate: application.user?.username || 'Ứng viên không xác định',
                 time: formatDate(application.created_date || new Date().toISOString()),
-                job: application.job,
-                companyData: application.job.company,
             }));
 
             console.log('Dữ liệu ứng tuyển:', applicationData);
             setApplications(applicationData);
         } catch (error) {
             console.error('Lỗi khi tải danh sách ứng tuyển:', error);
-            let errorMessage = 'Không thể tải danh sách ứng tuyển. Vui lòng thử lại.';
+            let errorMessage = 'Không thể tải danh sách đơn ứng tuyển. Vui lòng thử lại.';
             if (error.message.includes('Không tìm thấy token xác thực')) {
                 errorMessage = 'Vui lòng đăng nhập lại để tiếp tục.';
             } else if (error.message.includes('Token không hợp lệ')) {
                 errorMessage = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
             } else if (error.message.includes('Bạn không có quyền truy cập')) {
-                errorMessage = 'Bạn không có quyền xem danh sách ứng tuyển.';
+                errorMessage = 'Bạn không có quyền xem danh sách đơn ứng tuyển.';
             }
             Alert.alert('Lỗi', errorMessage);
             setApplications([]);
@@ -123,24 +125,21 @@ export default function MyApplications() {
     };
 
     const handleApplicationPress = (application) => {
-        console.log('Chuyển đến màn hình đánh giá với job:', application.job);
-        navigation.navigate('RateJob', {
-            jobId: application.job.id,
-            companyId: application.companyData.id,
-            jobTitle: application.title,
-            companyName: application.company,
+        console.log('Điều hướng với applicationId:', application.id);
+        navigation.navigate('ApplicationDetail', {
+            applicationId: application.id,
         });
     };
 
     const renderItem = ({ item }) => {
         return (
             <TouchableOpacity
-                style={styles.notificationItem}
+                style={styles.applicationItem}
                 onPress={() => handleApplicationPress(item)}
             >
-                <Text style={styles.notificationTitle}>{item.title}</Text>
-                <Text style={styles.notificationMessage}>Công ty: {item.company}</Text>
-                <Text style={styles.notificationTime}>{item.time}</Text>
+                <Text style={styles.applicationTitle}>{item.title}</Text>
+                <Text style={styles.applicationMessage}>Ứng viên: {item.candidate}</Text>
+                <Text style={styles.applicationTime}>{item.time}</Text>
             </TouchableOpacity>
         );
     };
@@ -149,7 +148,7 @@ export default function MyApplications() {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.PRIMARY} />
-                <Text style={styles.loadingText}>Đang tải danh sách ứng tuyển...</Text>
+                <Text style={styles.loadingText}>Đang tải danh sách đơn ứng tuyển...</Text>
             </View>
         );
     }
@@ -157,15 +156,15 @@ export default function MyApplications() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                <Text style={styles.title}>Công việc đã ứng tuyển</Text>
+                <Text style={styles.title}>Đơn ứng tuyển đã chấp nhận</Text>
                 <FlatList
                     data={applications}
                     renderItem={renderItem}
                     keyExtractor={(item) => String(item.id)}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>Bạn chưa có công việc nào được chấp nhận.</Text>
-                            <Text style={styles.subText}>Tìm việc ngay</Text>
+                            <Text style={styles.emptyText}>Không có đơn ứng tuyển nào được chấp nhận.</Text>
+                            <Text style={styles.subText}>Xem lại các đơn ứng tuyển</Text>
                         </View>
                     }
                     refreshControl={
@@ -196,30 +195,30 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         color: Colors.PRIMARY,
     },
-    notificationItem: {
+    applicationItem: {
         backgroundColor: 'white',
         padding: 16,
         borderRadius: 8,
         marginBottom: 12,
         elevation: 2,
-        shadowColor: "#000",
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.22,
         shadowRadius: 2.22,
     },
-    notificationTitle: {
+    applicationTitle: {
         fontSize: 16,
         fontWeight: 'bold',
         marginBottom: 4,
         color: Colors.PRIMARY,
     },
-    notificationMessage: {
+    applicationMessage: {
         fontSize: 14,
         color: '#333',
         marginBottom: 8,
         lineHeight: 20,
     },
-    notificationTime: {
+    applicationTime: {
         fontSize: 12,
         color: '#666',
         alignSelf: 'flex-end',
