@@ -165,7 +165,7 @@ class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
 
 
 class JobSerializer(serializers.ModelSerializer):
-    company = CompanySerializer()
+    company = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Job
         fields = ['id', 'company', 'title', 'description',

@@ -277,6 +277,7 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         try:
             company = Company.objects.get(
                 user=request.user, active=True, is_approved=True)
+            
         except Company.DoesNotExist:
             return Response(
                 {"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."},
@@ -287,10 +288,13 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             'request': request,
             'company': company
         })
+        
 
         if serializer.is_valid():
             try:
+                
                 job = serializer.save(company=company)
+                
                 followers = Follow.objects.filter(company=company, active=True).select_related("user")
                 
                 for follow in followers:
