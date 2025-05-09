@@ -164,7 +164,7 @@ import JobDetail from './components/Candidate/JobDetail';
 import CompanyDetail from './components/Candidate/CompanyDetail';
 import ApplyJob from './components/Candidate/ApplyJob';
 import ApplicationDetail from './components/Company/ApplicationDetail';
-
+import MyApplication from './components/Candidate/MyApplication';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -186,6 +186,7 @@ const HomeStack = () => (
     <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc" }} />
     <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} />
     <Stack.Screen screenOptions={{ headerShown: false }} name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
+    <Stack.Screen name="MyApplication" component={MyApplication} options={{ title: "Công việc đã ứng tuyển" }} />
   </Stack.Navigator>
 );
 
@@ -211,6 +212,14 @@ const MainTab = () => {
         options={{
           title: 'Trang chủ',
           tabBarIcon: () => <Icon size={30} color="#1b4089" source="home" />,
+        }}
+      />
+      <Tab.Screen
+        name="MyApplication"
+        component={MyApplication}
+        options={{
+          title: 'Đã ứng tuyển',
+          tabBarIcon: () => <Icon size={30} color="#1b4089" source="briefcase" />, // Sử dụng biểu tượng Briefcase
         }}
       />
       {user.role === 'admin' && (

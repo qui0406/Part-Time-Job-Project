@@ -1,5 +1,5 @@
 from rest_framework import serializers  # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from django.contrib.auth import authenticate  # type: ignore
@@ -204,7 +204,6 @@ class JobSerializer(serializers.ModelSerializer):
         return value
 
 
-
 class ApplicationSerializer(serializers.ModelSerializer):
     job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -257,3 +256,85 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'message', 'is_read', 'created_date']
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+    company = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all())
+    job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all(), required=False, allow_null=True)
+
+    class Meta:
+        model = Rating
+        fields = ['id', 'user', 'company', 'job', 'rating', 'comment', 'created_date', 'updated_date']
+        read_only_fields = ['id', 'user', 'created_date', 'updated_date']
+
+    def validate(self, data):
+        user = self.context['request'].user
+        company = data.get('company')
+        job = data.get('job')
+
+        if self.instance:
+            # Skip duplicate check when updating
+            return data
+
+        if Rating.objects.filter(user=user, company=company, job=job).exists():
+            raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
+        return data
+
+class EmployerRatingSerializer(serializers.ModelSerializer):
+    employer = serializers.StringRelatedField(read_only=True)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    application = serializers.PrimaryKeyRelatedField(queryset=Application.objects.all(), required=False, allow_null=True)
+
+    class Meta:
+        model = EmployerRating
+        fields = ['id', 'employer', 'user', 'application', 'rating', 'comment', 'created_date', 'updated_date']
+        read_only_fields = ['id', 'employer', 'created_date', 'updated_date']
+
+    def validate(self, data):
+        employer = self.context['request'].user
+        user = data.get('user')
+        application = data.get('application')
+
+        if self.instance:
+            # Skip duplicate check when updating
+            return data
+
+        if EmployerRating.objects.filter(employer=employer, user=user, application=application).exists():
+            raise serializers.ValidationError("Bạn đã đánh giá ứng viên này cho đơn ứng tuyển này rồi.")
+        return data
+
+import mimetypes
+class DocumentVerificationSerializer(serializers.Serializer):
+    document_front = serializers.FileField()
+    document_back = serializers.FileField(required=False, allow_null=True)
+    selfie_image = serializers.FileField(required=False, allow_null=True)
+    document_type = serializers.ChoiceField(choices=VerificationDocument.DOCUMENT_TYPE_CHOICES)
+
+    def validate_document_front(self, value):
+        return self._validate_file(value, "Hình mặt trước tài liệu")
+
+    def validate_document_back(self, value):
+        return self._validate_file(value, "Hình mặt sau tài liệu") if value else value
+
+    def validate_selfie_image(self, value):
+        return self._validate_file(value, "Hình selfie") if value else value
+
+    def _validate_file(self, file, field_name):
+        if not file:
+            raise serializers.ValidationError(f"{field_name} là bắt buộc.")
+
+        mime_type, _ = mimetypes.guess_type(file.name)
+        valid_types = ['image/jpeg', 'image/png']
+
+        if mime_type not in valid_types:
+            raise serializers.ValidationError(
+                f"{field_name} không hợp lệ. Chỉ chấp nhận file JPG hoặc PNG."
+            )
+
+        if file.size > 5 * 1024 * 1024:  # 5MB
+            raise serializers.ValidationError(
+                f"{field_name} quá lớn. Kích thước tối đa là 5MB."
+            )
+
+        return file

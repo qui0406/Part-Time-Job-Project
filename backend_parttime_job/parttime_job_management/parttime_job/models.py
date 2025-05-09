@@ -9,7 +9,7 @@ from django.db import models
 import uuid
 from django.utils import timezone
 # from django.core.validators import MinValueValidator, MaxValueValidator
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django_rest_passwordreset.signals import reset_password_token_created
 from django.dispatch import receiver
 from django.urls import reverse
@@ -140,13 +140,14 @@ class Notification(BaseModel):
     is_read = models.BooleanField(default=False)
     job = models.ForeignKey(Job, on_delete=models.CASCADE, null=True, blank=True) 
 
+    def __str__(self):
+        return f"Notification to {self.user.username} - {'Đã đọc' if self.is_read else 'Chưa đọc'}"
+
 class Follow(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-
     class Meta:
         unique_together = ('user', 'company')
-
     def __str__(self):
         return f"{self.user.username} follows {self.company.company_name}"
 
@@ -155,21 +156,68 @@ class Rating(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     job = models.ForeignKey(Job, on_delete=models.SET_NULL, null=True, blank=True)
-    rating = models.PositiveIntegerField()
+    rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
 
     class Meta:
         unique_together = ('user', 'company', 'job')
 
+    def __str__(self):
+        return f"Rating({self.user} → {self.company}): {self.rating}★"
+    
+
+class EmployerRating(BaseModel):
+    employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given_applicant_ratings") 
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="candidate_ratings")  # ứng viên
+    application = models.ForeignKey(Application, on_delete=models.SET_NULL, null=True, blank=True)
+    rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    comment = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('employer', 'user', 'application')
+
+    def __str__(self):
+        return f"EmployerRating({self.employer.username} → {self.user.username}): {self.rating}★"
 
 
-# class VerificationDocument(BaseModel):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="verifications")
-#     document_type = models.CharField(max_length=50, choices=[('ID_CARD', 'CMND/CCCD'), ('BUSINESS_LICENSE', 'Giấy phép kinh doanh'), ('DEGREE', 'Bằng cấp')])
-#     file = CloudinaryField()
-#     status = models.CharField(max_length=20, choices=[('PENDING', 'Đang chờ'), ('APPROVED', 'Đã duyệt'), ('REJECTED', 'Từ chối')])
-#     verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="verified_documents")
+from django.db import models
+from django.conf import settings
+from cloudinary.models import CloudinaryField
 
+class VerificationDocument(models.Model):
+    DOCUMENT_TYPE_CHOICES = (
+        ('id_card', 'CMND/CCCD'),
+        ('business_license', 'Giấy phép kinh doanh'),
+        ('student_card', 'Thẻ sinh viên'),
+        ('other', 'Khác'),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="verification_documents"
+    )
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
+
+    document_front = CloudinaryField('document_front', resource_type='image', blank=True, null=True)
+    document_back = CloudinaryField('document_back', resource_type='image', blank=True, null=True)
+    selfie_image = CloudinaryField('selfie_image', resource_type='image', blank=True, null=True)
+
+    verified = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_documents"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_document_type_display()} - {'Đã xác minh' if self.verified else 'Chưa xác minh'}"
 
 # class Conversation(BaseModel):
 #     participants = models.ManyToManyField(User, related_name="conversations")
