@@ -154,6 +154,8 @@ class CompanySerializer(serializers.ModelSerializer):
             'user': {'read_only': True}
         }
 
+    def get_company_name(self, obj):
+        return obj.company_name
 
 class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -209,17 +211,17 @@ class JobSerializer(serializers.ModelSerializer):
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
+    # job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     cv = serializers.FileField(required=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-
-
+    company = serializers.PrimaryKeyRelatedField(read_only=True)
+    
     class Meta:
         model = Application
         fields = [
             'id', 'job', 'education', 'experience', 'current_job',
-            'hope_salary', 'cv', 'status', 'status_display', 'employer_note', 'user'
+            'hope_salary', 'cv', 'status', 'status_display', 'employer_note', 'user', 'company'
         ]
         read_only_fields = ['status', 'employer_note']
 
@@ -247,10 +249,18 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         cv_file = validated_data.pop('cv', None)
+        job = validated_data.get('job')
+        user = self.context['request'].user
+
         if cv_file:
             upload_result = upload(cv_file, resource_type='raw')
             validated_data['cv'] = upload_result['secure_url']
+
+        validated_data['user'] = user
+        validated_data['company'] = job.company 
+
         return super().create(validated_data)
+
 
 
 class ApplicationDetailSerializer(ApplicationSerializer):
