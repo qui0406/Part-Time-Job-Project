@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from '../../constants/Colors';
 import { authApi, endpoints } from '../../configs/APIs';
@@ -19,8 +19,8 @@ export default function CompanyDetail() {
         if (company) {
             fetchCompanyDetails();
             fetchCompanyJobs();
+            checkFollowStatus(); // Kiểm tra trạng thái theo dõi khi tải trang
         }
-
     }, [company]);
 
     const fetchCompanyDetails = async () => {
@@ -31,6 +31,7 @@ export default function CompanyDetail() {
             setCompanyData(response.data);
         } catch (error) {
             console.error('Lỗi khi lấy thông tin công ty:', error);
+            Alert.alert('Lỗi', 'Không thể lấy thông tin công ty. Vui lòng thử lại.');
         }
     };
 
@@ -43,29 +44,38 @@ export default function CompanyDetail() {
             setJobs(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Lỗi khi lấy danh sách công việc:', error);
+            Alert.alert('Lỗi', 'Không thể lấy danh sách công việc. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
     };
 
+    const checkFollowStatus = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await authApi(token).get(`${endpoints['company-details']}${company.id}/`); // Sử dụng endpoint đúng
+            setIsFollowing(response.data.followed); // Lấy trạng thái từ API
+        } catch (error) {
+            console.error('Lỗi khi kiểm tra trạng thái theo dõi:', error);
+        }
+    };
+    
     const handleFollow = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
             const response = await authApi(token).post(`${endpoints['company-follow']}${company.id}/follow/`);
-            setIsFollowing(response.data.data.active);
+            console.log('Phản hồi từ API:', response.data); // Kiểm tra phản hồi
+            setIsFollowing(response.data.data.active); // Cập nhật trạng thái theo dõi
+            await checkFollowStatus(); // Đồng bộ lại trạng thái từ backend
+            Alert.alert(
+                'Thông báo',
+                response.data.detail === "Followed company."
+                    ? 'Bạn đã theo dõi công ty thành công! Bạn sẽ nhận thông báo qua email khi có tin tuyển dụng mới.'
+                    : 'Bạn đã bỏ theo dõi công ty.'
+            );
         } catch (error) {
             console.error('Lỗi khi theo dõi công ty:', error);
             Alert.alert('Lỗi', 'Không thể thực hiện hành động theo dõi. Vui lòng thử lại.');
-        }
-    };
-    
-    const checkFollowStatus = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const response = await authApi(token).get(`${endpoints['company-follow']}${company.id}/follow/`);
-            setIsFollowing(response.data.data.active);
-        } catch (error) {
-            console.error('Lỗi khi kiểm tra trạng thái theo dõi:', error);
         }
     };
 

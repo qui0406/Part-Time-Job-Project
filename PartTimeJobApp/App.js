@@ -136,7 +136,6 @@
 //     </NavigationContainer>
 //   );
 // }
-
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -156,13 +155,20 @@ import HomeScreen from './components/Home/Home';
 import EmployerRegister from './components/Candidate/EmployerRegister';
 import EmployerSubmittedScreen from './components/Candidate/EmployerSubmittedScreen';
 import PostJob from './components/Company/PostJob';
-import CompanyNotifications from './components/Company/CompanyNotifications'; 
+import CompanyNotifications from './components/Company/CompanyNotifications';
+import CandidateNotifications from './components/Candidate/CandidateNotification';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
 import AdminNotifications from './components/Admin/AdminNotifications';
 import CompanyApprovalScreen from './components/Admin/CompanyApprovalScreen';
 import JobDetail from './components/Candidate/JobDetail';
 import CompanyDetail from './components/Candidate/CompanyDetail';
 import ApplyJob from './components/Candidate/ApplyJob';
+import ApplicationDetail from './components/Company/ApplicationDetail';
+import MyApplication from './components/Candidate/MyApplication';
+import RateJob from './components/Candidate/RateJob';
+import RateCandidate from './components/Company/RateCandidate';
+import AcceptedApplications from './components/Company/AcceptedApplications'; 
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -182,8 +188,9 @@ const HomeStack = () => (
   <Stack.Navigator>
     <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ" }} />
     <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc" }} />
-    <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} /> 
-    <Stack.Screen screenOptions= {{headerShown:false}} name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
+    <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} />
+    <Stack.Screen screenOptions={{ headerShown: false }} name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
+    <Stack.Screen name="MyApplication" component={MyApplication} options={{ title: "Công việc đã ứng tuyển" }} />
   </Stack.Navigator>
 );
 
@@ -207,10 +214,11 @@ const MainTab = () => {
         name="Home"
         component={HomeStack}
         options={{
-          title: 'Khóa học',
+          title: 'Trang chủ',
           tabBarIcon: () => <Icon size={30} color="#1b4089" source="home" />,
         }}
       />
+    
       {user.role === 'admin' && (
         <Tab.Screen
           name="Notifications"
@@ -231,6 +239,16 @@ const MainTab = () => {
           }}
         />
       )}
+       {user.role === 'employer' && (
+        <Tab.Screen
+          name="AcceptedApplications"
+          component={AcceptedApplications}
+          options={{
+            title: 'Đơn đã chấp nhận',
+            tabBarIcon: () => <Icon size={30} color="#1b4089" source="check-circle" />,
+          }}
+        />
+      )}
       {user.role === 'employer' && (
         <Tab.Screen
           name="CompanyNotifications"
@@ -241,6 +259,28 @@ const MainTab = () => {
           }}
         />
       )}
+     
+      {user.role === 'candidate' && (
+          <Tab.Screen
+          name="MyApplication"
+          component={MyApplication}
+          options={{
+            title: 'Đã ứng tuyển',
+            tabBarIcon: () => <Icon size={30} color="#1b4089" source="briefcase" />, // Sử dụng biểu tượng Briefcase
+          }}
+        />
+      )}
+      {user.role === 'candidate' && (
+        <Tab.Screen
+          name="CandidateNotifications"
+          component={CandidateNotifications}
+          options={{
+            title: 'Thông báo',
+            tabBarIcon: () => <Icon size={30} color="#1b4089" source="bell" />,
+          }}
+        />
+      )}
+      
       <Tab.Screen
         name="Profile"
         component={Profile}
@@ -265,11 +305,14 @@ export default function App() {
             <RootStack.Screen name="EmployerRegister" component={EmployerRegister} />
             <RootStack.Screen name="EmployerSubmittedScreen" component={EmployerSubmittedScreen} />
             <RootStack.Screen name="PostJob" component={PostJob} />
-            <RootStack.Screen 
-              name="CompanyApprovalScreen" 
-              component={CompanyApprovalScreen} 
+            <RootStack.Screen
+              name="CompanyApprovalScreen"
+              component={CompanyApprovalScreen}
             />
             <RootStack.Screen name="EditProfile" component={EditProfile} />
+            <RootStack.Screen name="ApplicationDetail" component={ApplicationDetail} />
+            <RootStack.Screen name="RateJob" component={RateJob} />
+            <RootStack.Screen name="RateCandidate" component={RateCandidate} />
           </RootStack.Navigator>
         </MyDispacthContext.Provider>
       </MyUserContext.Provider>
