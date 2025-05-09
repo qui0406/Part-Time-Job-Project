@@ -97,7 +97,7 @@ class CompanySerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Follow.objects.filter(
-                user=request.user, company=obj,active=True).exists()
+                user=request.user, company=obj).exists()
         return False
     
     def get_follower_count(self, obj):
@@ -166,14 +166,19 @@ class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
 
 class JobSerializer(serializers.ModelSerializer):
     company = serializers.PrimaryKeyRelatedField(read_only=True)
+    company_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Job
-        fields = ['id', 'company', 'title', 'description',
+        fields = ['id', 'company', 'company_name', 'title', 'description',
                   'location', 'skills', 'salary', 'working_time', 'active']
         extra_kwargs = {
             'company': {'read_only': True},
             'active': {'read_only': True}
         }
+
+    def get_company_name(self, obj):
+        return obj.company.company_name if obj.company else None
 
     def validate_title(self, value):
         if not value:
@@ -205,8 +210,6 @@ class JobSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Thời gian làm việc không được để trống.")
         return value
-
-
 
 
 
@@ -257,7 +260,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
             validated_data['cv'] = upload_result['secure_url']
 
         validated_data['user'] = user
-        validated_data['company'] = job.company 
 
         return super().create(validated_data)
 
@@ -283,9 +285,23 @@ class NotificationSerializer(serializers.ModelSerializer):
         fields = ['id', 'message', 'is_read', 'created_date']
 
 
+class BaseRatingSerializer(serializers.ModelSerializer):
+    """
+    Base Serializer để xử lý logic chung cho Rating và EmployerRating.
+    """
+    def validate_duplicate(self, user_field, user_value, related_field, related_value):
+        """
+        Kiểm tra trùng lặp đánh giá.
+        """
+        if self.instance:
+            return  # Bỏ qua khi cập nhật
+        filter_kwargs = {user_field: user_value, related_field: related_value}
+        if self.Meta.model.objects.filter(**filter_kwargs).exists():
+            raise serializers.ValidationError(f"Bạn đã đánh giá {related_field} này rồi.")
+
 class RatingSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
-    company = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all())
+    company = serializers.PrimaryKeyRelatedField(queryset=Company.objects.all(), required=False, allow_null=True)
     job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all(), required=False, allow_null=True)
 
     class Meta:
@@ -298,15 +314,28 @@ class RatingSerializer(serializers.ModelSerializer):
         company = data.get('company')
         job = data.get('job')
 
-        if self.instance:
-            # Skip duplicate check when updating
-            return data
 
-        if Rating.objects.filter(user=user, company=company, job=job).exists():
-            raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
+        if job:
+            if not job.company:
+                raise serializers.ValidationError("Công việc không có công ty liên kết.")
+            data['company'] = job.company
+        elif not company:
+            raise serializers.ValidationError("Trường company là bắt buộc khi không có job.")
+
+        if not data.get('company'):
+            raise serializers.ValidationError("Không thể xác định công ty để đánh giá.")
+
+        # Kiểm tra trùng lặp
+        if not self.instance:
+            if Rating.objects.filter(user=user, company=data['company'], job=job).exists():
+                raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
+
         return data
 
-class EmployerRatingSerializer(serializers.ModelSerializer):
+class EmployerRatingSerializer(BaseRatingSerializer):
+    """
+    Serializer cho đánh giá từ nhà tuyển dụng.
+    """
     employer = serializers.StringRelatedField(read_only=True)
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     application = serializers.PrimaryKeyRelatedField(queryset=Application.objects.all(), required=False, allow_null=True)
@@ -317,16 +346,12 @@ class EmployerRatingSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'employer', 'created_date', 'updated_date']
 
     def validate(self, data):
-        employer = self.context['request'].user
-        user = data.get('user')
-        application = data.get('application')
-
-        if self.instance:
-            # Skip duplicate check when updating
-            return data
-
-        if EmployerRating.objects.filter(employer=employer, user=user, application=application).exists():
-            raise serializers.ValidationError("Bạn đã đánh giá ứng viên này cho đơn ứng tuyển này rồi.")
+        self.validate_duplicate(
+            user_field='employer',
+            user_value=self.context['request'].user,
+            related_field='user',
+            related_value=data.get('user')
+        )
         return data
 
 import mimetypes
