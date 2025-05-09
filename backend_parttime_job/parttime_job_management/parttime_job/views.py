@@ -350,14 +350,14 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"detail": "You do not have a verified company."}, status=403)
 
         jobs = Job.objects.filter(company=company, active=True)
-        queryset = Application.objects.filter(active=True, job__in=jobs).distinct()
+        queryset = Application.objects.filter(active=True, job__in=jobs, status='pending').distinct()
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = ApplicationDetailSerializer(page, many= True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = ApplicationDetailSerializer(page, many = True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'], url_path='update-status')
