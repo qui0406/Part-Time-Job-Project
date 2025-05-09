@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -310,8 +310,12 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                     except Exception as e:
                         print(f"Lỗi khi gửi email đến {user.email}: {str(e)}")
 
+                job_data = JobSerializer(job).data
                 return Response(
-                    {"message": "Tin tuyển dụng đã được tạo thành công!"},
+                    {
+                        "message": "Tin tuyển dụng đã được tạo thành công!",
+                        "job": job_data
+                    },
                     status=status.HTTP_201_CREATED
                 )
 
@@ -334,6 +338,8 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
 
     def get_permissions(self):
         if self.action in ['create_application', 'update_application']:
+            return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
+        if self.action == 'get_all_my_applications':
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
 
@@ -365,8 +371,8 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
                             status=drf_status.HTTP_403_FORBIDDEN)
 
         new_status = request.data.get('status')
-        if new_status not in ['approved', 'rejected']:
-            return Response({"detail": "Invalid status. Must be 'approved' or 'rejected'."},
+        if new_status not in ['accepted', 'rejected']:
+            return Response({"detail": "Invalid status. Must be 'accepted' or 'rejected'."},
                             status=drf_status.HTTP_400_BAD_REQUEST)
 
         application.status = new_status
@@ -426,6 +432,23 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=['get'], url_path='my-all-applications', detail=False, serializer_class= ApplicationDetailSerializer)
+    def get_all_my_applications(self, request):
+        user = request.user
+
+        # Lọc các đơn ứng tuyển đã được chấp nhận
+        applications = Application.objects.filter(
+            user=user,
+            active=True,
+            status='accepted'
+        ).select_related('job__company')
+
+        serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
+
+
+    
+
 
 class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True, status='pending')
@@ -444,7 +467,6 @@ class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
-
 
     @action(methods=['post'], url_path='review', detail=True)
     def review_application(self, request, pk=None):
@@ -615,75 +637,6 @@ class StatsViewSet(viewsets.ViewSet):
         })
 
 
-# from onfido import OnfidoAPI
-# from django.conf import settings
-# from onfido.exceptions import ApiError  
-# onfido_api = OnfidoAPI(api_key=settings.ONFIDO_API_KEY)
-
-# class UploadDocumentView(APIView):
-#     # Cho phép xử lý phương thức POST
-#     parser_classes = [parsers.MultiPartParser]
-
-#     def post(self, request, *args, **kwargs):
-#         # Lấy file tài liệu từ yêu cầu frontend
-#         document_file = request.FILES.get('document')
-
-#         if not document_file:
-#             return Response({'error': 'No document uploaded'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Tạo Applicant (nếu chưa có) từ dữ liệu người dùng
-#         applicant = onfido_api.applicant.create(
-#             first_name=request.data.get('first_name'),
-#             last_name=request.data.get('last_name'),
-#             email=request.data.get('email'),
-#         )
-
-#         # Tải lên giấy tờ (Document) cho ứng viên
-#         document = onfido_api.document.create(
-#             applicant_id=applicant['id'],
-#             file=document_file,
-#             file_type="passport",  # Hoặc loại tài liệu khác như "driving_licence", "identity_card", v.v.
-#         )
-
-#         return Response({'message': 'Document uploaded successfully', 'document_id': document['id']}, status=status.HTTP_200_OK)
-
-# class VerifyDocumentAPIView(APIView):
-#     permission_classes = [IsAdminUser]
-
-#     def post(self, request, doc_id):
-#         doc = get_object_or_404(VerificationDocument, id=doc_id)
-#         action = request.data.get("action")  
-#         reason = request.data.get("reason", "")
-
-#         if action == 'approve':
-#             doc.status = 'APPROVED'
-#             message = "Giấy tờ của bạn đã được phê duyệt."
-#         elif action == 'reject':
-#             doc.status = 'REJECTED'
-#             doc.reason = reason
-#             message = f"Giấy tờ của bạn bị từ chối. Lý do: {reason}"
-#         else:
-#             return Response({'error': 'Invalid action'}, status=400)
-
-#         doc.verified_by = request.user
-#         doc.verified_at = timezone.now()
-#         doc.save()
-
-#         send_mail(
-#             subject="Kết quả xác minh giấy tờ",
-#             message=message,
-#             from_email=settings.DEFAULT_FROM_EMAIL,
-#             recipient_list=[doc.user.email],
-#             fail_silently=True,
-#         )
-
-#         return Response({
-#             'success': True,
-#             'status': doc.status,
-#             'verified_by': request.user.username,
-#             'verified_at': doc.verified_at,
-#             'reason': doc.reason,
-#         })
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
