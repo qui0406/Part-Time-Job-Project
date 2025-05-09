@@ -211,12 +211,16 @@ class CompanyIsApprovedViewSet(viewsets.ViewSet, generics.ListAPIView):
                             status=status.HTTP_404_NOT_FOUND)
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = Job.objects.filter(active=True)
+    queryset = Job.objects.filter(active=True, company__active=True, company__is_approved=True).prefetch_related('company')
     serializer_class = JobSerializer
     permission_classes = [permissions.AllowAny]
     parser_classes = [parsers.MultiPartParser]
-    pagination_class = paginators.JobPagination  
+    pagination_class = paginators.JobPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -224,6 +228,7 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
         min_salary = self.request.query_params.get('min_salary')
         max_salary = self.request.query_params.get('max_salary')
         work_time = self.request.query_params.get('working_time')
+        company_name = self.request.query_params.get('company_name')
 
         if title:
             queryset = queryset.filter(title__icontains=title)
@@ -233,14 +238,14 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
             queryset = queryset.filter(salary__lte=float(max_salary))
         if work_time:
             queryset = queryset.filter(working_time__icontains=work_time)
+        if company_name:
+            queryset = queryset.filter(company__company_name__icontains=company_name)
 
         return queryset.distinct()
-    
 
 class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = Job.objects.filter(active=True)
+    queryset = Job.objects.filter(active=True, company__active=True, company__is_approved=True)
     serializer_class = JobSerializer
-
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
@@ -248,16 +253,12 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
-    def get_permissions(self):
-        if self.action in ['create_job']:
-            return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
-        return [permissions.AllowAny()]
     def list(self, request):
         queryset = self.get_queryset()
         title = request.query_params.get('title')
-        min_salary = request.query_params.get('min_salary')
-        max_salary = request.query_params.get('max_salary')
-        work_time = request.query_params.get('working_time')
+        min_salary = self.request.query_params.get('min_salary')
+        max_salary = self.request.query_params.get('max_salary')
+        work_time = self.request.query_params.get('working_time')
 
         if title:
             queryset = queryset.filter(title__icontains=title)
@@ -277,7 +278,6 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         try:
             company = Company.objects.get(
                 user=request.user, active=True, is_approved=True)
-            
         except Company.DoesNotExist:
             return Response(
                 {"detail": "Bạn chưa có công ty hoặc công ty chưa được phê duyệt."},
@@ -288,18 +288,14 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             'request': request,
             'company': company
         })
-        
 
         if serializer.is_valid():
             try:
-                
                 job = serializer.save(company=company)
-                
                 followers = Follow.objects.filter(company=company, active=True).select_related("user")
-                
+
                 for follow in followers:
                     user = follow.user
-                    
                     try:
                         subject = f"Công ty {company.company_name} vừa đăng tin tuyển dụng mới!"
                         message = (
@@ -322,7 +318,6 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                     },
                     status=status.HTTP_201_CREATED
                 )
-
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -394,8 +389,6 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = ApplicationDetailSerializer(queryset, many=True)
         return Response(serializer.data)
     
-
-
     @action(detail=True, methods=['patch'], url_path='update-status')
     def update_status(self, request, pk=None):
         user = request.user
@@ -536,80 +529,73 @@ class NotificationViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
+logger = logging.getLogger(__name__)
 
-class RatingViewSet(viewsets.ViewSet, generics.CreateAPIView):
-    queryset = Rating.objects.all()
-    serializer_class = RatingSerializer
+class BaseRatingViewSet(viewsets.ViewSet, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ['perform_create', 'update_rating']:
+        if self.action in ['perform_create', 'update_rating', 'delete_rating']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         return [permissions.IsAuthenticated()]
-    
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(methods=['put', 'patch'], url_path='update-rating', detail=True)
+    def update_rating(self, request, pk=None):
+        rating = get_object_or_404(self.queryset, pk=pk)
+        serializer = self.get_serializer(rating, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['delete'], url_path='delete-rating', detail=True)
+    def delete_rating(self, request, pk=None):
+        rating = get_object_or_404(self.queryset, pk=pk)
+        try:
+            self.check_object_permissions(request, rating)
+            rating.delete()
+            return Response({"detail": "Đánh giá đã được xóa."}, status=status.HTTP_204_NO_CONTENT)
+        except PermissionDenied:
+            return Response({"detail": "Bạn không có quyền xóa đánh giá này."}, status=status.HTTP_403_FORBIDDEN)
+
+class RatingViewSet(BaseRatingViewSet):
+    queryset = Rating.objects.all()
+    serializer_class = RatingSerializer
+
     def perform_create(self, serializer):
         user = self.request.user
         company = serializer.validated_data.get('company')
         job = serializer.validated_data.get('job')
+
         if Rating.objects.filter(user=user, company=company, job=job).exists():
             raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
-        serializer.save(user=user)
 
+        if not company:
+            logger.error("Company is None in perform_create")
+            raise serializers.ValidationError("Trường company không được để trống.")
 
-    @action(methods=['put','patch'], url_path='update-rating', detail=True)
-    def update_rating(self, request, pk=None):
-        try:
-            rating = self.get_object()
-        except Rating.DoesNotExist:
-            return Response({"detail": "Không tìm thấy đánh giá."}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = self.get_serializer(rating, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    
-    
-    @action(methods=['delete'], url_path='delete-rating', detail=True)
-    def delete_rating(self, request, pk=None):
-        try:
-            rating = self.get_object()
-            self.check_object_permissions(request, rating) 
-        except Rating.DoesNotExist:
-            return Response({"detail": "Không tìm thấy đánh giá."}, status=status.HTTP_404_NOT_FOUND)
-        except PermissionDenied:
-            return Response({"detail": "Bạn không có quyền xóa đánh giá này."}, status=status.HTTP_403_FORBIDDEN)
-
-        rating.delete()
-        return Response({"detail": "Đánh giá đã được xóa."}, status=status.HTTP_204_NO_CONTENT)
-
-
-
-class EmployerRatingViewSet(viewsets.ViewSet, generics.CreateAPIView):
+        super().perform_create(serializer)
+class EmployerRatingViewSet(BaseRatingViewSet):
+    """
+    ViewSet xử lý đánh giá từ nhà tuyển dụng đối với ứng viên.
+    """
     queryset = EmployerRating.objects.all()
     serializer_class = EmployerRatingSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Chỉ xem được đánh giá do chính employer tạo
         return EmployerRating.objects.filter(employer=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(employer=self.request.user)  
-    
-    @action(methods=['put','patch'], url_path='update-rating', detail=True)
-    def update_rating(self, request, pk=None):
-        try:
-            rating = self.get_object()
-        except EmployerRating.DoesNotExist:
-            return Response({"detail": "Không tìm thấy đánh giá."}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = self.get_serializer(rating, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        employer = self.request.user
+        user = serializer.validated_data.get('user')
+        application = serializer.validated_data.get('application')
+        
+        if EmployerRating.objects.filter(employer=employer, user=user, application=application).exists():
+            raise serializers.ValidationError("Bạn đã đánh giá ứng viên này cho đơn ứng tuyển này rồi.")
+        serializer.save(employer=employer)
 
 
 class StatsViewSet(viewsets.ViewSet):

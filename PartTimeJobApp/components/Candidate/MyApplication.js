@@ -67,7 +67,7 @@ export default function MyApplications() {
             const applicationData = validApplications.map(application => ({
                 id: application.id,
                 title: application.job.title || 'Công việc không xác định',
-                company: application.job.company?.company_name || 'Công ty không xác định',
+                company: application.job?.company_name || 'Công ty không xác định',
                 time: formatDate(application.created_date || new Date().toISOString()),
                 job: application.job,
                 companyData: application.job.company,

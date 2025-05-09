@@ -446,6 +446,8 @@ export default function Home() {
             if (!Array.isArray(jobsData)) {
                 throw new Error('Dữ liệu công việc không hợp lệ');
             }
+
+            console.log('Jobs data:', jobsData);
     
             const newJobs = isInitial ? jobsData : [...jobs, ...jobsData].filter((job, index, self) =>
                 index === self.findIndex((t) => t.id === job.id)
@@ -538,7 +540,7 @@ export default function Home() {
 
     const handleCompanyClick = (company, event) => {
         event.stopPropagation();
-        navigation.navigate('CompanyDetail', { company });
+        navigation.navigate('CompanyDetail', { company: { id: company, company_name: companyName } });
     };
 
     const renderSearchPlaceholder = () => {
@@ -553,7 +555,6 @@ export default function Home() {
     };
 
     const renderJobItem = ({ item }) => {
-        const company = item.company; // Lấy trực tiếp từ item.company
         return (
             <TouchableOpacity
                 style={styles.jobCard}
@@ -561,9 +562,9 @@ export default function Home() {
                 activeOpacity={0.7}
             >
                 <View style={styles.companyHeader}>
-                    <TouchableOpacity onPress={(event) => handleCompanyClick(company, event)}>
+                    <TouchableOpacity onPress={(event) => handleCompanyClick(item.company, item.company_name, event)}>
                         <Text style={styles.companyName}>
-                            {company ? company.company_name || 'Công ty không xác định' : 'Công ty không tồn tại'}
+                            {item.company_name || 'Công ty không xác định'}
                         </Text>
                     </TouchableOpacity>
                     <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} style={styles.heartIcon} />
