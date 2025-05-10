@@ -578,6 +578,32 @@ class RatingViewSet(BaseRatingViewSet):
             raise serializers.ValidationError("Trường company không được để trống.")
 
         super().perform_create(serializer)
+
+    #Lay ra tất cả các đánh giá công khai
+    @action(methods=['get'], url_path='list-rating-job-of-company', detail=False, permission_classes=[AllowAny])
+    def list_ratings(self, request):
+        """
+        Trả về tất cả các đánh giá công khai – ai cũng xem được.
+        Có thể lọc theo công ty hoặc công việc.
+        """
+        company_id = request.query_params.get('company_id')
+        job_id = request.query_params.get('job_id')
+        queryset = Rating.objects.filter(active=True, job_id= job_id, company_id=company_id)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(methods=['get'], url_path='rating-from-employer', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def get_rating_from_employer(self, request):
+        """
+        Trả về tất cả các đánh giá từ nhà tuyển dụng cho ứng viên.
+        """
+        application_id = request.query_params.get('application_id')
+        queryset = Rating.objects.filter(user=self.request.user, application_id=application_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
 class EmployerRatingViewSet(BaseRatingViewSet):
     """
     ViewSet xử lý đánh giá từ nhà tuyển dụng đối với ứng viên.
