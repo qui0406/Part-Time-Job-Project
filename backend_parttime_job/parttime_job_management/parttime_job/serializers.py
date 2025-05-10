@@ -337,7 +337,7 @@ class EmployerRatingSerializer(BaseRatingSerializer):
     Serializer cho đánh giá từ nhà tuyển dụng.
     """
     employer = serializers.StringRelatedField(read_only=True)
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
     application = serializers.PrimaryKeyRelatedField(queryset=Application.objects.all(), required=False, allow_null=True)
 
     class Meta:
@@ -346,13 +346,33 @@ class EmployerRatingSerializer(BaseRatingSerializer):
         read_only_fields = ['id', 'employer', 'created_date', 'updated_date']
 
     def validate(self, data):
+        request_user = self.context['request'].user
+        application = data.get('application')
+
+        if not application:
+            raise serializers.ValidationError({"application": "Bạn cần cung cấp application để đánh giá."})
+
+        if not hasattr(application, 'user') or not application.user:
+            raise serializers.ValidationError({"application": "Application không hợp lệ hoặc không có người nộp."})
+
+        # Gán đúng user từ application
+        data['user'] = application.user
+
+        # Đơn ứng tuyển phải đã được xét duyệt
+        if application.status not in ['accepted', 'rejected']:
+            raise serializers.ValidationError({"application": "Chỉ được đánh giá đơn ứng tuyển đã được xét duyệt."})
+
+        # Chống trùng lặp (1 employer chỉ được đánh giá 1 application 1 lần)
         self.validate_duplicate(
             user_field='employer',
-            user_value=self.context['request'].user,
-            related_field='user',
-            related_value=data.get('user')
+            user_value=request_user,
+            related_field='application',
+            related_value=application
         )
+
         return data
+
+
 
 import mimetypes
 class DocumentVerificationSerializer(serializers.Serializer):

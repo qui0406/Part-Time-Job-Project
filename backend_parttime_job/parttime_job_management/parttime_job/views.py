@@ -618,10 +618,11 @@ class EmployerRatingViewSet(BaseRatingViewSet):
         employer = self.request.user
         user = serializer.validated_data.get('user')
         application = serializer.validated_data.get('application')
-        
+
         if EmployerRating.objects.filter(employer=employer, user=user, application=application).exists():
             raise serializers.ValidationError("Bạn đã đánh giá ứng viên này cho đơn ứng tuyển này rồi.")
         serializer.save(employer=employer)
+
 
 
 class StatsViewSet(viewsets.ViewSet):
