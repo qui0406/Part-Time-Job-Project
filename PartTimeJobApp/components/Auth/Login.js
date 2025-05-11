@@ -65,8 +65,8 @@ export default function Login() {
       let res = await APIs.post(endpoints['login'],
         qs.stringify({
           ...user,
-          client_id: '5F8F7OU4DRuyJfF55BrDaveJkgrrKS3tgxK55NM5',
-          client_secret: '93ejz7pWYA4m3Ogv8NJmD6rMwGe4lpuoL0Isf5wLQ8qmZXKy4eItDedeaZcL7TBBr9W9YMrMQTnc93ZzBAkHthBkC4NTG4TfeChlKiqrrbyNerPgj6TE1XiJ1jT0JVW5',
+          client_id: '8Y4PM14zeiZMnu5hrj86vyf9MrwA6Yis2iHQLq9J',
+          client_secret: '6JrR2e167SJ9vOUrggq1HjTI9Pu03313LLLlVjLy1aXf8CKMpgP4gOyaPhVEsSW0vK0G8dqRxhzZ2Nf1TnsdMXAFRV3iWjDELuadf3OMkwbfEDMHpNX4tPGRYy6E9QUN',
           grant_type: 'password',
         }),
         {
