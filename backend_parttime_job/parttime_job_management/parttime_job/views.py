@@ -624,7 +624,6 @@ class EmployerRatingViewSet(BaseRatingViewSet):
         serializer.save(employer=employer)
 
 
-
 class StatsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 

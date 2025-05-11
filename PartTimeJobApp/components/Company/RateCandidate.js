@@ -14,7 +14,7 @@ export default function RateCandidate() {
     const navigation = useNavigation();
     const route = useRoute();
     const user = useContext(MyUserContext);
-    const { applicationId, candidateId, candidateName, jobTitle } = route.params;
+    const { applicationId, candidateName, jobTitle } = route.params;
 
     const submitRating = async () => {
         if (rating === 0) {
@@ -28,14 +28,13 @@ export default function RateCandidate() {
             if (!token) {
                 throw new Error('Không tìm thấy token xác thực');
             }
-
+            
             const ratingData = {
-                user: candidateId,
-                application: applicationId,
-                rating,
-                comment,
+                application: applicationId,  // ID của đơn ứng tuyển
+                rating: rating,              // Số sao đánh giá
+                comment: comment,            // Bình luận (có thể để trống)
             };
-
+            console.log('Gửi đánh giá:', ratingData);
             const res = await authApi(token).post(endpoints['employer-ratings'], ratingData);
 
             if (res.status === 201) {
