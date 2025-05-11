@@ -162,13 +162,13 @@ import AdminNotifications from './components/Admin/AdminNotifications';
 import CompanyApprovalScreen from './components/Admin/CompanyApprovalScreen';
 import JobDetail from './components/Candidate/JobDetail';
 import CompanyDetail from './components/Candidate/CompanyDetail';
+import ChatScreen from './components/Candidate/ChatScreen';
 import ApplyJob from './components/Candidate/ApplyJob';
 import ApplicationDetail from './components/Company/ApplicationDetail';
 import MyApplication from './components/Candidate/MyApplication';
 import RateJob from './components/Candidate/RateJob';
 import RateCandidate from './components/Company/RateCandidate';
 import AcceptedApplications from './components/Company/AcceptedApplications'; 
-
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -189,6 +189,7 @@ const HomeStack = () => (
     <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ" }} />
     <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc" }} />
     <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} />
+    <Stack.Screen name="ChatScreen" component={ChatScreen} />
     <Stack.Screen screenOptions={{ headerShown: false }} name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
     <Stack.Screen name="MyApplication" component={MyApplication} options={{ title: "Công việc đã ứng tuyển" }} />
   </Stack.Navigator>

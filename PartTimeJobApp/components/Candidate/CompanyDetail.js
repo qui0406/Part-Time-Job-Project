@@ -4,7 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from '../../constants/Colors';
 import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { Ionicons } from '@expo/vector-icons';
 export default function CompanyDetail() {
     const navigation = useNavigation();
     const route = useRoute();
@@ -59,7 +59,7 @@ export default function CompanyDetail() {
             console.error('Lỗi khi kiểm tra trạng thái theo dõi:', error);
         }
     };
-    
+
     const handleFollow = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
@@ -80,7 +80,7 @@ export default function CompanyDetail() {
     };
 
     const renderJobItem = ({ item }) => (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={styles.jobItem}
             onPress={() => navigation.navigate('JobDetail', { job: item })}
         >
@@ -119,11 +119,21 @@ export default function CompanyDetail() {
                 <Text style={styles.companyEmail}>{companyData?.company_email || 'Chưa cập nhật email'}</Text>
             </View>
 
-            <TouchableOpacity style={styles.followButton} onPress={handleFollow}>
-                <Text style={styles.followButtonText}>
-                    {isFollowing ? 'Đã theo dõi' : 'Theo dõi'}
-                </Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+                <TouchableOpacity style={styles.followButton} onPress={handleFollow}>
+                    <Text style={styles.followButtonText}>
+                        {isFollowing ? 'Đã theo dõi' : 'Theo dõi'}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Icon chat nằm ngay bên phải nút Theo dõi */}
+                <TouchableOpacity
+                    style={styles.chatButton}
+                    onPress={() => navigation.navigate('ChatScreen', { company: companyData || company })}
+                >
+                    <Ionicons name="chatbubble-outline" size={24} color={Colors.WHITE} />
+                </TouchableOpacity>
+            </View>
 
             {/* Tabs */}
             <View style={styles.tabs}>
@@ -171,19 +181,19 @@ export default function CompanyDetail() {
                                 <Text style={styles.infoLabel}>Mã số thuế:</Text>
                                 <Text style={styles.infoText}>{companyData?.tax_id || 'Chưa cập nhật'}</Text>
                             </View>
-                            
+
                             <Text style={styles.descriptionTitle}>Mô tả công ty:</Text>
                             <Text style={styles.descriptionText}>{companyData?.description || 'Chưa có mô tả công ty'}</Text>
-                            
+
                             {companyData?.image_list && companyData.image_list.length > 0 && (
                                 <>
                                     <Text style={styles.imagesTitle}>Hình ảnh công ty:</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesContainer}>
                                         {companyData.image_list.map((img, index) => (
-                                            <Image 
-                                                key={index} 
-                                                source={{ uri: img.image }} 
-                                                style={styles.companyImage} 
+                                            <Image
+                                                key={index}
+                                                source={{ uri: img.image }}
+                                                style={styles.companyImage}
                                                 resizeMode="cover"
                                             />
                                         ))}
@@ -255,13 +265,25 @@ const styles = StyleSheet.create({
         color: Colors.GRAY,
         marginTop: 5,
     },
+    buttonContainer: {
+        flexDirection: 'row', // Đặt nút và icon theo hàng ngang
+        justifyContent: 'center', // Căn giữa theo chiều ngang
+        alignItems: 'center', // Căn giữa theo chiều dọc
+        margin: 15,
+    },
     followButton: {
         backgroundColor: '#FF5733',
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 8,
         alignSelf: 'center',
-        margin: 15,
+    },
+    chatButton: {
+        backgroundColor: Colors.PRIMARY, // Màu nền cho nút chat
+        padding: 8,
+        borderRadius: 8,
+        marginLeft: 5, // Khoảng cách nhỏ giữa nút Theo dõi và icon chat
+        alignItems: 'center', // Căn giữa icon trong nút
     },
     followButtonText: {
         color: Colors.WHITE,
