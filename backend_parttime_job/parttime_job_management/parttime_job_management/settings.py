@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.140', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.18', 'localhost', '127.0.0.1']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
                                                                                        
 
@@ -183,9 +183,9 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejobmanagementt',
+        'NAME': 'parttimejob',
         'USER': 'root',
-        'PASSWORD': 'Think!7688',
+        'PASSWORD': '12345678',
         'HOST': '' # mặc định localhost
     }
 }

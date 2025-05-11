@@ -565,6 +565,11 @@ class RatingViewSet(BaseRatingViewSet):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
 
+    def get_permissions(self):
+        if self.action in ['perform_create', 'update_rating', 'delete_rating']:
+            return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
+        return super().get_permissions()
+
     def perform_create(self, serializer):
         user = self.request.user
         company = serializer.validated_data.get('company')
