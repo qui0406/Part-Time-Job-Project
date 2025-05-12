@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.140:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -33,7 +33,8 @@ export const endpoints = {
     'review-application-action': '/review-application/', // /:id/review/ sẽ được thêm vào để phê duyệt/từ chối
     'notification': '/notification/', // Thông báo
     'ratings': '/ratings/',
-    'employer-ratings': '/employer-ratings/'
+    'employer-ratings': '/employer-ratings/',
+    'verify-document': '/verify-document/verify/',
 }
 
 export const authApi = (token) => {
