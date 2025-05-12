@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.18', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.140', 'localhost', '127.0.0.1']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
                                                                                        
 
@@ -183,9 +183,9 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejob',
+        'NAME': 'parttimejobmanagementt',
         'USER': 'root',
-        'PASSWORD': '12345678',
+        'PASSWORD': 'Think!7688',
         'HOST': '' # mặc định localhost
     }
 }
@@ -212,7 +212,7 @@ DEBUG = config("DEBUG", cast=bool, default=False)
 CELERY_RESULT_BACKEND = "django-db"
 
 # This configures Redis as the datastore between Django + Celery
-CELERY_BROKER_URL = config('CELERY_BROKER_REDIS_URL', default='redis://192.168.1.18:6379')
+CELERY_BROKER_URL = config('CELERY_BROKER_REDIS_URL', default='redis://192.168.1.140:6379')
 # if you out to use os.environ the config is:
 # CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_REDIS_URL', 'redis://localhost:6379')
 
