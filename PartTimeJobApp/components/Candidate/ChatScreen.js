@@ -1,104 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
-import { authApi, endpoints } from '../../configs/APIs';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeApp } from 'firebase/app';
+import { getDatabase, ref, onValue } from 'firebase/database';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyBYTjtEh-Yj-JLM2-NsFgvBZVU33K2dsN8',
+  authDomain: 'app-chat-e506d.firebaseapp.com',
+  databaseURL: 'https://app-chat-e506d-default-rtdb.firebaseio.com',
+  projectId: 'app-chat-e506d',
+  storageBucket: 'app-chat-e506d.appspot.com',
+  messagingSenderId: '542889717655',
+  appId: '1:542889717655:web:1b2e4e69ce692b4c2a5ed2',
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 export default function ChatScreen() {
-  const route = useRoute();
-  const { company } = route.params; // Lấy thông tin công ty từ params
-  const [messages, setMessages] = useState([]); // Danh sách tin nhắn
-  const [newMessage, setNewMessage] = useState(''); // Tin nhắn mới
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMessages();
+    const conversationId = '1';
+    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
+
+    const unsubscribe = onValue(
+      messagesRef,
+      (snapshot) => {
+        const messagesData = snapshot.val();
+        console.log('Firebase data:', messagesData);
+        const messagesArray = messagesData ? Object.values(messagesData) : [];
+        console.log('Messages array:', messagesArray);
+        setMessages(messagesArray);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Firebase error:', error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
-  // Lấy danh sách tin nhắn từ API (giả định có endpoint lấy tin nhắn)
-  const fetchMessages = async () => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      const response = await authApi(token).get(`${endpoints['chat-messages']}?company=${company.id}`);
-      setMessages(response.data || []);
-    } catch (error) {
-      console.error('Lỗi khi lấy tin nhắn:', error);
-      Alert.alert('Lỗi', 'Không thể tải tin nhắn. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Gửi tin nhắn mới
-  const sendMessage = async () => {
-    if (!newMessage.trim()) {
-      Alert.alert('Thông báo', 'Vui lòng nhập nội dung tin nhắn.');
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await authApi(token).post(endpoints['chat-messages'], {
-        company: company.id,
-        content: newMessage,
-      });
-      setMessages([...messages, response.data]); // Thêm tin nhắn mới vào danh sách
-      setNewMessage(''); // Xóa nội dung ô nhập
-    } catch (error) {
-      console.error('Lỗi khi gửi tin nhắn:', error);
-      Alert.alert('Lỗi', 'Không thể gửi tin nhắn. Vui lòng thử lại.');
-    }
-  };
-
-  // Hiển thị từng tin nhắn
-  const renderMessageItem = ({ item }) => (
-    <View
-      style={[
-        styles.messageContainer,
-        item.sender === 'candidate' ? styles.messageSent : styles.messageReceived,
-      ]}
-    >
-      <Text style={styles.messageText}>{item.content}</Text>
-      <Text style={styles.messageTime}>{new Date(item.timestamp).toLocaleTimeString()}</Text>
+  const renderItem = ({ item }) => (
+    <View style={styles.messageContainer}>
+      <Text style={styles.messageText}>Content: {item.content}</Text>
+      <Text style={styles.messageDetail}>Conversation ID: {item.conversation_id}</Text>
+      <Text style={styles.messageDetail}>Read: {item.is_read ? 'Yes' : 'No'}</Text>
+      <Text style={styles.messageDetail}>Sender ID: {item.sender_id}</Text>
+      <Text style={styles.messageDetail}>Receiver ID: {item.receiver_id}</Text>
+      
     </View>
   );
 
+  if (loading) {
+    return <Text style={styles.loadingText}>Loading...</Text>;
+  }
+
   return (
     <View style={styles.container}>
-      {/* Tiêu đề */}
-      <View style={styles.header}>
-        <Text style={styles.companyName}>{company.company_name}</Text>
-      </View>
-
-      {/* Danh sách tin nhắn */}
-      {loading ? (
-        <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
-      ) : messages.length > 0 ? (
-        <FlatList
-          data={messages}
-          renderItem={renderMessageItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.messageList}
-        />
-      ) : (
-        <Text style={styles.noMessagesText}>Chưa có tin nhắn nào. Bắt đầu trò chuyện ngay!</Text>
-      )}
-
-      {/* Ô nhập tin nhắn */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Nhập tin nhắn..."
-          value={newMessage}
-          onChangeText={setNewMessage}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Ionicons name="send" size={24} color={Colors.WHITE} />
-        </TouchableOpacity>
-      </View>
+      <FlatList
+        data={messages}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => index.toString()}
+        ListEmptyComponent={<Text style={styles.noMessagesText}>No messages yet</Text>}
+      />
     </View>
   );
 }
@@ -108,42 +77,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.BG_GRAY,
   },
-  header: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 15,
-    alignItems: 'center',
-  },
-  companyName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.WHITE,
-  },
-  messageList: {
-    padding: 10,
-  },
   messageContainer: {
-    maxWidth: '80%',
     padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  messageSent: {
-    backgroundColor: Colors.PRIMARY,
-    alignSelf: 'flex-end',
-  },
-  messageReceived: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.GRAY,
     backgroundColor: Colors.WHITE,
-    alignSelf: 'flex-start',
   },
   messageText: {
     fontSize: 16,
     color: Colors.BLACK,
-  },
-  messageTime: {
-    fontSize: 12,
-    color: Colors.GRAY,
-    marginTop: 5,
-    textAlign: 'right',
   },
   noMessagesText: {
     fontSize: 16,
@@ -156,28 +98,5 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     textAlign: 'center',
     marginTop: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    backgroundColor: Colors.WHITE,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  sendButton: {
-    backgroundColor: Colors.PRIMARY,
-    borderRadius: 20,
-    padding: 10,
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

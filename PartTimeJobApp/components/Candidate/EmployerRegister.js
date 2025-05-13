@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import {
     View,
     Text,
@@ -12,7 +12,7 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
-    Image,
+    Image, Button
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from '../../constants/Colors';
@@ -20,7 +20,9 @@ import APIs, { authApi, endpoints } from '../../configs/APIs';
 import { MyDispacthContext, MyUserContext } from '../../contexts/UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';  
+import MapView, { Marker } from 'react-native-maps';
+import openMap from 'react-native-open-maps';
 
 export default function EmployerRegister() {
     const [loading, setLoading] = useState(false);
@@ -50,6 +52,73 @@ export default function EmployerRegister() {
             [field]: value,
         }));
     };
+
+
+    const mapRef = useRef(null);
+    const [region, setRegion] = useState({
+        latitude: 10.7769, // Tọa độ HCM
+        longitude: 106.7009,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    });
+    const [searchQuery, setSearchQuery] = useState('Ho Chi Minh');
+    const [marker, setMarker] = useState({
+        latitude: 10.7769,
+        longitude: 106.7009,
+        title: 'Ho Chi Minh City',
+    });
+
+
+    // Function to search address using Nominatim API
+    const searchAddress = async () => {
+
+            try {
+    const query = encodeURIComponent(searchQuery);
+    const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`
+    );
+    const data = await response.json();
+    if (data.length > 0) {
+        const { lat, lon, display_name } = data[0];
+        console.log('Search result:', data);
+        const newRegion = {
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lon),
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+        };
+        setRegion(newRegion);
+
+        setMarker({
+            latitude: parseFloat(lat),
+            longitude: parseFloat(lon),
+            title: display_name,
+        });
+
+        
+
+        setEmployer((current) => ({
+            ...current,
+            address: `${searchQuery.split(' ')[0]} ${display_name}`,
+            latitude: lat,
+            longitude: lon,
+        }));
+
+        mapRef.current?.animateToRegion(newRegion, 1000);
+        } else {
+            alert('No results found');
+        }
+        } catch (error) {
+        console.error('Error fetching address:', error);
+            alert('Error searching address');
+        }
+    };
+
+    useEffect(() => {
+        searchAddress();
+
+    }, []);
+
 
     // Hàm chọn hình ảnh từ thư viện
     const pickImage = async () => {
@@ -178,11 +247,6 @@ export default function EmployerRegister() {
             placeholder: 'Nhập tên công ty',
         },
         {
-            label: 'Địa chỉ công ty *',
-            field: 'address',
-            placeholder: 'Nhập địa chỉ công ty',
-        },
-        {
             label: 'Email liên hệ *',
             field: 'company_email',
             placeholder: 'Email liên hệ với ứng viên',
@@ -198,16 +262,6 @@ export default function EmployerRegister() {
             label: 'Mã số thuế',
             field: 'tax_id',
             placeholder: 'Nhập mã số thuế',
-        },
-        {
-            label: 'Kinh độ',
-            field: 'latitude',
-            placeholder: 'Nhập kinh độ (ví dụ: 10.722)',
-        },
-        {
-            label: 'Vĩ độ',
-            field: 'longitude',
-            placeholder: 'Nhập vĩ độ (ví dụ: 106.29282)',
         },
         {
             label: 'Mô tả công ty',
@@ -244,6 +298,22 @@ export default function EmployerRegister() {
                                     />
                                 </View>
                             ))}
+
+                            <Text style={styles.label}>Địa chỉ *</Text>
+                            <View style={styles.searchContainerMap}>
+                                <TextInput
+                                    style={styles.inputMap}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                    placeholder="Nhập địa chỉ"
+                                />
+                                <Button title="Tìm" onPress={searchAddress} />
+                            </View>
+                            <MapView ref={mapRef} style={styles.map} region={region} onRegionChangeComplete={setRegion}>
+                                <Marker coordinate={{ latitude: marker.latitude, longitude: marker.longitude }} title={marker.title} />
+                            </MapView>
+
+
 
                             {/* Trường hình ảnh */}
                             <View style={styles.fieldContainer}>
@@ -382,4 +452,8 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
+
+    searchContainerMap: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    inputMap: { flex: 1, marginRight: 10, padding: 10, backgroundColor: Colors.WHITE, borderRadius: 8, borderWidth: 1, borderColor: Colors.PRIMARY },
+    map: { height: 200, borderRadius: 8, marginBottom: 15 },
 });
