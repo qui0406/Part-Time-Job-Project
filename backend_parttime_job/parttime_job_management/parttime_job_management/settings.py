@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.140', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.18', 'localhost', '127.0.0.1']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
                                                                                        
 
@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_celery_beat',
     'django_celery_results',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -183,11 +184,22 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejobmanagementt',
+        'NAME': 'chat',
         'USER': 'root',
-        'PASSWORD': 'Think!7688',
+        'PASSWORD': '12345678',
         'HOST': '' # mặc định localhost
     }
+}
+
+FIREBASE_CONFIG = {
+    "apiKey": "AIzaSyDlozTOx9Ji-kU-GsAVrsKKGyorD_fIjPQ",
+    "authDomain": "chat-faaa6.firebaseapp.com",
+    "databaseURL": "https://chat-faaa6-default-rtdb.firebaseio.com",
+    "projectId": "chat-faaa6",
+    "storageBucket": "chat-faaa6.firebasestorage.app",
+    "messagingSenderId": "818438991217",
+    "appId": "1:818438991217:web:1a8be07e4013127c4e1ad0",
+    "measurementId": "G-16R4XY5ES7"
 }
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'

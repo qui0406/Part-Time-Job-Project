@@ -1,5 +1,5 @@
 from rest_framework import serializers  # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from django.contrib.auth import authenticate  # type: ignore
@@ -408,3 +408,32 @@ class DocumentVerificationSerializer(serializers.Serializer):
             )
 
         return file
+    
+
+class ConversationSerializer(serializers.ModelSerializer):
+    candidate_username = serializers.CharField(source='candidate.username', read_only=True)
+    employer_username = serializers.CharField(source='employer.username', read_only=True)
+
+    class Meta:
+        model = Conversation
+        fields = [
+            'id',
+            'candidate',
+            'employer',
+            'created_date',
+            'candidate_username',
+            'employer_username',
+            'firebase_conversation_id',
+           
+        ]
+        read_only_fields = ['created_date']
+
+class MessageSerializer(serializers.ModelSerializer):
+    conversation = ConversationSerializer(read_only=True)
+    conversation_id = serializers.PrimaryKeyRelatedField(
+        queryset=Conversation.objects.all(), source='conversation', write_only=True
+    )
+
+    class Meta:
+        model = Message
+        fields = ['id', 'conversation', 'conversation_id', 'sender', 'receiver', 'content', 'timestamp']

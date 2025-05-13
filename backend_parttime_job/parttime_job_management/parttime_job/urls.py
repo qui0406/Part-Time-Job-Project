@@ -25,6 +25,8 @@ router.register('employer-ratings', views.EmployerRatingViewSet, basename='emplo
 router.register('stats', views.StatsViewSet, basename='stats')
 router.register('verify-document', views.VerifyDocumentViewSet, basename='verify-document')
 
+router.register('conversations', views.ConversationViewSet, basename='conversation')
+router.register('messages', views.MessageViewSet, basename='message')
 
 
 urlpatterns = [

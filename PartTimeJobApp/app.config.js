@@ -7,11 +7,11 @@ export default {
     slug: 'react-native-chat',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: 'src/assets/icon.png',
+    icon: 'assets/icon.png',
     userInterfaceStyle: 'light',
-    entryPoint: './src/App.js',
+    entryPoint: './App.js',
     splash: {
-      image: 'src/assets/splash.png',
+      image: './assets/splash.png',
       resizeMode: 'contain',
       backgroundColor: '#ffffff',
     },
@@ -27,7 +27,7 @@ export default {
       package: 'com.ctere1.reactnativechat',
     },
     web: {
-      favicon: 'src/assets/favicon.png',
+      favicon: 'assets/favicon.png',
     },
     newArchEnabled: true,
     extra: {

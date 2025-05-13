@@ -4,10 +4,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from . import paginators, perms, models, signals
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, UserProfile
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -34,6 +34,14 @@ from django.utils import timezone
 # from parttime_job.services.onfido_service import create_onfido_applicant
 
 
+import firebase_admin
+from firebase_admin import auth
+from rest_framework import status, viewsets, permissions
+from rest_framework.response import Response
+from .models import User, UserProfile
+from .serializers import UserSerializer
+from rest_framework.parsers import MultiPartParser
+
 @csrf_exempt
 def debug_token_view(request):
     return JsonResponse({
@@ -55,10 +63,42 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return [permissions.AllowAny()]
 
     def create(self, request, *args, **kwargs):
+        """
+        Register a new user and create a corresponding Firebase user.
+        """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
+            # Create Django user
             user = serializer.save()
-            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
+
+            # Create Firebase user
+            try:
+                firebase_user = auth.create_user(
+                    email=serializer.validated_data['email'],
+                    password=request.data.get('password')  # Assumes password is in request.data
+                )
+
+                firebase_uid = firebase_user.uid
+                # Create UserProfile to store Firebase credentials
+                UserProfile.objects.create(
+                    user=user,
+                    firebase_uid=firebase_uid,
+                    firebase_email=serializer.validated_data['email'],
+                    firebase_password=request.data.get('password')  # Encrypt in production
+                )
+            except Exception as e:
+                # Roll back Django user creation if Firebase fails
+                user.delete()
+                return Response(
+                    {"error": f"Failed to create Firebase user: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            return Response(
+                {"message": "User registered successfully!", "user_id": str(user.id)},
+                status=status.HTTP_201_CREATED
+            )
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['get'], url_path='current-user', detail=False)
@@ -749,3 +789,53 @@ class VerifyDocumentViewSet(viewsets.ViewSet):
                 'error': 'Lỗi không mong muốn xảy ra',
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Conversation.objects.all()
+    serializer_class = ConversationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [parsers.MultiPartParser]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            conversation = serializer.save()
+            return Response({"message": "Conversation created successfully!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
+from django_filters.rest_framework import DjangoFilterBackend  # Add this import
+from .models import Message
+from .serializers import MessageSerializer
+from parttime_job.chat.services import sync_message_to_firebase
+
+
+class MessageViewSet(viewsets.ModelViewSet):
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['conversation_id']
+
+    def get_queryset(self):
+        """
+        Filter messages by conversation_id from query parameters, if provided.
+        """
+        queryset = super().get_queryset()
+        conversation_id = self.request.query_params.get('conversation_id')
+        if conversation_id:
+            queryset = queryset.filter(conversation_id=conversation_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        """
+        Save the message and sync it to Firebase.
+        """
+        message = serializer.save()
+        firebase_key = sync_message_to_firebase(message)
+        message.firebase_key = firebase_key
+        message.save()
