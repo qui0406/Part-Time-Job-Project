@@ -30,7 +30,7 @@ from django.db.models.functions import TruncDay, TruncWeek, TruncMonth, TruncQua
 from django.db.models import Count
 from datetime import datetime, timedelta
 from django.utils import timezone
-
+from django.db.models import Q
 # from parttime_job.services.onfido_service import create_onfido_applicant
 
 
@@ -794,14 +794,32 @@ class VerifyDocumentViewSet(viewsets.ViewSet):
 class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, perms.OwnerPerms]
     parser_classes = [parsers.MultiPartParser]
 
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+    @action(methods=['get'], url_path='get-conversations', detail=False)
+    def get_conversation(self, request):
+        user = request.user
+        employer = request.data.get('employer')
+        try:
+            conversation = Conversation.objects.get(
+                Q(candidate_id=user, employer_id=employer) 
+        )
+            return Response({"conversation_id": conversation.id})
+        except Conversation.DoesNotExist:
+            return Response({"detail": "Conversation not found."}, status=status.HTTP_404_NOT_FOUND)
     
+
+    @action(methods=['get'], url_path='get-conversation-for-employer', detail = False)
+    def get_conversation_for_employer(self, request):
+        user = request.user
+        conversations = Conversation.objects.filter(employer = user)
+        serializer = self.get_serializer(conversations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        import pdb; pdb.set_trace()
         if serializer.is_valid():
             conversation = serializer.save()
             return Response({"message": "Conversation created successfully!"}, status=status.HTTP_201_CREATED)
@@ -820,6 +838,8 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['conversation_id']
+    permission_classes = [permissions.IsAuthenticated, perms.OwnerPerms]
+    
 
     def get_queryset(self):
         """
