@@ -800,7 +800,8 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
     @action(methods=['get'], url_path='get-conversations', detail=False)
     def get_conversation(self, request):
         user = request.user
-        employer = request.data.get('employer')
+        # employer = request.data.get('employer')
+        employer = request.query_params.get('employer')
         try:
             conversation = Conversation.objects.get(
                 Q(candidate_id=user, employer_id=employer) 
@@ -819,7 +820,7 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if serializer.is_valid():
             conversation = serializer.save()
             return Response({"message": "Conversation created successfully!"}, status=status.HTTP_201_CREATED)
