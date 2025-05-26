@@ -187,8 +187,8 @@ const AuthStack = () => (
 const HomeStack = () => (
   <Stack.Navigator>
     <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ" }} />
-    <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc" }} />
-    <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} />
+    <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc"}} />
+    <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty"}} />
     <Stack.Screen name="ChatScreen" component={ChatScreen} />
     <Stack.Screen screenOptions={{ headerShown: false }} name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
     <Stack.Screen name="MyApplication" component={MyApplication} options={{ title: "Công việc đã ứng tuyển" }} />

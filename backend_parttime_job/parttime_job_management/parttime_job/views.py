@@ -378,7 +378,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     def get_permissions(self):
         if self.action in ['create_application', 'update_application']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
-        if self.action == 'get_all_my_applications':
+        if self.action in ['get_all_my_applications', 'get_all_my_applications_nofilter']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
 
@@ -509,6 +509,17 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             user=user,
             active=True,
             status='accepted'
+        ).select_related('job__company')
+
+        serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
+    @action(methods=['get'], url_path='my-all-applications-nofilter', detail=False, serializer_class= ApplicationDetailSerializer)
+    def get_all_my_applications_nofilter(self, request):
+        user = request.user
+
+        applications = Application.objects.filter(
+            user=user,
+            active=True,
         ).select_related('job__company')
 
         serializer = self.get_serializer(applications, many=True)

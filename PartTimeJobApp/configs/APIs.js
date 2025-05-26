@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.140:8000'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.9:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -29,6 +29,8 @@ export const endpoints = {
     'application-profile-apply': '/application-profile/apply/', // Nộp đơn ứng tuyển
     'my-applications': '/application-profile/', // Danh sách đơn ứng tuyển của người dùng
     'application-detail': '/application-profile/', // /:id/ sẽ được thêm vào để lấy chi tiết đơn
+    'application-profile-my-all-applications-nofilter': '/application-profile/my-all-applications-nofilter/',
+    'update-my-application': '/application-profile/my-applications/', // /:id/ để cập nhật đơn ứng tuyển của ứng viên
     'review-application': '/review-application/', // /:id/ sẽ được thêm vào trong code
     'review-application-action': '/review-application/', // /:id/review/ sẽ được thêm vào để phê duyệt/từ chối
     'notification': '/notification/', // Thông báo
