@@ -808,18 +808,38 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, perms.OwnerPerms]
     parser_classes = [parsers.MultiPartParser]
 
+    # @action(methods=['get'], url_path='get-conversations', detail=False)
+    # def get_conversation(self, request):
+    #     user = request.user
+    #     # employer = request.data.get('employer')
+    #     employer = request.query_params.get('employer')
+    #     try:
+    #         conversation = Conversation.objects.get(
+    #             Q(candidate_id=user, employer_id=employer) 
+    #     )
+    #         return Response({"conversation_id": conversation.id})
+    #     except Conversation.DoesNotExist:
+    #         return Response({"detail": "Conversation not found."}, status=status.HTTP_404_NOT_FOUND)
     @action(methods=['get'], url_path='get-conversations', detail=False)
     def get_conversation(self, request):
         user = request.user
-        # employer = request.data.get('employer')
-        employer = request.query_params.get('employer')
+        employer_id = request.query_params.get('employer')
+        candidate_id = request.query_params.get('candidate')
+        
         try:
-            conversation = Conversation.objects.get(
-                Q(candidate_id=user, employer_id=employer) 
-        )
+            if user.role == 'employer':
+                if not candidate_id:
+                    return Response({"detail": "Candidate ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+                conversation = Conversation.objects.get(employer=user, candidate_id=candidate_id)
+            else:
+                if not employer_id:
+                    return Response({"detail": "Employer ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+                conversation = Conversation.objects.get(candidate=user, employer_id=employer_id)
+            
             return Response({"conversation_id": conversation.id})
         except Conversation.DoesNotExist:
             return Response({"detail": "Conversation not found."}, status=status.HTTP_404_NOT_FOUND)
+
     
 
     @action(methods=['get'], url_path='get-conversation-for-employer', detail = False)
