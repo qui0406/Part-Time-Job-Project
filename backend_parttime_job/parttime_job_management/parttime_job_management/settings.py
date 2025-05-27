@@ -224,7 +224,7 @@ DEBUG = config("DEBUG", cast=bool, default=False)
 CELERY_RESULT_BACKEND = "django-db"
 
 # This configures Redis as the datastore between Django + Celery
-CELERY_BROKER_URL = config('CELERY_BROKER_REDIS_URL', default='redis://192.168.1.140:6379')
+CELERY_BROKER_URL = config('CELERY_BROKER_REDIS_URL', default='redis://192.168.1.9:6379')
 # if you out to use os.environ the config is:
 # CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_REDIS_URL', 'redis://localhost:6379')
 
@@ -299,7 +299,7 @@ LOGOUT_REDIRECT_URL = '/'
 # ACCOUNT_EMAIL_REQUIRED = True
 # ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
-SITE_URL = 'http://192.168.1.140:8000'
+SITE_URL = 'http://192.168.1.9:8000'
 
 
 

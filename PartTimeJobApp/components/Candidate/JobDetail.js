@@ -37,13 +37,7 @@ export default function JobDetail() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Icon source="arrow-left" size={24} color={Colors.WHITE} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chi tiết công việc</Text>
-                <View style={{ width: 24 }} />
-            </View>
+           
 
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.jobCard}>
@@ -80,18 +74,6 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: Colors.BG_GRAY,
-    },
-    header: {
-        backgroundColor: Colors.PRIMARY,
-        padding: 15,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        color: Colors.WHITE,
-        fontSize: 20,
-        fontWeight: 'bold',
     },
     scrollContainer: {
         flexGrow: 1,

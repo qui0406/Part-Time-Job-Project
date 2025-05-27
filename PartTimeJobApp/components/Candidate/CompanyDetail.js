@@ -129,7 +129,7 @@ export default function CompanyDetail() {
                 {/* Icon chat nằm ngay bên phải nút Theo dõi */}
                 <TouchableOpacity
                     style={styles.chatButton}
-                    onPress={() => navigation.navigate('ChatScreen', { company: companyData || company })}
+                    onPress={() => navigation.navigate('ChatScreen', { company: companyData })}
                 >
                     <Ionicons name="chatbubble-outline" size={24} color={Colors.WHITE} />
                 </TouchableOpacity>
