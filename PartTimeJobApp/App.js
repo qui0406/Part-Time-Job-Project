@@ -168,7 +168,8 @@ import ApplicationDetail from './components/Company/ApplicationDetail';
 import MyApplication from './components/Candidate/MyApplication';
 import RateJob from './components/Candidate/RateJob';
 import RateCandidate from './components/Company/RateCandidate';
-import AcceptedApplications from './components/Company/AcceptedApplications'; 
+import AcceptedApplications from './components/Company/AcceptedApplications';
+import ChatNotifications from './components/Company/ChatNotification';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -183,18 +184,24 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-// Stack cho Trang chủ
+// Stack cho Employer
+const EmployerStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen name="ChatNotifications" component={ChatNotifications} options={{ title: "Tin Nhắn", headerShown: false }} />
+    <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ title: "Trò chuyện", headerShown: false }} />
+  </Stack.Navigator>
+);
+// Stack cho Trang chủ chỉ dành cho candidate
 const HomeStack = () => (
   <Stack.Navigator>
     <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ" }} />
-    <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc"}} />
-    <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty"}} />
-    <Stack.Screen name="ChatScreen" component={ChatScreen} />
-    <Stack.Screen screenOptions={{ headerShown: false }} name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
-    <Stack.Screen name="MyApplication" component={MyApplication} options={{ title: "Công việc đã ứng tuyển" }} />
+    <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc" }} />
+    <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} />
+    <Stack.Screen name="ChatScreen" component={ChatScreen} options={{headerShown: false}}/>
+    <Stack.Screen name="ApplyJob" component={ApplyJob} options={{ title: "Ứng tuyển công việc" }} />
+    <Stack.Screen name="MyApplication" component="MyApplication" options={{ title: "Công việc đã ứng tuyển" }} />
   </Stack.Navigator>
 );
-
 // Navigator Tab chính
 const MainTab = () => {
   const user = useContext(MyUserContext);
@@ -219,7 +226,7 @@ const MainTab = () => {
           tabBarIcon: () => <Icon size={30} color="#1b4089" source="home" />,
         }}
       />
-    
+
       {user.role === 'admin' && (
         <Tab.Screen
           name="Notifications"
@@ -240,7 +247,17 @@ const MainTab = () => {
           }}
         />
       )}
-       {user.role === 'employer' && (
+      {user.role === 'employer' && (
+        <Tab.Screen
+          name="EmployerStack"
+          component={EmployerStack}
+          options={{
+            title: 'Tin nhắn',
+            tabBarIcon: () => <Icon size={30} color="#1b4089" source="chat" />,
+          }}
+        />
+      )}
+      {user.role === 'employer' && (
         <Tab.Screen
           name="AcceptedApplications"
           component={AcceptedApplications}
@@ -260,9 +277,9 @@ const MainTab = () => {
           }}
         />
       )}
-     
+
       {user.role === 'candidate' && (
-          <Tab.Screen
+        <Tab.Screen
           name="MyApplication"
           component={MyApplication}
           options={{
@@ -281,7 +298,7 @@ const MainTab = () => {
           }}
         />
       )}
-      
+
       <Tab.Screen
         name="Profile"
         component={Profile}
