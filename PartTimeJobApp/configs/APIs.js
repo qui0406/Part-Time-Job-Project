@@ -35,6 +35,8 @@ export const endpoints = {
     'ratings': '/ratings/',
     'employer-ratings': '/employer-ratings/',
     'verify-document': '/verify-document/verify/',
+    'conversations': '/conversations/', 
+    'messages': '/messages/',
 }
 
 export const authApi = (token) => {

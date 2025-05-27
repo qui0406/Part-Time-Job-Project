@@ -819,7 +819,6 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        import pdb; pdb.set_trace()
         if serializer.is_valid():
             conversation = serializer.save()
             return Response({"message": "Conversation created successfully!"}, status=status.HTTP_201_CREATED)
