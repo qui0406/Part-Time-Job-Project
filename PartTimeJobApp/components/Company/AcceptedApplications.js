@@ -154,7 +154,6 @@ export default function AcceptedApplications() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
                 <Text style={styles.title}>Đơn ứng tuyển đã chấp nhận</Text>
-                
                 <FlatList
                     data={applications}
                     renderItem={renderItem}
@@ -187,17 +186,6 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
     },
-    header: {
-        backgroundColor: Colors.PRIMARY,
-        padding: 15,
-        paddingTop: 40,
-        alignItems: 'center',
-      },
-      headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.WHITE,
-      },
     title: {
         fontSize: 20,
         fontWeight: 'bold',
