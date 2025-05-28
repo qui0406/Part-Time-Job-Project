@@ -251,6 +251,7 @@ class Conversation(BaseModel):
 
     class Meta:
         unique_together = ('candidate', 'employer')
+        ordering = ['-created_date']
 
     def __str__(self):
         return f"Conversation between {self.candidate.username} and {self.employer.username}"

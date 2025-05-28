@@ -18,14 +18,14 @@ logger = logging.getLogger(__name__)
 #   "measurementId": "G-G857ZNYNYV"
 # }
 firebase_config = {
-    "apiKey": "AIzaSyCpabc024Q5PVK4KMV70iC0A_BONXqspk4",
-    "authDomain": "parttimejobapp-7d711.firebaseapp.com",
-    "databaseURL": "https://parttimejobapp-7d711-default-rtdb.firebaseio.com/",
-    "projectId": "parttimejobapp-7d711",
-    "storageBucket": "parttimejobapp-7d711.firebasestorage.app",
-    "messagingSenderId": "944686521630",
-    "appId": "1:944686521630:web:b7794202a8d63bc4afbd0f",
-    "measurementId": "G-T343S4GEYG"
+    "apiKey": "AIzaSyBYTjtEh-Yj-JLM2-NsFgvBZVU33K2dsN8",
+  "authDomain": "app-chat-e506d.firebaseapp.com",
+  "databaseURL": "https://app-chat-e506d-default-rtdb.firebaseio.com",
+  "projectId": "app-chat-e506d",
+  "storageBucket": "app-chat-e506d.firebasestorage.app",
+  "messagingSenderId": "542889717655",
+  "appId": "1:542889717655:web:1b2e4e69ce692b4c2a5ed2",
+  "measurementId": "G-G857ZNYNYV"
 }
 # Initialize Firebase
 firebase = pyrebase.initialize_app(firebase_config)

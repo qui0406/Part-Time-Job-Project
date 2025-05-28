@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from '../../constants/Colors';
 import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker } from 'react-native-maps';
 export default function CompanyDetail() {
     const navigation = useNavigation();
     const route = useRoute();
@@ -23,12 +24,46 @@ export default function CompanyDetail() {
         }
     }, [company]);
 
+
+    const mapRef = useRef(null);
+    const [region, setRegion] = useState({
+        latitude: '', // Tọa độ HCM
+        longitude: '',
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    });
+    const [searchQuery, setSearchQuery] = useState('Ho Chi Minh');
+    const [marker, setMarker] = useState({
+        latitude: '',
+        longitude: '',
+        title: 'Ho Chi Minh City',
+    });
+
     const fetchCompanyDetails = async () => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem('token');
             const response = await authApi(token).get(`${endpoints['company-details']}${company.id}/`);
             setCompanyData(response.data);
+
+            if (response.data.latitude && response.data.longitude) {
+                const { latitude, longitude, name } = response.data;
+
+                setRegion({
+                    latitude: latitude,
+                    longitude: longitude,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
+                });
+
+                setMarker({
+                    latitude: latitude,
+                    longitude: longitude,
+                    title: name || 'Vị trí công ty',
+                });
+                }
+
+            console.log('Thông tin công ty:', response.data);
         } catch (error) {
             console.error('Lỗi khi lấy thông tin công ty:', error);
             Alert.alert('Lỗi', 'Không thể lấy thông tin công ty. Vui lòng thử lại.');
@@ -173,6 +208,23 @@ export default function CompanyDetail() {
                                 <Text style={styles.infoLabel}>Số điện thoại:</Text>
                                 <Text style={styles.infoText}>{companyData?.company_phone || 'Chưa cập nhật'}</Text>
                             </View>
+                            {region.latitude && region.longitude && (
+                            <MapView
+                                ref={mapRef}
+                                style={styles.map}
+                                region={region}
+                                onRegionChangeComplete={setRegion}
+                            >
+                                <Marker
+                                    coordinate={{
+                                        latitude: marker.latitude,
+                                        longitude: marker.longitude,
+                                    }}
+                                    title={marker.title}
+                                />
+                            </MapView>
+                        )}
+
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Địa chỉ:</Text>
                                 <Text style={styles.infoText}>{companyData?.address || 'Chưa cập nhật'}</Text>
@@ -417,4 +469,5 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginTop: 10,
     },
+    map: { height: 200, borderRadius: 8, marginBottom: 15 },
 });
