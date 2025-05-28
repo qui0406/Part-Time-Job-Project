@@ -7,6 +7,16 @@ from requests.exceptions import HTTPError
 logger = logging.getLogger(__name__)
 
 # Firebase configuration
+# firebase_config = {
+#     "apiKey": "AIzaSyBYTjtEh-Yj-JLM2-NsFgvBZVU33K2dsN8",
+#   "authDomain": "app-chat-e506d.firebaseapp.com",
+#   "databaseURL": "https://app-chat-e506d-default-rtdb.firebaseio.com",
+#   "projectId": "app-chat-e506d",
+#   "storageBucket": "app-chat-e506d.firebasestorage.app",
+#   "messagingSenderId": "542889717655",
+#   "appId": "1:542889717655:web:1b2e4e69ce692b4c2a5ed2",
+#   "measurementId": "G-G857ZNYNYV"
+# }
 firebase_config = {
     "apiKey": "AIzaSyBYTjtEh-Yj-JLM2-NsFgvBZVU33K2dsN8",
   "authDomain": "app-chat-e506d.firebaseapp.com",
@@ -17,7 +27,6 @@ firebase_config = {
   "appId": "1:542889717655:web:1b2e4e69ce692b4c2a5ed2",
   "measurementId": "G-G857ZNYNYV"
 }
-
 # Initialize Firebase
 firebase = pyrebase.initialize_app(firebase_config)
 auth = firebase.auth()

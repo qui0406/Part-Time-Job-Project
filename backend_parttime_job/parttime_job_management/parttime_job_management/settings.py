@@ -192,16 +192,24 @@ DATABASES = {
 }
 
 FIREBASE_CONFIG = {
-    "apiKey": "AIzaSyDlozTOx9Ji-kU-GsAVrsKKGyorD_fIjPQ",
-    "authDomain": "chat-faaa6.firebaseapp.com",
-    "databaseURL": "https://chat-faaa6-default-rtdb.firebaseio.com",
-    "projectId": "chat-faaa6",
-    "storageBucket": "chat-faaa6.firebasestorage.app",
-    "messagingSenderId": "818438991217",
-    "appId": "1:818438991217:web:1a8be07e4013127c4e1ad0",
-    "measurementId": "G-16R4XY5ES7"
+    "apiKey": "AIzaSyCpabc024Q5PVK4KMV70iC0A_BONXqspk4",
+    "authDomain": "parttimejobapp-7d711.firebaseapp.com",
+    "databaseURL": "https://parttimejobapp-7d711-default-rtdb.firebaseio.com/",
+    "projectId": "parttimejobapp-7d711",
+    "storageBucket": "parttimejobapp-7d711.firebasestorage.app",
+    "messagingSenderId": "944686521630",
+    "appId": "1:944686521630:web:b7794202a8d63bc4afbd0f",
+    "measurementId": "G-T343S4GEYG"
 }
-
+# const firebaseConfig = {
+#   apiKey: "AIzaSyCpabc024Q5PVK4KMV70iC0A_BONXqspk4",
+#   authDomain: "parttimejobapp-7d711.firebaseapp.com",
+#   projectId: "parttimejobapp-7d711",
+#   storageBucket: "parttimejobapp-7d711.firebasestorage.app",
+#   messagingSenderId: "944686521630",
+#   appId: "1:944686521630:web:b7794202a8d63bc4afbd0f",
+#   measurementId: "G-T343S4GEYG"
+# }
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 
 

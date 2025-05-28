@@ -39,6 +39,7 @@ export const endpoints = {
     'verify-document': '/verify-document/verify/',
     'conversations': '/conversations/', 
     'messages': '/messages/',
+    'verify-document-status': '/verify-document/status/'
 }
 
 export const authApi = (token) => {

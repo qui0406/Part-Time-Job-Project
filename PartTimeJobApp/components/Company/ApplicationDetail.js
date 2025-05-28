@@ -16,6 +16,7 @@ import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '../../constants/Colors';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import MapView, { Marker } from 'react-native-maps';
 
 export default function ApplicationDetail() {
   const [application, setApplication] = useState(null);

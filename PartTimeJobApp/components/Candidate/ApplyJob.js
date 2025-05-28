@@ -41,6 +41,9 @@ export default function ApplyJob() {
   const [selfieImage, setSelfieImage] = useState(null);
   const [isVerified, setIsVerified] = useState(user?.is_verified || false);
   const [verificationLoading, setVerificationLoading] = useState(false);
+  const [sentVerificationData, setSentVerificationData] = useState(null);
+  const [showSentData, setShowSentData] = useState(false);
+  const [ocrData, setOcrData] = useState(null);
 
   const [existingApplication, setExistingApplication] = useState(null);
   const [applicationLoading, setApplicationLoading] = useState(true);
@@ -64,13 +67,10 @@ export default function ApplyJob() {
           return;
         }
 
-        // Gọi API để lấy danh sách đơn ứng tuyển của người dùng
         const response = await authApi(token).get(endpoints['application-profile-my-all-applications-nofilter']);
         console.log('API response.data:', response.data);
 
-        // Đảm bảo response.data là mảng
         const applications = Array.isArray(response.data) ? response.data : [];
-        // Tìm đơn ứng tuyển cho công việc hiện tại
         const existingApp = applications.find((app) => app.job?.id === job.id);
 
         if (existingApp) {
@@ -140,24 +140,25 @@ export default function ApplyJob() {
     }
   };
 
-  const pickImage = async (type) => {
+  // Hàm chọn ảnh từ thư viện với yêu cầu quyền truy cập
+  const pickImageFromLibrary = async (type) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Lỗi', 'Cần cấp quyền truy cập vào thư viện ảnh');
+        Alert.alert('Lỗi', 'Cần cấp quyền truy cập vào thư viện ảnh để chọn ảnh');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [4, 3],
+        aspect: type === 'selfie' ? [1, 1] : [4, 3],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        console.log('Selected image:', asset);
+        console.log('Selected image from library:', asset);
 
         if (type === 'front') {
           setDocumentFront(asset);
@@ -168,33 +169,70 @@ export default function ApplyJob() {
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Lỗi', 'Không thể chọn ảnh. Vui lòng thử lại.');
+      console.error('Error picking image from library:', error);
+      Alert.alert('Lỗi', 'Không thể chọn ảnh từ thư viện. Vui lòng thử lại.');
     }
   };
 
-  const takeSelfie = async () => {
+  // Hàm chụp ảnh với camera với xử lý quyền truy cập tốt hơn
+  const takePhotoWithCamera = async (type) => {
     try {
+      // Kiểm tra quyền truy cập camera
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
       if (status !== 'granted') {
-        Alert.alert('Lỗi', 'Cần cấp quyền truy cập vào camera');
+        Alert.alert(
+          'Quyền truy cập camera',
+          'Ứng dụng cần quyền truy cập camera để chụp ảnh. Bạn có thể cấp quyền trong cài đặt thiết bị.',
+          [
+            { text: 'Hủy', style: 'cancel' },
+            { text: 'Chọn từ thư viện', onPress: () => pickImageFromLibrary(type) }
+          ]
+        );
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        aspect: [1, 1],
+        aspect: type === 'selfie' ? [1, 1] : [4, 3],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        setSelfieImage(asset);
+        console.log('Captured photo:', asset);
+
+        if (type === 'front') {
+          setDocumentFront(asset);
+        } else if (type === 'back') {
+          setDocumentBack(asset);
+        } else if (type === 'selfie') {
+          setSelfieImage(asset);
+        }
       }
     } catch (error) {
-      console.error('Error taking selfie:', error);
+      console.error('Error taking photo with camera:', error);
       Alert.alert('Lỗi', 'Không thể chụp ảnh. Vui lòng thử lại.');
     }
+  };
+
+  // Hàm hiển thị tùy chọn chụp ảnh hoặc chọn từ thư viện
+  const showImagePickerOptions = (type) => {
+    const typeLabels = {
+      front: 'ảnh mặt trước',
+      back: 'ảnh mặt sau',
+      selfie: 'ảnh chân dung'
+    };
+
+    Alert.alert(
+      `Chọn ${typeLabels[type]}`,
+      'Bạn muốn chụp ảnh mới hay chọn từ thư viện?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Chọn từ thư viện', onPress: () => pickImageFromLibrary(type) },
+        { text: 'Chụp ảnh mới', onPress: () => takePhotoWithCamera(type) }
+      ]
+    );
   };
 
   const verifyIdentity = async () => {
@@ -258,6 +296,10 @@ export default function ApplyJob() {
 
       if (response.data.verified) {
         setIsVerified(true);
+        // Lưu dữ liệu OCR từ response.result.result
+        const ocrResult = response.data.response?.result?.result || {};
+        setOcrData(ocrResult);
+        setDocumentType(ocrResult.documentType === 'I' ? 'id_card' : documentType); // Đồng bộ documentType
         Alert.alert('Thành công', 'Xác minh danh tính thành công!');
       } else {
         Alert.alert('Thông báo', response.data.error || 'Xác minh danh tính không thành công. Vui lòng thử lại với ảnh rõ ràng hơn.');
@@ -274,6 +316,136 @@ export default function ApplyJob() {
 
       Alert.alert('Lỗi', errorMessage);
     }
+  };
+  // THÊM MỚI - Hàm hiển thị dữ liệu OCR
+  const renderOcrData = () => {
+    if (!ocrData || typeof ocrData !== 'object') {
+      return (
+        <View style={styles.ocrDataContainer}>
+          <Text style={styles.ocrTitle}>Không có dữ liệu giấy tờ</Text>
+        </View>
+      );
+    }
+    // Debug: Log dữ liệu OCR để kiểm tra
+    console.log('OCR Data for display:', ocrData);
+    console.log('Document Type:', documentType);
+    const formatDate = (dateStr) => {
+      if (!dateStr || dateStr === 'N/A') return 'N/A';
+
+      // Nếu dữ liệu đã có định dạng dd/mm/yyyy thì giữ nguyên
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+        return dateStr;
+      }
+
+      // Xử lý các định dạng khác
+      const dateRegexes = [
+        { regex: /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/, format: '$3/$2/$1' }, // yyyy-mm-dd -> dd/mm/yyyy
+        { regex: /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/, format: '$1/$2/$3' }, // dd-mm-yyyy -> dd/mm/yyyy
+        { regex: /^(\d{1,2})[/-](\d{1,2})[/-](\d{2})$/, format: '$1/$2/20$3' }, // dd-mm-yy -> dd/mm/yyyy
+      ];
+
+      for (const { regex, format } of dateRegexes) {
+        if (regex.test(dateStr)) {
+          const result = dateStr.replace(regex, format);
+          // Đảm bảo định dạng đúng dd/mm/yyyy
+          const parts = result.split('/');
+          if (parts.length === 3) {
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            return `${day}/${month}/${year}`;
+          }
+          return result;
+        }
+      }
+    };
+
+
+    const renderField = (label, value) => {
+      if (!value) return null;
+      return (
+        <View style={styles.ocrRow}>
+          <Text style={styles.ocrLabel}>{label}:</Text>
+          <Text style={styles.ocrValue}>{value}</Text>
+        </View>
+      );
+    };
+
+    let fields = [];
+
+    switch (documentType) {
+      case 'id_card':
+      fields = [
+        { label: 'Họ và tên', value: ocrData.fullName || ocrData.name || ocrData.full_name },
+        { label: 'Số CMND/CCCD', value: ocrData.idNumber || ocrData.documentNumber || ocrData.id_number || ocrData.document_number },
+        { label: 'Giới tính', value: ocrData.sex ? (ocrData.sex === 'M' || ocrData.sex === 'Nam' ? 'Nam' : 'Nữ') : (ocrData.gender || null) },
+        { label: 'Ngày sinh', value: formatDate(ocrData.dob || ocrData.dateOfBirth || ocrData.date_of_birth || ocrData.birth_date) },
+        { label: 'Ngày hết hạn', value: formatDate(ocrData.expiry || ocrData.expiryDate || ocrData.expiry_date || ocrData.valid_until) },
+        { label: 'Nơi cấp', value: ocrData.issuePlace || ocrData.placeOfIssue || ocrData.issue_place || ocrData.place_of_issue },
+        { label: 'Địa chỉ', value: ocrData.address || ocrData.address1 || ocrData.permanent_address },
+      ];
+      break;
+
+      case 'business_license':
+      fields = [
+        { label: 'Tên công ty', value: ocrData.companyName || ocrData.name || ocrData.company_name || ocrData.business_name },
+        { label: 'Mã số thuế', value: ocrData.taxId || ocrData.registrationNumber || ocrData.tax_id || ocrData.registration_number },
+        { label: 'Ngày cấp', value: formatDate(ocrData.issueDate || ocrData.registrationDate || ocrData.issue_date || ocrData.registration_date) },
+        { label: 'Địa chỉ', value: ocrData.address || ocrData.companyAddress || ocrData.company_address || ocrData.business_address },
+        { label: 'Người đại diện', value: ocrData.representative || ocrData.legalRepresentative || ocrData.legal_representative },
+      ];
+      break;
+
+      case 'student_card':
+      fields = [
+        { label: 'Họ và tên', value: ocrData.fullName || ocrData.name || ocrData.full_name || ocrData.student_name },
+        { label: 'Mã sinh viên', value: ocrData.studentId || ocrData.idNumber || ocrData.student_id || ocrData.id_number },
+        { label: 'Trường', value: ocrData.university || ocrData.institution || ocrData.school || ocrData.college },
+        { label: 'Ngày sinh', value: formatDate(ocrData.dob || ocrData.dateOfBirth || ocrData.date_of_birth || ocrData.birth_date) },
+        { label: 'Ngày hết hạn', value: formatDate(ocrData.expiry || ocrData.expiryDate || ocrData.expiry_date || ocrData.valid_until) },
+        { label: 'Khóa học', value: ocrData.course || ocrData.major || ocrData.faculty },
+      ];
+      break;
+
+      case 'other':
+        // Hiển thị tất cả các trường có trong ocrData
+        fields = Object.entries(ocrData)
+          .filter(([key, value]) => value && typeof value !== 'object')
+          .map(([key, value]) => ({
+            label: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+            value: ['dob', 'expiry', 'issueDate'].includes(key) ? formatDate(value) : value,
+          }));
+        break;
+
+      default:
+        return (
+          <View style={styles.ocrDataContainer}>
+            <Text style={styles.ocrTitle}>Loại giấy tờ không được hỗ trợ</Text>
+          </View>
+        );
+    }
+
+    return (
+      <View style={styles.ocrDataContainer}>
+        <Text style={styles.ocrTitle}>
+          📄 Thông tin giấy tờ xác minh ({documentType === 'id_card' ? 'CMND/CCCD' :
+            documentType === 'business_license' ? 'Giấy phép kinh doanh' :
+              documentType === 'student_card' ? 'Thẻ sinh viên' : 'Khác'})
+        </Text>
+        {fields.map(
+          (field, index) =>
+            field.value && (
+              <View key={index} style={styles.ocrRow}>
+                <Text style={styles.ocrLabel}>{field.label}:</Text>
+                <Text style={styles.ocrValue}>{field.value}</Text>
+              </View>
+            )
+        )}
+        {fields.every(field => !field.value) && (
+          <Text style={styles.ocrValue}>Không có thông tin chi tiết</Text>
+        )}
+      </View>
+    );
   };
 
   const handleSubmit = async () => {
@@ -339,7 +511,6 @@ export default function ApplyJob() {
         );
         successMessage = 'Đơn ứng tuyển của bạn đã được cập nhật thành công!';
       } else {
-        // Tạo mới đơn ứng tuyển
         response = await authApi(token).post(
           endpoints['application-profile'] + 'apply/',
           formData,
@@ -498,13 +669,13 @@ export default function ApplyJob() {
         <Text style={styles.label}>
           Ảnh mặt trước <Text style={styles.required}>*</Text>
         </Text>
-        <TouchableOpacity style={styles.imagePicker} onPress={() => pickImage('front')}>
+        <TouchableOpacity style={styles.imagePicker} onPress={() => showImagePickerOptions('front')}>
           {documentFront ? (
             <Image source={{ uri: documentFront.uri }} style={styles.previewImage} />
           ) : (
             <>
               <Icon source="camera" size={24} color={Colors.PRIMARY} />
-              <Text style={styles.imagePickerText}>Chọn ảnh mặt trước</Text>
+              <Text style={styles.imagePickerText}>Chụp ảnh hoặc chọn ảnh mặt trước</Text>
             </>
           )}
         </TouchableOpacity>
@@ -514,13 +685,13 @@ export default function ApplyJob() {
             <Text style={styles.label}>
               Ảnh mặt sau <Text style={styles.required}>*</Text>
             </Text>
-            <TouchableOpacity style={styles.imagePicker} onPress={() => pickImage('back')}>
+            <TouchableOpacity style={styles.imagePicker} onPress={() => showImagePickerOptions('back')}>
               {documentBack ? (
                 <Image source={{ uri: documentBack.uri }} style={styles.previewImage} />
               ) : (
                 <>
                   <Icon source="camera" size={24} color={Colors.PRIMARY} />
-                  <Text style={styles.imagePickerText}>Chọn ảnh mặt sau</Text>
+                  <Text style={styles.imagePickerText}>Chụp ảnh hoặc chọn ảnh mặt sau</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -528,13 +699,13 @@ export default function ApplyJob() {
         )}
 
         <Text style={styles.label}>Ảnh chân dung (tùy chọn)</Text>
-        <TouchableOpacity style={styles.imagePicker} onPress={takeSelfie}>
+        <TouchableOpacity style={styles.imagePicker} onPress={() => showImagePickerOptions('selfie')}>
           {selfieImage ? (
             <Image source={{ uri: selfieImage.uri }} style={styles.previewImage} />
           ) : (
             <>
               <Icon source="face-recognition" size={24} color={Colors.PRIMARY} />
-              <Text style={styles.imagePickerText}>Chụp ảnh chân dung</Text>
+              <Text style={styles.imagePickerText}>Chụp ảnh hoặc chọn ảnh chân dung</Text>
             </>
           )}
         </TouchableOpacity>
@@ -557,10 +728,24 @@ export default function ApplyJob() {
         </TouchableOpacity>
 
         {isVerified && (
-          <View style={styles.verifiedBadge}>
-            <Icon source="shield-check" size={16} color={Colors.GREEN} />
-            <Text style={styles.verifiedText}>Danh tính đã được xác minh</Text>
-          </View>
+          <>
+            <View style={styles.verifiedBadge}>
+              <Icon source="shield-check" size={16} color={Colors.GREEN} />
+              <Text style={styles.verifiedText}>Danh tính đã được xác minh</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.viewDataButton}
+              onPress={() => setShowSentData(!showSentData)}
+            >
+              <Icon source="eye" size={16} color={Colors.PRIMARY} />
+              <Text style={styles.viewDataButtonText}>
+                {showSentData ? 'Ẩn dữ liệu đã gửi xác minh' : 'Xem dữ liệu đã gửi xác minh'}
+              </Text>
+            </TouchableOpacity>
+
+            {showSentData && renderOcrData()}
+          </>
         )}
 
         <Text style={styles.noteText}>
@@ -583,16 +768,6 @@ export default function ApplyJob() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon source="arrow-left" size={24} color={Colors.WHITE} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isUpdating ? 'Cập nhật đơn ứng tuyển' : 'Ứng tuyển công việc'}
-        </Text>
-        <View style={{ width: 24 }} />
-      </View> */}
-
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.jobInfoSection}>
           <Text style={styles.sectionTitle}>Thông tin công việc</Text>
@@ -607,7 +782,6 @@ export default function ApplyJob() {
             <Text style={styles.infoValue}>{job?.company_name || 'Không có thông tin công ty'}</Text>
           </View>
         </View>
-
 
         {existingApplication && (
           <View style={styles.statusContainer}>
@@ -705,7 +879,6 @@ export default function ApplyJob() {
             * Chấp nhận file PDF, DOCX, JPG, JPEG hoặc PNG, dung lượng tối đa 5MB
             {isUpdating && '\n* Nếu không chọn CV mới, hệ thống sẽ giữ CV cũ'}
           </Text>
-
           <TouchableOpacity
             style={[
               styles.submitButton,
@@ -766,34 +939,32 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   jobInfoSection: {
-    backgroundColor: Colors.WHITE,
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    backgroundColor: '#f9f9f9',
+    padding: 16,
+    borderRadius: 10,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1b4089',
     marginBottom: 10,
   },
-  
+
   infoRow: {
     flexDirection: 'row',
     marginBottom: 6,
   },
-  
+
   infoLabel: {
     fontWeight: 'bold',
     color: '#333',
     width: 90,
   },
-  
+
   infoValue: {
     flex: 1,
     color: '#444',
@@ -905,6 +1076,54 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.5,
+  },
+  viewDataButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.WHITE,
+    borderWidth: 1,
+    borderColor: Colors.PRIMARY,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  viewDataButtonText: {
+    color: Colors.PRIMARY,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  ocrDataContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 15,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  ocrTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.BLACK,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  ocrRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  ocrLabel: {
+    fontWeight: '600',
+    color: '#495057',
+    width: 100,
+    fontSize: 14,
+  },
+  ocrValue: {
+    flex: 1,
+    color: '#212529',
+    fontSize: 14,
   },
   radioGroup: {
     flexDirection: 'row',
