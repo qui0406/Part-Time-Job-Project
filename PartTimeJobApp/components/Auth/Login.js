@@ -67,8 +67,8 @@ export default function Login() {
           ...user,
           // client_id: '9IzC3JrBeo5xF3q1MQV7LYIv0xGD1CfBNNWcVCNG',
           // client_secret: 'DTEMP7VNxBlOOnhnDCrtcqjHI5W75qC7eTEW2tpToK0atPXVxrBy1OxASdZbAlJsCs0lSKuL9wd81ZPonxWwlBwhaPJNeEHbkpSqNMtR6aa8hFPhdy917r4ddRIz8hzR',
-          client_id: '5F8F7OU4DRuyJfF55BrDaveJkgrrKS3tgxK55NM5',
-          client_secret: '93ejz7pWYA4m3Ogv8NJmD6rMwGe4lpuoL0Isf5wLQ8qmZXKy4eItDedeaZcL7TBBr9W9YMrMQTnc93ZzBAkHthBkC4NTG4TfeChlKiqrrbyNerPgj6TE1XiJ1jT0JVW5',
+          client_id: '9IzC3JrBeo5xF3q1MQV7LYIv0xGD1CfBNNWcVCNG',
+          client_secret: 'DTEMP7VNxBlOOnhnDCrtcqjHI5W75qC7eTEW2tpToK0atPXVxrBy1OxASdZbAlJsCs0lSKuL9wd81ZPonxWwlBwhaPJNeEHbkpSqNMtR6aa8hFPhdy917r4ddRIz8hzR',
           grant_type: 'password',
         }),
         {

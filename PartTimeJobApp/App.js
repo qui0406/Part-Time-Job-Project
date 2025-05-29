@@ -194,7 +194,7 @@ const EmployerStack = () => (
 // Stack cho Trang chủ chỉ dành cho candidate
 const HomeStack = () => (
   <Stack.Navigator>
-    <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ" }} />
+    <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: "Trang chủ", headerShown: false }} />
     <Stack.Screen name="JobDetail" component={JobDetail} options={{ title: "Chi tiết công việc" }} />
     <Stack.Screen name="CompanyDetail" component={CompanyDetail} options={{ title: "Chi tiết công ty" }} />
     <Stack.Screen name="ChatScreen" component={ChatScreen} options={{headerShown: false}}/>
