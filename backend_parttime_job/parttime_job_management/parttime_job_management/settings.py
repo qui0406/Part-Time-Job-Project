@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.18', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.9', 'localhost', '127.0.0.1']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
                                                                                        
 
@@ -181,16 +181,25 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'chat',
+#         'USER': 'root',
+#         'PASSWORD': '12345678',
+#         'HOST': '' # mặc định localhost
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'chat',
+        'NAME': 'parttimejobmanagementt',
         'USER': 'root',
-        'PASSWORD': '12345678',
+        'PASSWORD': 'Think!7688',
         'HOST': '' # mặc định localhost
     }
 }
-
 FIREBASE_CONFIG = {
     "apiKey": "AIzaSyCpabc024Q5PVK4KMV70iC0A_BONXqspk4",
     "authDomain": "parttimejobapp-7d711.firebaseapp.com",
