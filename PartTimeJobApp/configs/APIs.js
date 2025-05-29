@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
+// const BASE_URL = 'https://d56a-171-250-162-121.ngrok-free.app/'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.9:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -39,7 +40,15 @@ export const endpoints = {
     'verify-document': '/verify-document/verify/',
     'conversations': '/conversations/', 
     'messages': '/messages/',
-    'verify-document-status': '/verify-document/status/'
+    'verify-document-status': '/verify-document/status/',
+    'check-verification-status': '/verify-document/status/' ,
+    // Thống kê và báo cáo
+    'stats-report': '/stats/report/', // Thống kê theo thời gian
+    'stats-overview': '/stats/overview/', // Tổng quan hệ thống
+    'stats-jobs': '/stats/jobs/', // Thống kê việc làm
+    'stats-users': '/stats/users/', // Thống kê người dùng
+    'stats-applications': '/stats/applications/', // Thống kê đơn ứng tuyển
+    'stats-companies': '/stats/companies/', // Thống kê công ty
 }
 
 export const authApi = (token) => {
