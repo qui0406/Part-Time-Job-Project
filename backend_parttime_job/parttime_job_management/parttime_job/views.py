@@ -709,6 +709,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     serializer_class = CommentDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser]
+    pagination_class = paginators.CommentPagination
 
     def get_permissions(self):
         """
@@ -745,6 +746,11 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         elif user.role == 'candidate':
             queryset = queryset.filter(user=user)
 
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = EmployerRatingSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
         serializer = EmployerRatingSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -770,6 +776,11 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             parent_comment=parent_comment,
             active=True
         ).order_by('-created_date')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -798,14 +809,6 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         # Fetch the parent EmployerRating
         parent_comment = get_object_or_404(EmployerRating, pk=parent_comment_id)
 
-        # Verify permissions (e.g., user is part of the conversation or application)
-        # if not self.check_object_permissions(request, parent_comment):
-        #     return Response(
-        #         {"detail": "You do not have permission to reply to this comment."},
-        #         status=status.HTTP_403_FORBIDDEN
-        #     )
-
-        # Prepare data for the reply
         data = {
             'comment': comment,
             'parent_comment': parent_comment.id,
