@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.9', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.18', 'localhost', '127.0.0.1']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
                                                                                        
 
@@ -66,7 +66,12 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_celery_beat',
     'django_celery_results',
-    'django_filters'
+    'django_filters',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +85,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
-    # 'allauth.account.middleware.AccountMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 SWAGGER_SETTINGS = {
@@ -99,7 +104,8 @@ REDOC_SETTINGS = {
 
 AUTHENTICATION_BACKENDS = [
     'parttime_job.auth_backend.EmailAuthBackend',
-    'django.contrib.auth.backends.ModelBackend'
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 
@@ -155,6 +161,20 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
+SITE_ID = 1
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        'APP': {
+            'client_id': '74181742169-e7t9fers9m8plu2dqiqg6silffufocqb.apps.googleusercontent.com',
+            'secret': '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',
+            'key': ''
+        }
+    }
+}
+
 pymysql.install_as_MySQLdb()
 
 TEMPLATES = [
@@ -194,9 +214,9 @@ WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'parttimejobmanagementt',
+        'NAME': 'chat',
         'USER': 'root',
-        'PASSWORD': 'Think!7688',
+        'PASSWORD': '12345678',
         'HOST': '' # mặc định localhost
     }
 }
@@ -320,8 +340,8 @@ SITE_URL = 'http://192.168.1.9:8000'
 
 
 
-CLIENT_ID= '8Y4PM14zeiZMnu5hrj86vyf9MrwA6Yis2iHQLq9J'
-CLIENT_SECRET='6JrR2e167SJ9vOUrggq1HjTI9Pu03313LLLlVjLy1aXf8CKMpgP4gOyaPhVEsSW0vK0G8dqRxhzZ2Nf1TnsdMXAFRV3iWjDELuadf3OMkwbfEDMHpNX4tPGRYy6E9QUN'
+CLIENT_ID= '9IzC3JrBeo5xF3q1MQV7LYIv0xGD1CfBNNWcVCNG'
+CLIENT_SECRET='DTEMP7VNxBlOOnhnDCrtcqjHI5W75qC7eTEW2tpToK0atPXVxrBy1OxASdZbAlJsCs0lSKuL9wd81ZPonxWwlBwhaPJNeEHbkpSqNMtR6aa8hFPhdy917r4ddRIz8hzR'
 
 # client_id: 'yrxHM4IVS0VYNk49UPborlwuxLby1EUH91ASxfUo'
 # client_secret: 'DjJegQAdcXZjvbKz52L9FVyMxxyXv92pDr8UuOE4I3FhtIaYHQRgXnm9oJHT8xMcezvGVmFf0fE2yJaApSlchJwSD2gUbwmnA5nszfSEeOPBSlXZ7JUsbOpz473qpaoJ'

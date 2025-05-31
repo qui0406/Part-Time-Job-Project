@@ -24,9 +24,21 @@ import APIs, { authApi, endpoints } from './../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
 import qs from 'qs';
+import { firebaseDB, analytics} from './../../configs/FireBaseConfig';
+import { useEffect } from 'react';
 
+import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
+import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+// import { get } from 'firebase/database';
+
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
+
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState({});
   const [error, setError] = useState(false);
@@ -34,6 +46,36 @@ export default function Login() {
   const userRef = useRef();
   const dispatch = useContext(MyDispacthContext);
   const router = useRoute();
+
+  const discovery = AuthSession.useAutoDiscovery('https://accounts.google.com');
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: '74181742169-0qp3efnrf3krh8ubaivcdl7c48u4e8l9.apps.googleusercontent.com', 
+      redirectUri: AuthSession.makeRedirectUri({ scheme: "parttimejobapp", useProxy: true }),
+      scopes: ['profile', 'email'],
+      responseType: 'code',
+    },
+    discovery
+  );
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      const accessToken = authentication?.accessToken;
+
+      // Gửi accessToken đến backend
+      axios
+        .post(BASE_URL+'/rest-auth/google/', {
+          access_token: accessToken,
+        })
+        .then((res) => {
+          console.log('Backend response:', res.data);
+          // Lưu token hoặc xử lý dữ liệu người dùng
+        })
+        .catch((err) => console.error('Error:', err));
+    }
+  }, [response]);
+
 
   const handleBlur = () => {
     // Ẩn bàn phím khi TextInput mất focus
@@ -67,8 +109,8 @@ export default function Login() {
           ...user,
           // client_id: '9IzC3JrBeo5xF3q1MQV7LYIv0xGD1CfBNNWcVCNG',
           // client_secret: 'DTEMP7VNxBlOOnhnDCrtcqjHI5W75qC7eTEW2tpToK0atPXVxrBy1OxASdZbAlJsCs0lSKuL9wd81ZPonxWwlBwhaPJNeEHbkpSqNMtR6aa8hFPhdy917r4ddRIz8hzR',
-          client_id: '5F8F7OU4DRuyJfF55BrDaveJkgrrKS3tgxK55NM5',
-          client_secret: '93ejz7pWYA4m3Ogv8NJmD6rMwGe4lpuoL0Isf5wLQ8qmZXKy4eItDedeaZcL7TBBr9W9YMrMQTnc93ZzBAkHthBkC4NTG4TfeChlKiqrrbyNerPgj6TE1XiJ1jT0JVW5',
+          client_id: '9IzC3JrBeo5xF3q1MQV7LYIv0xGD1CfBNNWcVCNG',
+          client_secret: 'DTEMP7VNxBlOOnhnDCrtcqjHI5W75qC7eTEW2tpToK0atPXVxrBy1OxASdZbAlJsCs0lSKuL9wd81ZPonxWwlBwhaPJNeEHbkpSqNMtR6aa8hFPhdy917r4ddRIz8hzR',
           grant_type: 'password',
         }),
         {
@@ -152,6 +194,15 @@ export default function Login() {
               <>
                 <TouchableOpacity style={styles.button} onPress={login}>
                   <Text style={styles.buttonText}>Đăng nhập</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {loading === true ? (
+              <ActivityIndicator size="large" color={Colors.PRIMARY} />
+            ) : (
+              <>
+                <TouchableOpacity style={styles.button} onPress={() => promptAsync()}>
+                  <Text style={styles.buttonText}>Đăng nhập với google</Text>
                 </TouchableOpacity>
               </>
             )}

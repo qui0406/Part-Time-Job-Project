@@ -17,6 +17,9 @@ import Colors from '../../constants/Colors';
 import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MyUserContext } from '../../contexts/UserContext';
+import { GenerateTrendingJob } from './../../configs/AiModel';
+import Prompt from '../../constants/Prompt';
+
 
 export default function Home() {
     // State quản lý danh sách công việc
@@ -48,9 +51,23 @@ export default function Home() {
 
     useEffect(() => {
         if (user && user.role === 'candidate') {
+            generateTrendingJobAiModel();
+            
             fetchJobs(true);
         }
     }, [user]);
+
+    const generateTrendingJobAiModel = async () => {
+        try {
+            const PROMT = Prompt.GenerateTrendingJob;
+            const aiRes = await GenerateTrendingJob.sendMessage(PROMT);
+            const result = aiRes.response.text();
+            console.log('Kết quả từ AI model:', result);
+        } 
+        catch (error) {
+            console.error('Lỗi khi gọi AI model:', error); 
+        }
+    }
 
     const fetchJobs = async (isInitial = false, filters = {}) => {
         let url = endpoints['job-list'];
@@ -126,6 +143,8 @@ export default function Home() {
             fetchJobs(true);
             return;
         }
+
+        
 
         setIsSearching(true);
         const filters = {};

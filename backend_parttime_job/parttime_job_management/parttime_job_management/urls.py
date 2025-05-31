@@ -22,4 +22,7 @@ urlpatterns = [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('__debug__/', include(debug_toolbar.urls)),
     re_path(r'^api/password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
+    path('accounts/', include('allauth.urls')),
+    path('rest-auth/', include('dj_rest_auth.urls')),
+    path('rest-auth/registration/', include('dj_rest_auth.registration.urls')),
 ]

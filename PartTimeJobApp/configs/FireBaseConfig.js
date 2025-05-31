@@ -1,34 +1,19 @@
-// import Constants from 'expo-constants';
-// import { Platform } from 'react-native';
-// import { initializeApp } from 'firebase/app';
-// import { getFirestore } from 'firebase/firestore';
-// import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-// import {
-//   initializeAuth,
-//   getReactNativePersistence,
-//   browserSessionPersistence,
-// } from 'firebase/auth';
+import { initializeApp } from 'firebase/app';
+import { getDatabase, ref, onValue, set, push, serverTimestamp } from 'firebase/database';
 
-// // Firebase config
-// const firebaseConfig = {
-//   apiKey: Constants.expoConfig.extra.apiKey,
-//   authDomain: Constants.expoConfig.extra.authDomain,
-//   projectId: Constants.expoConfig.extra.projectId,
-//   storageBucket: Constants.expoConfig.extra.storageBucket,
-//   messagingSenderId: Constants.expoConfig.extra.messagingSenderId,
-//   appId: Constants.expoConfig.extra.appId,
-//   databaseURL: Constants.expoConfig.extra.databaseURL,
-//   measurementId: Constants.expoConfig.extra.measurementId,
-// };
+const firebaseConfig = {
+  apiKey: 'AIzaSyBYTjtEh-Yj-JLM2-NsFgvBZVU33K2dsN8',
+  authDomain: 'app-chat-e506d.firebaseapp.com',
+  databaseURL: 'https://app-chat-e506d-default-rtdb.firebaseio.com',
+  projectId: 'app-chat-e506d',
+  storageBucket: 'app-chat-e506d.appspot.com',
+  messagingSenderId: '542889717655',
+  appId: '1:542889717655:web:1b2e4e69ce692b4c2a5ed2',
+};
 
-// // Initialize Firebase
-// const app = initializeApp(firebaseConfig);
 
-// const persistence =
-//   Platform.OS === 'web'
-//     ? browserSessionPersistence
-//     : getReactNativePersistence(ReactNativeAsyncStorage);
+const app = initializeApp(firebaseConfig);
+const firebaseDB = getDatabase(app);
 
-// export const auth = initializeAuth(app, { persistence });
 
-// export const database = getFirestore();
+export {firebaseDB}
