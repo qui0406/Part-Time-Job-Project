@@ -21,7 +21,6 @@ router.register('review-application', views.EmployerReviewApplicationViewSet, ba
 router.register('notification', views.NotificationViewSet, basename='notification')
 router.register('ratings', views.RatingViewSet, basename='rating')
 router.register('employer-ratings', views.EmployerRatingViewSet, basename='employer-rating')
-# router.register('follow', views.FollowViewSet, basename='follow')
 router.register('stats', views.StatsViewSet, basename='stats')
 router.register('verify-document', views.VerifyDocumentViewSet, basename='verify-document')
 

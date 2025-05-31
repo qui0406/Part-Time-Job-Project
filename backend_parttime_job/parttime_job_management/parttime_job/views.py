@@ -852,14 +852,11 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
   
 class StatsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
-
     @action(detail=False, methods=['get'], url_path='report')
     def report(self, request):
         today = datetime.today()
         six_months_ago = today - timedelta(days=180)
-
         granularity = request.query_params.get("granularity", "month").lower()
-
         if granularity == "day":
             trunc_fn = TruncDay
             label_format = "%d/%m"
