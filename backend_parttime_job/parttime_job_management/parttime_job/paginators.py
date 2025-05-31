@@ -8,3 +8,6 @@ class ApplicationPagination(PageNumberPagination):
 
 class NotificationPagination(PageNumberPagination):
     page_size =  5
+
+class CommentPagination(PageNumberPagination):
+    page_size =  10
