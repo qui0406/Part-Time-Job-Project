@@ -14,11 +14,20 @@
       "backgroundColor": "#ffffff"
     },
     "plugins": [
-      "react-native-maps"
+      "react-native-maps",
+      "@react-native-google-signin/google-signin",
+      {
+        "iosUrlScheme": "com.googleusercontent.apps.543396526239-t96g69ofsosii2de8dvrep15s1d07kaj"
+      }
     ],
+
   
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.qui0406.parttimejobapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +37,9 @@
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
-      ]
+      ],
+
+      "package": "com.qui0406.parttimejobapp"
 
     },
     "web": {
@@ -37,7 +48,8 @@
     "extra": {
       "eas": {
         "projectId": "b64541a5-3232-40f9-a0e5-b7187f489282"
-      }
+      },
+      "scheme": "parttimejobapp"
     }
   }
 }

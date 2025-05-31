@@ -12,17 +12,18 @@ export default {
     userInterfaceStyle: 'light',
     entryPoint: './App.js',
     splash: {
-      image: './assets/splash.png',
+      image: './assets/splash-icon.png',
       resizeMode: 'contain',
       backgroundColor: '#ffffff',
     },
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
+      bundleIdentifier: 'com.qui0406.parttimejobapp',
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: 'src/assets/adaptive-icon.png',
+        foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
       package: 'com.ctere1.reactnativechat',
@@ -40,11 +41,16 @@ export default {
       appId: process.env.EXPO_PUBLIC_APP_ID,
       measurementId: process.env.EXPO_PUBLIC_MEASUREMENT_ID,
       eas: {
-        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID,
+        projectId: "c80771f7-5ddb-49ab-b853-4a0d2ff29185",
       },
     },
-    "plugins": [
-      "expo-web-browser"
+    plugins: [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.543396526239-t96g69ofsosii2de8dvrep15s1d07kaj"
+        }
+      ]
     ]
   },
 };

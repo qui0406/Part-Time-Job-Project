@@ -1,5 +1,5 @@
 from rest_framework import serializers  # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, CommentDetail
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from django.contrib.auth import authenticate  # type: ignore
@@ -214,7 +214,7 @@ class JobSerializer(serializers.ModelSerializer):
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    # job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
+    job = serializers.PrimaryKeyRelatedField(queryset=Job.objects.all())
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     cv = serializers.FileField(required=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -370,6 +370,25 @@ class EmployerRatingSerializer(BaseRatingSerializer):
             related_value=application
         )
 
+        return data
+
+
+class CommentDetailSerializer(serializers.ModelSerializer):
+    company = serializers.PrimaryKeyRelatedField(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
+    parent_comment = serializers.PrimaryKeyRelatedField(queryset=EmployerRating.objects.all(), required=False, allow_null=True)
+
+    class Meta:
+        model = CommentDetail
+        fields = ['id', 'user', 'company', 'comment', 'parent_comment', 'created_date']
+        read_only_fields = ['id', 'user', 'company', 'created_date']
+
+    def validate(self, data):
+        parent_comment = data.get('parent_comment')
+        if parent_comment:
+            if not parent_comment.application or not parent_comment.application.job or not parent_comment.application.job.company:
+                raise serializers.ValidationError("Parent comment is not associated with a valid company.")
+            data['company'] = parent_comment.application.job.company
         return data
 
 

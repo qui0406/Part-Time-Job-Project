@@ -29,32 +29,32 @@ def password_reset_token_created(sender, instance, reset_password_token, **kwarg
 
 
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from parttime_job.models import Application, Conversation, User
-from parttime_job.firebase import get_firebase_db
+# from django.db.models.signals import post_save
+# from django.dispatch import receiver
+# from parttime_job.models import Application, Conversation, User
+# from parttime_job.firebase import get_firebase_db
 
-@receiver(post_save, sender=Application)
-def create_conversation(sender, instance, **kwargs):
-    if instance.status == 'accepted':
-        candidate = instance.user
-        employer = instance.job.company.user
-        job = instance.job
+# @receiver(post_save, sender=Application)
+# def create_conversation(sender, instance, **kwargs):
+#     if instance.status == 'accepted':
+#         candidate = instance.user
+#         employer = instance.job.company.user
+#         job = instance.job
         
-        # Kiểm tra conversation đã tồn tại
-        conversation = Conversation.objects.filter(
-            participants=candidate,
-            job=job
-        ).filter(participants=employer).first()
+#         # Kiểm tra conversation đã tồn tại
+#         conversation = Conversation.objects.filter(
+#             participants=candidate,
+#             job=job
+#         ).filter(participants=employer).first()
         
-        if not conversation:
-            conversation = Conversation.objects.create(job=job, firebase_conversation_id=f'conversation_{instance.id}')
-            conversation.participants.add(candidate, employer)
-            conversation.save()
+#         if not conversation:
+#             conversation = Conversation.objects.create(job=job, firebase_conversation_id=f'conversation_{instance.id}')
+#             conversation.participants.add(candidate, employer)
+#             conversation.save()
             
-            # Cập nhật participants trong Firebase
-            firebase_db = get_firebase_db()
-            firebase_db.reference(f'conversations/conversation_{conversation.id}/participants').set({
-                candidate.firebase_uid: True,
-                employer.firebase_uid: True,
-            })
+#             # Cập nhật participants trong Firebase
+#             firebase_db = get_firebase_db()
+#             firebase_db.reference(f'conversations/conversation_{conversation.id}/participants').set({
+#                 candidate.firebase_uid: True,
+#                 employer.firebase_uid: True,
+#             })

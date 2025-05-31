@@ -195,6 +195,15 @@ class Rating(BaseModel):
 
     def __str__(self):
         return f"Rating({self.user} → {self.company}): {self.rating}★"
+
+class CommentDetail(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    comment = models.TextField()
+    parent_comment = models.ForeignKey('EmployerRating', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+
+    def __str__(self):
+        return f"Comment by {self.user.username} on {self.company.company_name}"
     
 
 class EmployerRating(BaseModel):
