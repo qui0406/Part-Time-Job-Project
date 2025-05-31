@@ -27,7 +27,7 @@ router.register('verify-document', views.VerifyDocumentViewSet, basename='verify
 
 router.register('conversations', views.ConversationViewSet, basename='conversation')
 router.register('messages', views.MessageViewSet, basename='message')
-
+router.register('comment-details', views.CommentDetailViewSet, basename='comment-details')
 
 urlpatterns = [
     path('', include(router.urls)),
