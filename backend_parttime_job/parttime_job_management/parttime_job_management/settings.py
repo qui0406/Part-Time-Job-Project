@@ -66,7 +66,12 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_celery_beat',
     'django_celery_results',
-    'django_filters'
+    'django_filters',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +85,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
-    # 'allauth.account.middleware.AccountMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 SWAGGER_SETTINGS = {
@@ -99,7 +104,8 @@ REDOC_SETTINGS = {
 
 AUTHENTICATION_BACKENDS = [
     'parttime_job.auth_backend.EmailAuthBackend',
-    'django.contrib.auth.backends.ModelBackend'
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 
@@ -153,6 +159,20 @@ SPECTACULAR_SETTINGS = {
             'bearerFormat': 'JWT',
         },
     },
+}
+
+SITE_ID = 1
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        'APP': {
+            'client_id': '74181742169-e7t9fers9m8plu2dqiqg6silffufocqb.apps.googleusercontent.com',
+            'secret': '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',
+            'key': ''
+        }
+    }
 }
 
 pymysql.install_as_MySQLdb()

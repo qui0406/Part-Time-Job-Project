@@ -3,8 +3,9 @@ import process from 'process';
 
 export default {
   expo: {
-    name: 'react-native-chat',
-    slug: 'react-native-chat',
+    name: 'PartTimeJobApp',
+    slug: 'PartTimeJobApp',
+    scheme: "parttimejobapp",
     version: '1.0.0',
     orientation: 'portrait',
     icon: 'assets/icon.png',
@@ -42,5 +43,8 @@ export default {
         projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID,
       },
     },
+    "plugins": [
+      "expo-web-browser"
+    ]
   },
 };
