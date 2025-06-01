@@ -1,28 +1,21 @@
 from celery import shared_task
+from django.core.mail import send_mail
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
-from .models import Job, User
 
 @shared_task
-def send_job_email_to_user(user_id, job_id):
-    user = User.objects.get(id=user_id)
-    job = Job.objects.get(id=job_id)
-    company = job.company
-
-    subject = f"Tin tuyển dụng mới từ {company.company_name}"
+def send_new_job_email(user_email, user_first_name, job_title, company_name):
+    subject = f"Công ty {company_name} vừa đăng tin tuyển dụng mới!"
     message = (
-        f"Chào {user.username},\n\n"
-        f"Công ty {company.company_name} vừa đăng tin tuyển dụng mới:\n"
-        f"- Tiêu đề: {job.title}\n"
-        f"- Mô tả: {job.description[:200]}...\n"
-        f"- Xem chi tiết: {settings.SITE_URL}/jobs/{job.id}/\n\n"
-        f"Trân trọng,\nHệ thống PartTime Job"
+        f"Chào {user_first_name},\n\n"
+        f"Công ty {company_name} mà bạn theo dõi vừa đăng tin tuyển dụng: \"{job_title}\".\n"
+        f"Hãy đăng nhập vào hệ thống để xem chi tiết và ứng tuyển nếu phù hợp.\n\n"
+        f"Trân trọng,\n"
+        f"Đội ngũ hỗ trợ"
     )
+    from_email = settings.DEFAULT_FROM_EMAIL
+    try:
+        send_mail(subject, message, from_email, [user_email])
+    except Exception as e:
+        # Optional: Log error
+        print(f"[ERROR] Gửi mail tới {user_email} thất bại: {str(e)}")
 
-    msg = EmailMultiAlternatives(
-        subject=subject,
-        body=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
-    )
-    msg.send()
