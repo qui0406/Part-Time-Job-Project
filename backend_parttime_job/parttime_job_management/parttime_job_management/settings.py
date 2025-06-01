@@ -249,12 +249,6 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_BROKER_REDIS_URL="redis://localhost:6380"
 
 
-
-
-# DEBUG = True
-DEBUG = config("DEBUG", cast=bool, default=False)
-...
-
 # add our newly installed packages to INSTALLED_APPS
 
 # save Celery task results in Django's database
