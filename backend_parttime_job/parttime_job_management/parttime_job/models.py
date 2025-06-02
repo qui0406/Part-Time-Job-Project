@@ -189,6 +189,7 @@ class Rating(BaseModel):
     job = models.ForeignKey(Job, on_delete=models.SET_NULL, null=True, blank=True)
     rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
+    is_reading = models.BooleanField(default=False)  # Đánh giá đã đọc hay chưa
 
     class Meta:
         unique_together = ('user', 'company', 'job')

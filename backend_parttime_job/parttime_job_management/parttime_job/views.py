@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, UserProfile, CommentDetail
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer, CommentDetailSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer, CommentDetailSerializer, RatingDetailSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -679,12 +679,37 @@ class RatingViewSet(BaseRatingViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
+    @action(methods=['get'], url_path='get-notification-rating', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def get_notification_rating(self, request):
+        """
+        Tạo thông báo cho ứng viên khi có đánh giá mới từ nhà tuyển dụng.
+        """
+        company_id = request.query_params.get('company_id')
+        job_id = request.query_params.get('job_id')
+        list_notification = Rating.objects.filter(company__id= company_id, active=True, is_reading = False)\
+        .order_by('-created_date')
+        
+        rating = Rating.objects.filter(company_id=company_id, job_id=job_id, active=True).first()
+
+        if rating:
+ 
+            has_comment = CommentDetail.objects.filter(rating_employer=rating, active=True).exists()
+
+            if has_comment and not rating.is_reading:
+                rating.is_reading = True
+                rating.save()
+
+        return Response({
+            "list_notification": RatingDetailSerializer(list_notification, many=True).data
+        }, status=status.HTTP_200_OK)
+        
+    
     @action(methods=['get'], url_path='rating-average', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_rating_average(self, request):
         """
         Trả về đánh giá trung bình của ứng viên cho công ty.
         """
-        company_id = request.data.get('company_id')
+        company_id = request.query_params.get('company_id')
         if not company_id:
             return Response({"detail": "Company ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -725,7 +750,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         if self.action in ['update_reply_comment', 'delete_reply_comment']:
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
         if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
-            return [permissions.IsAuthenticated(), perms.IsEmployer()]
+            return [permissions.IsAuthenticated()]
         return super().get_permissions()
 
     @action(methods=['get'], url_path='get-all-comments', detail=False)
@@ -735,7 +760,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         """
 
         
-        company_id = request.data.get('company_id')
+        company_id = request.query_params.get('company_id')
         queryset = Rating.objects.filter(company_id = company_id, active=True).order_by('-created_date')
         
 
@@ -753,8 +778,8 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         """
         Lấy tất cả đánh giá từ candidate cho một công việc cụ thể.
         """
-        job_id = request.data.get('job_id')
-        company_id = request.data.get('company_id')
+        job_id = request.query_params.get('job_id')
+        company_id = request.query_params.get('company_id')
         if not job_id:
             return Response({"detail": "Job ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -768,12 +793,12 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         return Response(serializer.data)
     
 
-    @action(methods=['post'], url_path='reply-comment', detail=False)
+    @action(methods=['post'], url_path='reply-comment', detail=False, permission_classes=[permissions.IsAuthenticated, perms.IsEmployer])
     def reply_comment(self, request):
         """
         Employer trả lời một đánh giá từ candidate (chỉ một lần, không có số sao).
         """
-        rating_employer_id = request.data.get('rating_employer_id')
+        rating_employer_id = request.data.get('rating_employer_id') # ID của đánh giá mà employer muốn trả lời
         employer_reply = request.data.get('employer_reply')
 
         if not rating_employer_id:
@@ -802,7 +827,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         serializer = CommentDetailSerializer(data=data, context={'request': request, 'rating_employer': parent_comment})
         if serializer.is_valid():
-            serializer.save(rating_employer=parent_comment)  # <<< Gán ở đây
+            serializer.save(rating_employer=parent_comment) 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -811,7 +836,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         """
         Employer cập nhật phản hồi cho một đánh giá (chỉ khi đã có phản hồi).
         """
-        employer_reply = request.data.get('employer_reply')
+        employer_reply = request.query_params.get('employer_reply')
         if not employer_reply:
             return Response(
                 {"detail": "Reply content is required."},
@@ -854,10 +879,10 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         reply.delete()
         return Response({"detail": "Phản hồi đã được xóa thành công."}, status=status.HTTP_204_NO_CONTENT)
-
-
     
-  
+    
+
+
 class StatsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
     @action(detail=False, methods=['get'], url_path='report')
@@ -1024,8 +1049,6 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
             conversation = serializer.save()
             return Response({"message": "Conversation created successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 
 class MessageViewSet(viewsets.ModelViewSet):

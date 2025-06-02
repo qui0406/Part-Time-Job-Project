@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import axios from 'axios';
-import React, { use, useContext, useRef, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import Colors from './../../constants/Colors';
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as ImagePicker from 'expo-image-picker';
@@ -29,33 +29,12 @@ import { useEffect } from 'react';
 
 import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
-import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, FacebookAuthProvider, signInWithCredential } from 'firebase/auth';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-// import { get } from 'firebase/database';
-// import {
-//   GoogleSigninButton
-// } from '@react-native-google-signin/google-signin';
 
-
-// const webClientId= '543396526239-8mlialhvvgcaguvp8fqr51vej6m5chce.apps.googleusercontent.com'
-// const iosClientId= '543396526239-t96g69ofsosii2de8dvrep15s1d07kaj.apps.googleusercontent.com'
-// const androidClientId= '543396526239-oaekv0sijgv9mq4vo8jno0bugfnmme6h.apps.googleusercontent.com'
-
-// GoogleSignin.configure({
-//   webClientId: webClientId, // client ID of type WEB for your server. Required to get the `idToken` on the user object, and for offline access.
-//   scopes: ['https://www.googleapis.com/auth/drive.readonly'], // what API you want to access on behalf of the user, default is email and profile
-//   offlineAccess: true, // if you want to access Google API on behalf of the user FROM YOUR SERVER
-//   hostedDomain: '', // specifies a hosted domain restriction
-//   forceCodeForRefreshToken: false, // [Android] related to `serverAuthCode`, read the docs link below *.
-//   accountName: '', // [Android] specifies an account name on the device that should be used
-//   iosClientId: iosClientId, // [iOS] if you want to specify the client ID of type iOS (otherwise, it is taken from GoogleService-Info.plist)
-//   googleServicePlistPath: '', // [iOS] if you renamed your GoogleService-Info file, new name here, e.g. "GoogleService-Info-Staging"
-//   openIdRealm: '', // [iOS] The OpenID2 realm of the home web server. This allows Google to include the user's OpenID Identifier in the OpenID Connect ID token.
-//   profileImageSize: 120, // [iOS] The desired height (and width) of the profile image. Defaults to 120px
-// });
-
-
+import {app} from './../../configs/FireBaseConfig';
+import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
 
 export default function Login() {
 
@@ -67,46 +46,24 @@ export default function Login() {
   const dispatch = useContext(MyDispacthContext);
   const router = useRoute();
 
-  // const signInGoogle = async () => {
-  //   try {
-  //     await GoogleSignin.hasPlayServices();
-  //     const response = await GoogleSignin.signIn();
-  //     if (isSuccessResponse(response)) {
-  //       setState({ userInfo: response.data });
-  //     } else {
-  //       // sign in was cancelled by user
-  //     }
-  //   } catch (error) {
-  //     if (isErrorWithCode(error)) {
-  //       switch (error.code) {
-  //         case statusCodes.IN_PROGRESS:
-  //           // operation (eg. sign in) already in progress
-  //           break;
-  //         case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-  //           // Android only, play services not available or outdated
-  //           break;
-  //         default:
-  //         // some other error happened
-  //       }
-  //     } else {
-  //       // an error that's not related to google sign in occurred
-  //     }
-  //   }
-  // };
-
-  // const config = {
-  //   webClientId,
-  //   iosClientId,
-  //   androidClientId,
-  // }
-
-  
-
-  // const persistLogin = async (credentials) => {
-  //   await saveSecurely('flowerCribUserToken', JSON.stringify(credentials.token));
-  //   await saveSecurely('flowerCribUser', JSON.stringify({...credentials}));
-  //   await setUser(credentials)
-  // }
+  const loginWithFacebook = async () => {
+    
+    const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+    if (result.isCancelled) {
+      console.log('Login cancelled');
+      return;
+    }
+    alert('Đăng nhập bằng Facebook');
+    const data= await AccessToken.getCurrentAccessToken();
+    if (!data) {
+      console.log('Failed to get access token');
+      return;
+    }
+    const auth = getAuth(app);
+    const credential = FacebookAuthProvider.credential(data.accessToken);
+    const user = await signInWithCredential(auth, credential);
+    console.log('Logged in with Facebook:', user);
+  }
 
 
   const handleBlur = () => {
@@ -229,6 +186,16 @@ export default function Login() {
                 </TouchableOpacity>
               </>
             )}
+            {loading === true ? (
+              <ActivityIndicator size="large" color={Colors.PRIMARY} />
+            ) : (
+              <>
+                <TouchableOpacity style={styles.button} onPress={loginWithFacebook}>
+                  <Text style={styles.buttonText}>Đăng nhập bằng Facebook</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            
             
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>Chưa có tài khoản? </Text>
