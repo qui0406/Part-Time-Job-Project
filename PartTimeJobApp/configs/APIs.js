@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const BASE_URL = 'https://d56a-171-250-162-121.ngrok-free.app/'; // Replace with your actual API base URL
-const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
+const BASE_URL = 'https://9993-171-252-189-157.ngrok-free.app/'; // Replace with your actual API base URL
+// const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -37,6 +37,7 @@ export const endpoints = {
     'notification': '/notification/', // Thông báo
     'ratings': '/ratings/',
     'employer-ratings': '/employer-ratings/',
+    'comment-details': '/comment-details/',
     'verify-document': '/verify-document/verify/',
     'conversations': '/conversations/', 
     'messages': '/messages/',

@@ -27,7 +27,7 @@ from django.conf import settings
 from rest_framework import serializers
 from rest_framework.permissions import IsAdminUser
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth, TruncQuarter, TruncYear
-from django.db.models import Count, Avg, Sum, Max, Min
+from django.db.models import Count
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Q
@@ -300,7 +300,6 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return queryset.distinct()
 
-from .tasks import send_new_job_email
 class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Job.objects.filter(active=True, company__active=True, company__is_approved=True)
     serializer_class = JobSerializer
@@ -354,12 +353,19 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
 
                 for follow in followers:
                     user = follow.user
-                    send_new_job_email.delay(
-                    user_email=user.email,
-                    user_first_name=user.first_name,
-                    job_title=job.title,
-                    company_name=company.company_name
-                )
+                    try:
+                        subject = f"Công ty {company.company_name} vừa đăng tin tuyển dụng mới!"
+                        message = (
+                            f"Chào {user.first_name},\n\n"
+                            f"Công ty {company.company_name} mà bạn theo dõi vừa đăng tin tuyển dụng: \"{job.title}\".\n"
+                            f"Hãy đăng nhập vào hệ thống để xem chi tiết và ứng tuyển nếu phù hợp.\n\n"
+                            f"Trân trọng,\n"
+                            f"Đội ngũ hỗ trợ"
+                        )
+                        from_email = settings.DEFAULT_FROM_EMAIL
+                        send_mail(subject, message, from_email, [user.email])
+                    except Exception as e:
+                        print(f"Lỗi khi gửi email đến {user.email}: {str(e)}")
 
                 job_data = JobSerializer(job).data
                 return Response(
@@ -679,22 +685,6 @@ class RatingViewSet(BaseRatingViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
-    @action(methods=['get'], url_path='rating-average', detail=False, permission_classes=[permissions.IsAuthenticated])
-    def get_rating_average(self, request):
-        """
-        Trả về đánh giá trung bình của ứng viên cho công ty.
-        """
-        company_id = request.data.get('company_id')
-        if not company_id:
-            return Response({"detail": "Company ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        queryset = Rating.objects.filter(company_id=company_id, active=True)
-        if not queryset.exists():
-            return Response({"detail": "No ratings found for this company."}, status=status.HTTP_404_NOT_FOUND)
-
-        average_rating = queryset.aggregate(average_score=Avg('rating'))['average_score']
-        return Response({"average_rating": average_rating}, status=status.HTTP_200_OK)
-    
 
 class EmployerRatingViewSet(BaseRatingViewSet):
     """
@@ -715,148 +705,150 @@ class EmployerRatingViewSet(BaseRatingViewSet):
 
 
 class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-    queryset = EmployerRating.objects.all()
-    serializer_class = EmployerRatingSerializer
+    queryset = Message.objects.all()
+    serializer_class = CommentDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser]
     pagination_class = paginators.CommentPagination
 
     def get_permissions(self):
-        if self.action in ['update_reply_comment', 'delete_reply_comment']:
+        """
+        Customize permissions for update_comment and delete_comment to ensure only the comment's author can edit/delete.
+        """
+        if self.action in ['update_comment', 'delete_comment']:
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
-        if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
-            return [permissions.IsAuthenticated(), perms.IsEmployer()]
         return super().get_permissions()
 
     @action(methods=['get'], url_path='get-all-comments', detail=False)
     def get_all_comments(self, request):
         """
-        Lấy tất cả đánh giá từ candidate, bao gồm reply từ employer nếu có.
+        Retrieve all EmployerRating (parent comments) with their CommentDetail replies (child comments).
+        Optionally filter by company, application, or employer.
         """
+        user = request.user
+        queryset = EmployerRating.objects.filter(active=True).prefetch_related('replies').order_by('-created_date')
 
-        
+        # Apply filters
         company_id = request.data.get('company_id')
-        queryset = Rating.objects.filter(company_id = company_id, active=True).order_by('-created_date')
-        
+        application_id = request.data.get('application_id')
+        employer_id = request.data.get('employer_id')
+
+        if company_id:
+            queryset = queryset.filter(application__job__company__id=company_id)
+        if application_id:
+            queryset = queryset.filter(application__id=application_id)
+        if employer_id:
+            queryset = queryset.filter(employer__id=employer_id)
+
+        # Restrict based on user role
+        if user.role == 'employer':
+            queryset = queryset.filter(employer=user)
+        elif user.role == 'candidate':
+            queryset = queryset.filter(user=user)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True, context={'request': request})
+            serializer = EmployerRatingSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        serializer = EmployerRatingSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
-
-    @action(methods=['get'], url_path='get-all-comments-by-job', detail=False)
-    def get_all_comments_by_job(self, request):
+    @action(methods=['get'], url_path='get-replies', detail=False)
+    def get_replies(self, request):
         """
-        Lấy tất cả đánh giá từ candidate cho một công việc cụ thể.
+        Retrieve all CommentDetail instances (child comments) for a specific EmployerRating (parent comment).
+        Requires a parent_comment_id query parameter.
         """
-        job_id = request.data.get('job_id')
-        company_id = request.data.get('company_id')
-        if not job_id:
-            return Response({"detail": "Job ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        user = request.user
+        parent_comment_id = request.data.get('parent_comment_id')
 
-        queryset = Rating.objects.filter(company_id = company_id, job_id = job_id , active=True).order_by('-created_date')
+        if not parent_comment_id:
+            return Response(
+                {"detail": "Parent comment ID is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        parent_comment = get_object_or_404(EmployerRating, pk=parent_comment_id, active=True)
+
+
+        queryset = CommentDetail.objects.filter(
+            parent_comment=parent_comment,
+            active=True
+        ).order_by('-created_date')
+
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True, context={'request': request})
+            serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
-
+            
     @action(methods=['post'], url_path='reply-comment', detail=False)
     def reply_comment(self, request):
         """
-        Employer trả lời một đánh giá từ candidate (chỉ một lần, không có số sao).
+        Create a reply to an existing EmployerRating as a CommentDetail instance.
         """
-        rating_employer_id = request.data.get('rating_employer_id')
-        employer_reply = request.data.get('employer_reply')
+        user = request.user
+        parent_comment_id = request.data.get('parent_comment_id')
+        comment = request.data.get('comment')
 
-        if not rating_employer_id:
+        if not parent_comment_id:
             return Response(
-                {"detail": "Rating_employer_id is required."},
+                {"detail": "Parent comment ID is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not employer_reply:
+        if not comment:
             return Response(
-                {"detail": "Reply content is required."},
+                {"detail": "Comment content is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        parent_comment = get_object_or_404(Rating, pk=rating_employer_id)
-
-        if CommentDetail.objects.filter(rating_employer=parent_comment).exists():
-            return Response(
-                {"detail": "Đánh giá này đã được employer phản hồi."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Fetch the parent EmployerRating
+        parent_comment = get_object_or_404(EmployerRating, pk=parent_comment_id)
 
         data = {
-            'employer_reply': employer_reply
+            'comment': comment,
+            'parent_comment': parent_comment.id,
+            'user': user.id,
+            'company': parent_comment.application.job.company.id if parent_comment.application and parent_comment.application.job else None
         }
 
-        serializer = CommentDetailSerializer(data=data, context={'request': request, 'rating_employer': parent_comment})
+        serializer = CommentDetailSerializer(data=data, context={'request': request})
         if serializer.is_valid():
-            serializer.save(rating_employer=parent_comment)  # <<< Gán ở đây
+            serializer.save(user=user, company=parent_comment.application.job.company)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(methods=['put', 'patch'], url_path='update-reply-comment', detail=True)
-    def update_reply_comment(self, request, pk=None):
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+            
+    @action(methods=['patch'], url_path='update-comment', detail=True)
+    def update_comment(self, request, pk=None):
         """
-        Employer cập nhật phản hồi cho một đánh giá (chỉ khi đã có phản hồi).
+        Update the comment field of a CommentDetail instance.
+        Uses the viewset's pk to identify the comment.
         """
-        employer_reply = request.data.get('employer_reply')
-        if not employer_reply:
-            return Response(
-                {"detail": "Reply content is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        comment_instance = get_object_or_404(CommentDetail, pk=pk, active=True)
 
-        parent_comment = get_object_or_404(Rating, pk=pk)
-
-        try:
-            reply = CommentDetail.objects.get(rating_employer=parent_comment)
-        except CommentDetail.DoesNotExist:
-            return Response({"detail": "Không tồn tại phản hồi để cập nhật."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Kiểm tra employer hiện tại có đúng là chủ sở hữu đánh giá không (bảo mật)
-        if request.user != parent_comment.company.user:
-            return Response({"detail": "Bạn không có quyền sửa phản hồi này."}, status=status.HTTP_403_FORBIDDEN)
-
-        serializer = CommentDetailSerializer(reply, data={'employer_reply': employer_reply}, partial=True,
-                                            context={'request': request, 'rating_employer': parent_comment})
+        serializer = self.get_serializer(comment_instance, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['delete'], url_path='delete-reply-comment', detail=True)
-    def delete_reply_comment(self, request, pk=None):
+    @action(methods=['delete'], url_path='delete-comment', detail=True)
+    def delete_comment(self, request, pk=None):
         """
-        Employer xóa phản hồi đã viết.
+        Soft delete a CommentDetail instance by setting active=False.
+        Uses the viewset's pk to identify the comment.
         """
-        parent_comment = get_object_or_404(Rating, pk=pk)
+        comment_instance = get_object_or_404(CommentDetail, pk=pk, active=True)
+        comment_instance.active = False
+        comment_instance.save()
+        return Response({"success": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
-        try:
-            reply = CommentDetail.objects.get(rating_employer=parent_comment)
-        except CommentDetail.DoesNotExist:
-            return Response({"detail": "Không tồn tại phản hồi để xóa."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Kiểm tra employer có quyền xóa không
-        if request.user != parent_comment.company.user:
-            return Response({"detail": "Bạn không có quyền xóa phản hồi này."}, status=status.HTTP_403_FORBIDDEN)
-
-        reply.delete()
-        return Response({"detail": "Phản hồi đã được xóa thành công."}, status=status.HTTP_204_NO_CONTENT)
-
-
-    
   
 class StatsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
