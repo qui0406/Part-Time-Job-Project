@@ -13,4 +13,4 @@ class CommentPagination(PageNumberPagination):
     page_size =  10
 
 class RatingPagination(PageNumberPagination):
-    page_size =  2
+    page_size =  5
