@@ -11,3 +11,6 @@ class NotificationPagination(PageNumberPagination):
 
 class CommentPagination(PageNumberPagination):
     page_size =  10
+
+class RatingPagination(PageNumberPagination):
+    page_size =  2
