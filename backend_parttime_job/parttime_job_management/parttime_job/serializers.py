@@ -1,5 +1,5 @@
 from rest_framework import serializers  # type: ignore
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, CommentDetail
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, CommentDetail, ReplyCommetFromEmployerDetail
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from django.contrib.auth import authenticate  # type: ignore
@@ -286,9 +286,6 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class BaseRatingSerializer(serializers.ModelSerializer):
-    """
-    Base Serializer để xử lý logic chung cho Rating và EmployerRating.
-    """
     def validate_duplicate(self, user_field, user_value, related_field, related_value):
         """
         Kiểm tra trùng lặp đánh giá.
@@ -334,16 +331,15 @@ class RatingDetailSerializer(RatingSerializer):
     user = serializers.StringRelatedField(read_only=True)
     company = serializers.StringRelatedField(read_only=True)
     job = serializers.StringRelatedField(read_only=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    application = serializers.PrimaryKeyRelatedField(queryset=Application.objects.all(), required=False, allow_null=True)
 
     class Meta(RatingSerializer.Meta):
-        fields = RatingSerializer.Meta.fields + ['user', 'company', 'job']
+        fields = RatingSerializer.Meta.fields + ['user', 'company', 'job', 'is_reading', 'user_name', 'application']
         read_only_fields = ['id', 'created_date', 'updated_date', 'user', 'company', 'job']
     
 
 class EmployerRatingSerializer(BaseRatingSerializer):
-    """
-    Serializer cho đánh giá từ nhà tuyển dụng.
-    """
     employer = serializers.StringRelatedField(read_only=True)
     user = serializers.StringRelatedField(read_only=True)
     application = serializers.PrimaryKeyRelatedField(queryset=Application.objects.all(), required=False, allow_null=True)
@@ -351,7 +347,7 @@ class EmployerRatingSerializer(BaseRatingSerializer):
 
     class Meta:
         model = EmployerRating
-        fields = ['id', 'employer', 'user', 'user_name', 'application', 'rating', 'comment', 'created_date', 'updated_date']
+        fields = ['id', 'employer', 'user', 'user_name', 'application', 'rating', 'comment', 'is_reading', 'created_date', 'updated_date']
         read_only_fields = ['id', 'employer', 'created_date', 'updated_date']
 
     def validate(self, data):
@@ -382,6 +378,7 @@ class EmployerRatingSerializer(BaseRatingSerializer):
         return data
 
 
+    
 class CommentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentDetail
@@ -398,6 +395,92 @@ class CommentDetailSerializer(serializers.ModelSerializer):
         if rating_employer and hasattr(rating_employer, 'reply'):
             raise serializers.ValidationError({"detail": "Employer đã trả lời đánh giá này."})
         return data
+    
+class ReplyCommentEmployerDetailSerializer(serializers.ModelSerializer):
+    rating_candidate = serializers.PrimaryKeyRelatedField(
+        queryset=EmployerRating.objects.all()
+    )
+    user = serializers.CharField(
+        source='rating_candidate.user.username', read_only=True
+    )  # Derive user from rating_candidate
+    user_name = serializers.CharField(
+        source='rating_candidate.user.username', read_only=True
+    )  # Same as user
+    job = serializers.CharField(
+        source='rating_candidate.application.job.title', read_only=True, allow_null=True
+    )  # Job title
+    comment = serializers.CharField(
+        source='rating_candidate.comment', read_only=True
+    )  # Rating content
+    rating = serializers.IntegerField(
+        source='rating_candidate.rating', read_only=True
+    )  # Stars
+    candidate_reply = serializers.CharField()  # Reply content
+
+    class Meta:
+        model = ReplyCommetFromEmployerDetail
+        fields = [
+            'user',              # Username from rating_candidate.user
+            'user_name',        # Same as user
+            'job',              # Job title
+            'rating_candidate', # ID of EmployerRating
+            'candidate_reply',  # Reply content
+            'comment',          # Rating content
+            'rating',           # Stars
+            'created_date',     # From BaseModel
+            'updated_date',     # From BaseModel
+        ]
+        read_only_fields = ['user', 'user_name', 'application', 'job', 'comment', 'rating', 'created_date', 'updated_date']
+
+    def validate(self, data):
+        rating_candidate = data.get('rating_candidate')
+        candidate_reply = data.get('candidate_reply')
+
+        if not candidate_reply:
+            raise serializers.ValidationError({"candidate_reply": "Reply content is required."})
+
+        if rating_candidate and ReplyCommetFromEmployerDetail.objects.filter(
+            rating_candidate=rating_candidate
+        ).exists():
+            raise serializers.ValidationError(
+                {"detail": "This rating has already been replied to."}
+            )
+
+        return data
+
+    def create(self, validated_data):
+        # Only pass valid model fields to create()
+        return ReplyCommetFromEmployerDetail.objects.create(
+            rating_candidate=validated_data['rating_candidate'],
+            candidate_reply=validated_data['candidate_reply']
+        )
+    
+class RatingWithCommentSerializer(serializers.ModelSerializer):
+    reply = serializers.SerializerMethodField()
+    user = serializers.StringRelatedField(read_only=True)
+    job= serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Rating
+        fields = ['id','user', 'job', 'company', 'rating', 'created_date', 'comment','reply']
+
+    def get_reply(self, rating):
+        reply = CommentDetail.objects.filter(rating_employer=rating, active=True)
+        return CommentDetailSerializer(reply, many=True).data
+    
+
+class RatingEmployerWithCommentSerializer(serializers.ModelSerializer):
+    reply = serializers.SerializerMethodField()
+    user = serializers.StringRelatedField(read_only=True)
+    job= serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = EmployerRating
+        fields = ['id','user', 'job', 'company', 'rating', 'created_date', 'comment','reply']
+
+    def get_reply(self, rating):
+        reply = ReplyCommetFromEmployerDetail.objects.filter(rating_candidate=rating, active=True)
+        return ReplyCommentEmployerDetailSerializer(reply, many=True).data
 
 
 import mimetypes
