@@ -306,7 +306,7 @@ class RatingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Rating
-        fields = ['id', 'user', 'company', 'job', 'rating', 'comment', 'created_date', 'updated_date']
+        fields = ['id', 'user', 'company', 'job', 'rating', 'comment', 'created_date', 'updated_date', 'is_reading']
         read_only_fields = ['id', 'user', 'created_date', 'updated_date']
 
     def validate(self, data):
@@ -328,18 +328,30 @@ class RatingSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
 
         return data
+    
+
+class RatingDetailSerializer(RatingSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+    company = serializers.StringRelatedField(read_only=True)
+    job = serializers.StringRelatedField(read_only=True)
+
+    class Meta(RatingSerializer.Meta):
+        fields = RatingSerializer.Meta.fields + ['user', 'company', 'job']
+        read_only_fields = ['id', 'created_date', 'updated_date', 'user', 'company', 'job']
+    
 
 class EmployerRatingSerializer(BaseRatingSerializer):
     """
     Serializer cho đánh giá từ nhà tuyển dụng.
     """
     employer = serializers.StringRelatedField(read_only=True)
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
     application = serializers.PrimaryKeyRelatedField(queryset=Application.objects.all(), required=False, allow_null=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = EmployerRating
-        fields = ['id', 'employer', 'user', 'application', 'rating', 'comment', 'created_date', 'updated_date']
+        fields = ['id', 'employer', 'user', 'user_name', 'application', 'rating', 'comment', 'created_date', 'updated_date']
         read_only_fields = ['id', 'employer', 'created_date', 'updated_date']
 
     def validate(self, data):

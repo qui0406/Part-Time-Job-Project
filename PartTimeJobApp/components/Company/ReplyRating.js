@@ -1,151 +1,150 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import Colors from '../../constants/Colors';
+import React, { useState } from 'react';
+import {
+  View, Text, TextInput, Button, Alert, StyleSheet, ScrollView
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function ReplyRating() {
-    const navigation = useNavigation();
-    const route = useRoute();
-    const { jobId } = route.params;
-    const [ratings, setRatings] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [comment, setComment] = useState('');
-    const [selectedRatingId, setSelectedRatingId] = useState(null);
-
-    useEffect(() => {
-        fetchRatings();
-    }, [jobId]);
-
-    const fetchRatings = async () => {
-        try {
-            setLoading(true);
-            const token = await AsyncStorage.getItem('token');
-            const response = await authApi(token).get(endpoints['ratings'] + 'list-rating-job-of-company/', {
-                params: { job_id: jobId },
-            });
-            setRatings(response.data.results || response.data);
-        } catch (error) {
-            console.error('Lỗi khi tải đánh giá:', error);
-            Alert.alert('Lỗi', 'Không thể tải đánh giá. Vui lòng thử lại.');
-        } finally {
-            setLoading(false);
+export default function ReplyRating({ route }) {
+  const { rating } = route.params;
+  const [reply, setReply] = useState('');
+  const navigation = useNavigation();
+  const handleReply = async () => {
+    const token = await AsyncStorage.getItem('token');
+    try {
+      const formData = new FormData();
+      formData.append('rating_employer_id', rating.id);
+      formData.append('employer_reply', reply);
+  
+      await authApi(token).post(`${endpoints['comment-details']}reply-comment/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
-    };
-
-    const handleReply = async (ratingId) => {
-        if (!comment.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập nội dung phản hồi.');
-            return;
+      });
+        Alert.alert('Thành công', 'Đã phản hồi đánh giá!', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack()
         }
-
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const response = await authApi(token).post(endpoints['comment-details'] + 'reply-comment/', {
-                parent_comment_id: ratingId,
-                comment: comment,
-            });
-            Alert.alert('Thành công', 'Phản hồi đã được gửi.');
-            setComment('');
-            setSelectedRatingId(null);
-            fetchRatings(); // Tải lại danh sách đánh giá
-        } catch (error) {
-            console.error('Lỗi khi gửi phản hồi:', error);
-            Alert.alert('Lỗi', 'Không thể gửi phản hồi. Vui lòng thử lại.');
-        }
-    };
-
-    const renderRatingItem = ({ item }) => (
-        <View style={styles.ratingItem}>
-            <Text style={styles.ratingUser}>{item.user}</Text>
-            <Text style={styles.ratingStars}>{'★'.repeat(item.rating)}</Text>
-            <Text style={styles.ratingComment}>{item.comment || 'Không có bình luận'}</Text>
-            <TouchableOpacity
-                style={styles.replyButton}
-                onPress={() => setSelectedRatingId(item.id)}
-            >
-                <Text style={styles.replyButtonText}>Phản hồi</Text>
-            </TouchableOpacity>
-            {selectedRatingId === item.id && (
-                <View style={styles.replyInputContainer}>
-                    <TextInput
-                        style={styles.replyInput}
-                        value={comment}
-                        onChangeText={setComment}
-                        placeholder="Nhập phản hồi của bạn..."
-                        multiline
-                    />
-                    <TouchableOpacity
-                        style={styles.submitButton}
-                        onPress={() => handleReply(item.id)}
-                    >
-                        <Text style={styles.submitButtonText}>Gửi</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-        </View>
-    );
-
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.PRIMARY} />
-                <Text style={styles.loadingText}>Đang tải...</Text>
-            </View>
-        );
+      ]);
+    } catch (err) {
+      Alert.alert('Lỗi', 'Không thể phản hồi đánh giá');
+      console.error(err);
     }
+  };
+  
 
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Phản hồi đánh giá</Text>
-            <FlatList
-                data={ratings}
-                renderItem={renderRatingItem}
-                keyExtractor={item => item.id.toString()}
-                ListEmptyComponent={<Text style={styles.emptyText}>Chưa có đánh giá nào.</Text>}
-            />
-        </View>
-    );
+  const renderStars = (count) => {
+    return '⭐'.repeat(count) + '☆'.repeat(5 - count);
+  };
+
+  const formatDate = (iso) => {
+    try {
+      const date = new Date(iso);
+      return date.toLocaleString('vi-VN');
+    } catch {
+      return 'Không xác định';
+    }
+  };
+
+  return (
+    <SafeAreaView>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.ratingBox}>
+        <Text style={styles.heading}>Đánh giá từ ứng viên</Text>
+        <Text style={styles.label}>Ứng viên:</Text>
+        <Text style={styles.text}>{rating.user}</Text>
+
+        <Text style={styles.label}>Công việc:</Text>
+        <Text style={styles.text}>{rating.job}</Text>
+
+        <Text style={styles.label}>Thời gian:</Text>
+        <Text style={styles.text}>{formatDate(rating.created_date)}</Text>
+
+        <Text style={styles.label}>Số sao:</Text>
+        <Text style={styles.starText}>{renderStars(rating.rating)} ({rating.rating}/5)</Text>
+
+        <Text style={styles.label}>Nội dung đánh giá:</Text>
+        <Text style={styles.commentText}>{rating.comment || '(Không có)'}</Text>
+      </View>
+
+      <View style={styles.replyBox}>
+        <Text style={styles.label}>Phản hồi:</Text>
+        <TextInput
+          placeholder="Nhập phản hồi của bạn tại đây..."
+          value={reply}
+          onChangeText={setReply}
+          multiline
+          style={styles.input}
+        />
+        <Button title="Gửi phản hồi" onPress={handleReply} color="#1b4089" />
+      </View>
+    </ScrollView>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16, backgroundColor: Colors.BG_GRAY },
-    title: { fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: Colors.PRIMARY },
-    ratingItem: {
-        backgroundColor: Colors.WHITE,
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 10,
-        elevation: 1,
-    },
-    ratingUser: { fontSize: 16, fontWeight: 'bold', color: Colors.PRIMARY },
-    ratingStars: { fontSize: 16, color: '#FFD700', marginVertical: 5 },
-    ratingComment: { fontSize: 14, color: Colors.BLACK, marginBottom: 10 },
-    replyButton: {
-        backgroundColor: Colors.PRIMARY,
-        padding: 8,
-        borderRadius: 5,
-        alignSelf: 'flex-start',
-    },
-    replyButtonText: { color: Colors.WHITE, fontWeight: 'bold' },
-    replyInputContainer: { marginTop: 10 },
-    replyInput: {
-        borderWidth: 1,
-        borderColor: Colors.GRAY,
-        borderRadius: 5,
-        padding: 10,
-        minHeight: 80,
-        marginBottom: 10,
-    },
-    submitButton: {
-        backgroundColor: '#FF6200',
-        padding: 10,
-        borderRadius: 5,
-        alignItems: 'center',
-    },
-    submitButtonText: { color: Colors.WHITE, fontWeight: 'bold' },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    loadingText: { marginTop: 16, color: Colors.PRIMARY, fontSize: 16 },
-    emptyText: { fontSize: 16, color: Colors.GRAY, textAlign: 'center', marginTop: 20 },
+  container: {
+    padding: 20,
+    backgroundColor: '#f8f8f8',
+    flexGrow: 1,
+  },
+  ratingBox: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1b4089',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  label: {
+    fontWeight: 'bold',
+    marginTop: 10,
+    color: '#555',
+  },
+  text: {
+    fontSize: 16,
+    color: '#333',
+  },
+  commentText: {
+    marginTop: 5,
+    fontSize: 16,
+    color: '#222',
+    fontStyle: 'italic',
+  },
+  starText: {
+    fontSize: 18,
+    color: '#FFD700',
+  },
+  replyBox: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  input: {
+    height: 100,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    padding: 10,
+    marginVertical: 10,
+    textAlignVertical: 'top',
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
+  },
 });

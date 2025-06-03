@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+    # Django Service
+    django:
+        build: .
+        container_name: django
+        command: >
+            bash -c "python manage.py makemigrations &&
+                     python manage.py migrate &&
+                     python manage.py runserver 0.0.0.0:8000"
+        volumes:
+            - .:/usr/src/app/
+        ports:
+            - "8000:8000"
+        environment:
+            - DEBUG=1
+            - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+            - CELERY_BROKER=redis://redis:6379/0
+            - CELERY_BACKEND=redis://redis:6379/0
+            - DATABASE_URL=mysql://mysql_user:mysql_password@mysql:3306/mysql_db
+        depends_on:
+            - mysql
+            - redis
+
+    # Celery Service
+    celery:
+        build: .
+        command: celery -A core worker -l INFO
+        volumes:
+            - .:/usr/src/app
+        environment:
+            - DEBUG=1
+            - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+            - CELERY_BROKER=redis://redis:6379/0
+            - CELERY_BACKEND=redis://redis:6379/0
+            - DATABASE_URL=mysql://mysql_user:mysql_password@mysql:3306/mysql_db
+        depends_on:
+            - django
+            - mysql
+            - redis
+
+    # MySQL Database Service
+    mysql:
+        image: mysql:8.0
+        container_name: mysql
+        environment:
+            - MYSQL_DATABASE=mysql_db
+            - MYSQL_USER=mysql_user
+            - MYSQL_PASSWORD=mysql_password
+            - MYSQL_ROOT_PASSWORD=root_password
+        volumes:
+            - mysqldata:/var/lib/mysql
+        ports:
+            - "3306:3306"  # Tùy chọn: để truy cập MySQL từ host
+
+    # Redis Service
+    redis:
+        image: "redis:alpine"
+
+volumes:
+    mysqldata:

@@ -14,19 +14,30 @@
       "backgroundColor": "#ffffff"
     },
     "plugins": [
-      "react-native-maps",
-      "@react-native-google-signin/google-signin",
-      {
-        "iosUrlScheme": "com.googleusercontent.apps.543396526239-t96g69ofsosii2de8dvrep15s1d07kaj"
-      }
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "1944143086387650",
+          "clientToken": "b404eb6de657d3c0045d76abf439e4ef",
+          "displayName": "PartTimeJobApp",
+          "scheme": "fb1944143086387650"
+        }
+      ]
     ],
-
   
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.qui0406.parttimejobapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "FacebookAppID": "1944143086387650",
+        "FacebookDisplayName": "PartTimeJobApp",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["fb1944143086387650"]
+          }
+        ],
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location for map functionality."
       }
     },
     "android": {

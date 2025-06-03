@@ -26,11 +26,12 @@ export default {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      package: 'com.ctere1.reactnativechat',
+      package: 'com.qui0406.parttimejobapp',
     },
     web: {
       favicon: 'assets/favicon.png',
     },
+    owner: "qui0406",
     newArchEnabled: true,
     extra: {
       apiKey: process.env.EXPO_PUBLIC_API_KEY,
@@ -46,9 +47,12 @@ export default {
     },
     plugins: [
       [
-        "@react-native-google-signin/google-signin",
+        "react-native-fbsdk-next",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.543396526239-t96g69ofsosii2de8dvrep15s1d07kaj"
+          "appID": "1944143086387650",
+          "clientToken": "b404eb6de657d3c0045d76abf439e4ef",
+          "displayName": "PartTimeJobApp",
+          "scheme": "fb1944143086387650"
         }
       ]
     ]

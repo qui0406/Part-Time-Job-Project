@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MyUserContext } from '../../contexts/UserContext';
 import { GenerateTrendingJob } from './../../configs/AiModel';
 import Prompt from '../../constants/Prompt';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function Home() {
@@ -256,6 +257,7 @@ export default function Home() {
     }
 
     return (
+        <SafeAreaView style={{ flex: 1 }}>
         <View style={styles.container}>
             {/* Phần tìm kiếm cải tiến */}
             <View style={styles.searchWrapper}>
@@ -376,6 +378,7 @@ export default function Home() {
                 </View>
             )}
         </View>
+        </SafeAreaView>
     );
 }
 

@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, UserProfile, CommentDetail
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer, CommentDetailSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer, CommentDetailSerializer, RatingDetailSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -685,6 +685,47 @@ class RatingViewSet(BaseRatingViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
+    @action(methods=['get'], url_path='get-notification-rating', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def get_notification_rating(self, request):
+        """
+        Tạo thông báo cho ứng viên khi có đánh giá mới từ nhà tuyển dụng.
+        """
+        company_id = request.query_params.get('company_id')
+        job_id = request.query_params.get('job_id')
+        list_notification = Rating.objects.filter(company__id= company_id, active=True, is_reading = False)\
+        .order_by('-created_date')
+        
+        rating = Rating.objects.filter(company_id=company_id, job_id=job_id, active=True).first()
+
+        if rating:
+ 
+            has_comment = CommentDetail.objects.filter(rating_employer=rating, active=True).exists()
+
+            if has_comment and not rating.is_reading:
+                rating.is_reading = True
+                rating.save()
+
+        return Response({
+            "list_notification": RatingDetailSerializer(list_notification, many=True).data
+        }, status=status.HTTP_200_OK)
+        
+    
+    @action(methods=['get'], url_path='rating-average', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def get_rating_average(self, request):
+        """
+        Trả về đánh giá trung bình của ứng viên cho công ty.
+        """
+        company_id = request.query_params.get('company_id')
+        if not company_id:
+            return Response({"detail": "Company ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        queryset = Rating.objects.filter(company_id=company_id, active=True)
+        if not queryset.exists():
+            return Response({"detail": "No ratings found for this company."}, status=status.HTTP_404_NOT_FOUND)
+
+        average_rating = queryset.aggregate(average_score=Avg('rating'))['average_score']
+        return Response({"average_rating": average_rating}, status=status.HTTP_200_OK)
+    
 
 class EmployerRatingViewSet(BaseRatingViewSet):
     """
@@ -717,6 +758,8 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         """
         if self.action in ['update_comment', 'delete_comment']:
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
+        if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
+            return [permissions.IsAuthenticated()]
         return super().get_permissions()
 
     @action(methods=['get'], url_path='get-all-comments', detail=False)
@@ -728,23 +771,10 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         user = request.user
         queryset = EmployerRating.objects.filter(active=True).prefetch_related('replies').order_by('-created_date')
 
-        # Apply filters
-        company_id = request.data.get('company_id')
-        application_id = request.data.get('application_id')
-        employer_id = request.data.get('employer_id')
-
-        if company_id:
-            queryset = queryset.filter(application__job__company__id=company_id)
-        if application_id:
-            queryset = queryset.filter(application__id=application_id)
-        if employer_id:
-            queryset = queryset.filter(employer__id=employer_id)
-
-        # Restrict based on user role
-        if user.role == 'employer':
-            queryset = queryset.filter(employer=user)
-        elif user.role == 'candidate':
-            queryset = queryset.filter(user=user)
+        
+        company_id = request.query_params.get('company_id')
+        queryset = Rating.objects.filter(company_id = company_id, active=True).order_by('-created_date')
+        
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -760,23 +790,12 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         Retrieve all CommentDetail instances (child comments) for a specific EmployerRating (parent comment).
         Requires a parent_comment_id query parameter.
         """
-        user = request.user
-        parent_comment_id = request.data.get('parent_comment_id')
+        job_id = request.query_params.get('job_id')
+        company_id = request.query_params.get('company_id')
+        if not job_id:
+            return Response({"detail": "Job ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not parent_comment_id:
-            return Response(
-                {"detail": "Parent comment ID is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        parent_comment = get_object_or_404(EmployerRating, pk=parent_comment_id, active=True)
-
-
-        queryset = CommentDetail.objects.filter(
-            parent_comment=parent_comment,
-            active=True
-        ).order_by('-created_date')
-
+        queryset = Rating.objects.filter(company_id = company_id, job_id = job_id , active=True).order_by('-created_date')
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -784,15 +803,15 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-            
-    @action(methods=['post'], url_path='reply-comment', detail=False)
+    
+
+    @action(methods=['post'], url_path='reply-comment', detail=False, permission_classes=[permissions.IsAuthenticated, perms.IsEmployer])
     def reply_comment(self, request):
         """
         Create a reply to an existing EmployerRating as a CommentDetail instance.
         """
-        user = request.user
-        parent_comment_id = request.data.get('parent_comment_id')
-        comment = request.data.get('comment')
+        rating_employer_id = request.data.get('rating_employer_id') # ID của đánh giá mà employer muốn trả lời
+        employer_reply = request.data.get('employer_reply')
 
         if not parent_comment_id:
             return Response(
@@ -818,7 +837,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         serializer = CommentDetailSerializer(data=data, context={'request': request})
         if serializer.is_valid():
-            serializer.save(user=user, company=parent_comment.application.job.company)
+            serializer.save(rating_employer=parent_comment) 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
@@ -826,12 +845,28 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     @action(methods=['patch'], url_path='update-comment', detail=True)
     def update_comment(self, request, pk=None):
         """
-        Update the comment field of a CommentDetail instance.
-        Uses the viewset's pk to identify the comment.
+        Employer cập nhật phản hồi cho một đánh giá (chỉ khi đã có phản hồi).
         """
-        comment_instance = get_object_or_404(CommentDetail, pk=pk, active=True)
+        employer_reply = request.query_params.get('employer_reply')
+        if not employer_reply:
+            return Response(
+                {"detail": "Reply content is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        serializer = self.get_serializer(comment_instance, data=request.data, partial=True)
+        parent_comment = get_object_or_404(Rating, pk=pk)
+
+        try:
+            reply = CommentDetail.objects.get(rating_employer=parent_comment)
+        except CommentDetail.DoesNotExist:
+            return Response({"detail": "Không tồn tại phản hồi để cập nhật."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Kiểm tra employer hiện tại có đúng là chủ sở hữu đánh giá không (bảo mật)
+        if request.user != parent_comment.company.user:
+            return Response({"detail": "Bạn không có quyền sửa phản hồi này."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = CommentDetailSerializer(reply, data={'employer_reply': employer_reply}, partial=True,
+                                            context={'request': request, 'rating_employer': parent_comment})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -841,15 +876,25 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     @action(methods=['delete'], url_path='delete-comment', detail=True)
     def delete_comment(self, request, pk=None):
         """
-        Soft delete a CommentDetail instance by setting active=False.
-        Uses the viewset's pk to identify the comment.
+        Employer xóa phản hồi đã viết.
         """
-        comment_instance = get_object_or_404(CommentDetail, pk=pk, active=True)
-        comment_instance.active = False
-        comment_instance.save()
-        return Response({"success": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        parent_comment = get_object_or_404(Rating, pk=pk)
 
-  
+        try:
+            reply = CommentDetail.objects.get(rating_employer=parent_comment)
+        except CommentDetail.DoesNotExist:
+            return Response({"detail": "Không tồn tại phản hồi để xóa."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Kiểm tra employer có quyền xóa không
+        if request.user != parent_comment.company.user:
+            return Response({"detail": "Bạn không có quyền xóa phản hồi này."}, status=status.HTTP_403_FORBIDDEN)
+
+        reply.delete()
+        return Response({"detail": "Phản hồi đã được xóa thành công."}, status=status.HTTP_204_NO_CONTENT)
+    
+    
+
+
 class StatsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
     @action(detail=False, methods=['get'], url_path='report')
@@ -1016,8 +1061,6 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
             conversation = serializer.save()
             return Response({"message": "Conversation created successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 
 class MessageViewSet(viewsets.ModelViewSet):
