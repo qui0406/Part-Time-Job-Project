@@ -1,7 +1,7 @@
 from rest_framework.pagination import PageNumberPagination
 
 class JobPagination(PageNumberPagination):
-    page_size =  3
+    page_size =  10
 
 class ApplicationPagination(PageNumberPagination):
     page_size =  5
@@ -13,4 +13,4 @@ class CommentPagination(PageNumberPagination):
     page_size =  10
 
 class RatingPagination(PageNumberPagination):
-    page_size =  2
+    page_size =  5
