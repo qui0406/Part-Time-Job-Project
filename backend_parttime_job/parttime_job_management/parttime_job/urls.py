@@ -4,7 +4,6 @@ from parttime_job import views
 import oauth2_provider.views as oauth2_views
 from django.conf import settings
 from django_rest_passwordreset import urls as reset_password_urls
-from parttime_job.views import debug_token_view
 from rest_framework import routers
 
 
@@ -27,8 +26,9 @@ router.register('verify-document', views.VerifyDocumentViewSet, basename='verify
 router.register('conversations', views.ConversationViewSet, basename='conversation')
 router.register('messages', views.MessageViewSet, basename='message')
 router.register('comment-details', views.CommentDetailViewSet, basename='comment-details')
+router.register('comment-employer-details', views.CommentEmployerDetailViewSet, basename='comment-employer-details')
+
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('debug-token/', debug_token_view), 
 ]

@@ -88,8 +88,7 @@ class UserProfile(models.Model):
 
 
 class Company(BaseModel):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="employer_profile")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="employer_profile")
     company_name = models.CharField(max_length=255)
     tax_id = models.CharField(max_length=100)
     description = models.TextField(blank=True)
@@ -204,6 +203,14 @@ class CommentDetail(BaseModel):
     def __str__(self):
         return f"CommentDetail for {self.rating_employer.employer.username} on {self.rating_employer.user.username}"
     
+class ReplyCommetFromEmployerDetail(BaseModel):
+    rating_candidate = models.OneToOneField('EmployerRating', on_delete=models.CASCADE) # nhà tuyển dụng 
+    candidate_reply = models.TextField(blank=True)
+    
+    def __str__(self):
+        return f"CommentDetail for {self.rating_employer.employer.username} on {self.rating_employer.user.username}"
+    
+
 
 class EmployerRating(BaseModel):
     employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given_applicant_ratings") 
@@ -211,6 +218,7 @@ class EmployerRating(BaseModel):
     application = models.ForeignKey(Application, on_delete=models.SET_NULL, null=True, blank=True)
     rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
+    is_reading = models.BooleanField(default=False)  
 
     class Meta:
         unique_together = ('employer', 'user', 'application')

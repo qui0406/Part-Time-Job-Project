@@ -27,26 +27,14 @@ firebase_config = {
   "appId": "1:542889717655:web:1b2e4e69ce692b4c2a5ed2",
   "measurementId": "G-G857ZNYNYV"
 }
-# Initialize Firebase
+
 firebase = pyrebase.initialize_app(firebase_config)
 auth = firebase.auth()
 db = firebase.database()
 storage = firebase.storage()
 
 def sync_message_to_firebase(message):
-    """
-    Sync a message to Firebase Realtime Database and return the Firebase key.
     
-    Args:
-        message: Django Message model instance with sender, receiver, and conversation
-        
-    Returns:
-        str: Firebase key of the pushed message
-        
-    Raises:
-        ValueError: If credentials are missing or authentication fails
-        Exception: For other Firebase-related errors
-    """
     try:
         # Get sender's profile for Firebase credentials
         try:
