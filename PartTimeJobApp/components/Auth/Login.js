@@ -104,7 +104,7 @@ export default function Login() {
         }),
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',sssss
+            'Content-Type': 'application/x-www-form-urlencoded'
           },
         }
       );

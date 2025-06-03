@@ -1,3 +1,4 @@
+
 import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,36 +22,38 @@ export default function RateJob() {
             Alert.alert('Lỗi', 'Vui lòng chọn số sao để đánh giá.');
             return;
         }
-
+    
+        if (!jobId || isNaN(parseInt(jobId))) {
+            Alert.alert('Lỗi', 'Thông tin công việc không hợp lệ.');
+            return;
+        }
+    
+        if (!companyId || isNaN(parseInt(companyId))) {
+            Alert.alert('Lỗi', 'Thông tin công ty không hợp lệ.');
+            return;
+        }
+    
         setSubmitting(true);
         try {
             const token = await AsyncStorage.getItem('token');
-            if (!token) {
-                throw new Error('Không tìm thấy token xác thực');
-            }
-
             const ratingData = {
-                company: companyId,
-                job: jobId,
-                rating,
-                comment,
+                company: parseInt(companyId),
+                job: parseInt(jobId),
+                rating: parseInt(rating),
+                comment: comment.trim() || null,
             };
-
+    
             const res = await authApi(token).post(endpoints['ratings'], ratingData);
-
+    
             if (res.status === 201) {
                 Alert.alert('Thành công', 'Đánh giá của bạn đã được gửi!');
                 navigation.goBack();
-            } else {
-                throw new Error('Không thể gửi đánh giá. Vui lòng thử lại.');
             }
         } catch (error) {
-            console.error('Lỗi khi gửi đánh giá:', error);
+            console.error('Lỗi khi gửi đánh giá:', error.response?.data);
             let errorMessage = 'Không thể gửi đánh giá. Vui lòng thử lại.';
-            if (error.message.includes('Không tìm thấy token xác thực')) {
-                errorMessage = 'Vui lòng đăng nhập lại để tiếp tục.';
-            } else if (error.response && error.response.data) {
-                errorMessage = error.response.data.detail || 'Có lỗi xảy ra khi gửi đánh giá.';
+            if (error.response?.status === 400) {
+                errorMessage = error.response.data.detail || 'Dữ liệu không hợp lệ.';
             }
             Alert.alert('Lỗi', errorMessage);
         } finally {
@@ -112,58 +115,66 @@ export default function RateJob() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: '#fff',
     },
     container: {
         flex: 1,
-        padding: 16,
+        padding: 20,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 16,
+        textAlign: 'center',
+        marginBottom: 20,
         color: Colors.PRIMARY,
     },
     subtitle: {
         fontSize: 16,
+        marginBottom: 10,
         color: '#333',
-        marginBottom: 8,
+    },
+    debugText: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 10,
+        fontStyle: 'italic',
     },
     starContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginVertical: 16,
+        marginVertical: 20,
     },
     starButton: {
         marginHorizontal: 5,
     },
     ratingText: {
-        fontSize: 16,
         textAlign: 'center',
-        marginBottom: 16,
+        fontSize: 16,
+        marginBottom: 20,
         color: '#333',
     },
     commentInput: {
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#ddd',
         borderRadius: 8,
         padding: 12,
-        marginBottom: 16,
         textAlignVertical: 'top',
-        backgroundColor: 'white',
+        fontSize: 16,
+        marginBottom: 20,
+        minHeight: 100,
     },
     submitButton: {
         backgroundColor: Colors.PRIMARY,
-        padding: 16,
+        padding: 15,
         borderRadius: 8,
         alignItems: 'center',
     },
-    submitButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
     disabledButton: {
         backgroundColor: '#ccc',
+    },
+    submitButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });

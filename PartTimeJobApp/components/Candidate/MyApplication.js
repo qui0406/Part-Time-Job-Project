@@ -26,73 +26,42 @@ export default function MyApplications() {
             if (!token) {
                 throw new Error('Không tìm thấy token xác thực');
             }
-
-            // Gọi API lấy danh sách đơn ứng tuyển với trạng thái accepted
-            const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['my-applications']}my-all-applications/`;
-            console.log('Đang gọi API danh sách:', requestUrl);
-
+    
             const res = await authApi(token).get(`${endpoints['my-applications']}my-all-applications/`);
-
-            // Kiểm tra mã trạng thái HTTP
-            if (res.status === 401) {
-                throw new Error('Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.');
-            } else if (res.status === 403) {
-                throw new Error('Bạn không có quyền truy cập.');
-            } else if (res.status === 500) {
-                throw new Error('Lỗi máy chủ nội bộ. Vui lòng thử lại sau.');
-            } else if (res.status !== 200) {
+    
+            if (res.status !== 200) {
                 throw new Error(`Lỗi HTTP: ${res.status}`);
             }
-
-            // Kiểm tra dữ liệu trả về
-            let acceptedApplications = [];
-            if (Array.isArray(res.data)) {
-                acceptedApplications = res.data;
-            } else if (res.data && Array.isArray(res.data.results)) {
-                acceptedApplications = res.data.results;
-            } else if (res.data && res.data.detail) {
-                throw new Error(res.data.detail);
-            } else {
-                console.error('Dữ liệu API không hợp lệ:', res.data);
-                throw new Error('Dữ liệu trả về không đúng định dạng');
-            }
-
-            console.log('Đơn ứng tuyển accepted:', acceptedApplications);
-
-            // Lọc đơn ứng tuyển hợp lệ
-            const validApplications = acceptedApplications.filter(application => application.id);
-            console.log(`Đơn hợp lệ: ${validApplications.length}, Loại bỏ: ${acceptedApplications.length - validApplications.length}`);
-
-            // Chuyển đổi dữ liệu đơn ứng tuyển thành thông tin hiển thị
-            const applicationData = validApplications.map(application => ({
-                id: application.id,
-                title: application.job.title || 'Công việc không xác định',
-                company: application.job?.company_name || 'Công ty không xác định',
-                time: formatDate(application.created_date || new Date().toISOString()),
-                job: application.job,
-                companyData: application.job.company,
-            }));
-
-            console.log('Dữ liệu ứng tuyển:', applicationData);
+    
+            let acceptedApplications = Array.isArray(res.data) ? res.data : res.data.results || [];
+    
+            const applicationData = acceptedApplications
+                .filter(application => application.id)
+                .map(application => ({
+                    id: application.id,
+                    title: application.job?.title || 'Công việc không xác định',
+                    company: application.job?.company_name || 'Công ty không xác định',
+                    time: formatDate(application.created_date || new Date().toISOString()),
+                    job: {
+                        id: application.job?.id,
+                        title: application.job?.title,
+                    },
+                    companyData: {
+                        id: application.job?.company || null,
+                        company_name: application.job?.company_name || 'Công ty không xác định',
+                    },
+                }));
+    
             setApplications(applicationData);
         } catch (error) {
             console.error('Lỗi khi tải danh sách ứng tuyển:', error);
-            let errorMessage = 'Không thể tải danh sách ứng tuyển. Vui lòng thử lại.';
-            if (error.message.includes('Không tìm thấy token xác thực')) {
-                errorMessage = 'Vui lòng đăng nhập lại để tiếp tục.';
-            } else if (error.message.includes('Token không hợp lệ')) {
-                errorMessage = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
-            } else if (error.message.includes('Bạn không có quyền truy cập')) {
-                errorMessage = 'Bạn không có quyền xem danh sách ứng tuyển.';
-            }
-            Alert.alert('Lỗi', errorMessage);
+            Alert.alert('Lỗi', 'Không thể tải danh sách ứng tuyển. Vui lòng thử lại.');
             setApplications([]);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
-
     const onRefresh = () => {
         setRefreshing(true);
         loadApplications();
@@ -123,7 +92,16 @@ export default function MyApplications() {
     };
 
     const handleApplicationPress = (application) => {
-        console.log('Chuyển đến màn hình đánh giá với job:', application.job);
+        if (!application.job?.id) {
+            Alert.alert('Lỗi', 'Không tìm thấy thông tin công việc.');
+            return;
+        }
+    
+        if (!application.companyData?.id) {
+            Alert.alert('Lỗi', 'Không tìm thấy thông tin công ty.');
+            return;
+        }
+    
         navigation.navigate('RateJob', {
             jobId: application.job.id,
             companyId: application.companyData.id,

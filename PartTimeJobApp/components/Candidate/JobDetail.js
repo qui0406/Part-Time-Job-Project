@@ -1548,7 +1548,6 @@ const JobDetail = () => {
     );
 };
 
-// Styles giữ nguyên như code gốc
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
