@@ -844,25 +844,10 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
     @action(methods=['get'], url_path='get-notification-rating', detail=False, permission_classes=[permissions.IsAuthenticated], serializer_class= ReplyCommentEmployerDetailSerializer)
     def get_notification_rating(self, request): 
-        employer_id = request.query_params.get('employer_id')
-        application_id = request.query_params.get('application_id')
         user = request.user
 
-        queryset = EmployerRating.objects.filter(user = user, employer_id = employer_id, 
-            application_id= application_id, 
+        queryset = EmployerRating.objects.filter(user = user,
             active=True, is_reading=False).order_by('-created_date')
-
-        
-        employer_rating = EmployerRating.objects.filter(employer_id = employer_id, application_id= application_id,
-        active=True).first()
-
-        if employer_rating:
-            has_comment = ReplyCommetFromEmployerDetail.objects.filter(rating_candidate_id=employer_rating.id,active=True).exists()
-
-            if has_comment:
-                employer_rating.is_reading = True
-                employer_rating.save()
-
 
         
         return Response({
@@ -889,8 +874,16 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         try:
             rating_instance = EmployerRating.objects.get(pk=rating_id)
+            
         except EmployerRating.DoesNotExist:
-            raise NotFound("Rating does not exist.")
+            return Response(
+                {"detail": "Rating not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if rating_instance:
+            rating_instance.is_reading = True
+            rating_instance.save()
 
         data = {
             'candidate_reply': candidate_reply,
@@ -901,10 +894,7 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         if serializer.is_valid():
             serializer.save(rating_candidate=rating_instance)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        print(serializer.errors)  # Log errors for debugging
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class StatsViewSet(viewsets.ViewSet):
