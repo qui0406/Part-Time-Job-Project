@@ -186,16 +186,6 @@ export default function Login() {
                 </TouchableOpacity>
               </>
             )}
-            {loading === true ? (
-              <ActivityIndicator size="large" color={Colors.PRIMARY} />
-            ) : (
-              <>
-                {/* <TouchableOpacity style={styles.button} onPress={loginWithFacebook}>
-                  <Text style={styles.buttonText}>Đăng nhập bằng Facebook</Text>
-                </TouchableOpacity> */}
-              </>
-            )}
-            
             
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>Chưa có tài khoản? </Text>

@@ -608,6 +608,7 @@ import { MyUserContext } from '../../contexts/UserContext';
 import { GenerateTrendingJob } from './../../configs/AiModel';
 import Prompt from '../../constants/Prompt';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Chip } from 'react-native-paper';
 
 export default function Home() {
     const [jobs, setJobs] = useState([]);
@@ -624,6 +625,7 @@ export default function Home() {
     const [searchField, setSearchField] = useState('title');
     const [isSearching, setIsSearching] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [jobAiGenerated, setJobAiGenerated] = useState([]);
     
     const searchOptions = [
         { label: 'Tiêu đề', value: 'title' },
@@ -644,6 +646,8 @@ export default function Home() {
             const aiRes = await GenerateTrendingJob.sendMessage(PROMT);
             const result = aiRes.response.text();
             console.log('Kết quả từ AI model:', result);
+            const parsedResult = JSON.parse(result);
+            setJobAiGenerated(parsedResult);
         } catch (error) {
             console.error('Lỗi khi gọi AI model:', error); 
         }
@@ -780,6 +784,7 @@ export default function Home() {
                 return 'Tìm kiếm công việc';
         }
     };
+  
 
     const renderJobItem = ({ item }) => {
         return (
@@ -788,6 +793,7 @@ export default function Home() {
                 onPress={() => navigation.navigate('JobDetail', { job: item })}
                 activeOpacity={0.7}
             >
+            
                 <View style={styles.companyHeader}>
                     <TouchableOpacity onPress={() => handleCompanyClick(item.company, item.company_name)}>
                         <Text style={styles.companyName}>
@@ -830,6 +836,9 @@ export default function Home() {
         );
     };
 
+
+    
+
     if (user.role !== 'candidate') {
         return (
             <View style={styles.container}>
@@ -845,15 +854,18 @@ export default function Home() {
         <View style={styles.container}>
             <View style={styles.searchWrapper}>
                 <View style={styles.searchContainer}>
+                
                     <TouchableOpacity 
                         style={styles.dropdownButton} 
                         onPress={() => setShowDropdown(!showDropdown)}
                     >
+                    
                         <Text style={styles.dropdownButtonText}>
                             {searchOptions.find(opt => opt.value === searchField)?.label || 'Tiêu đề'}
                         </Text>
                         <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={16} color={Colors.BLACK} />
                     </TouchableOpacity>
+
                     
                     <TextInput
                         style={styles.input}
@@ -871,11 +883,28 @@ export default function Home() {
                     )}
                 </View>
                 
+                
                 <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
                     <Ionicons name="search" size={24} color={Colors.WHITE} />
                 </TouchableOpacity>
             </View>
-            
+                <FlatList
+                    data={jobAiGenerated}
+                    keyExtractor={(item, index) => `CV${item.cong_viec}-${index}`}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalList}
+                   
+                    renderItem={({ item }) => {
+                        console.log("Item:", item);
+                        return (
+                            <TouchableOpacity onPress={() => {}}>
+                                 <Chip icon="label" style={styles.chip}>{item.job}</Chip>
+                            </TouchableOpacity>
+                        );
+                    }}
+                    />
+
             <Modal
                 transparent={true}
                 visible={showDropdown}
@@ -935,6 +964,8 @@ export default function Home() {
                         renderItem={renderJobItem}
                         keyExtractor={(item, index) => `${item.id}-${index}`}
                         contentContainerStyle={styles.listContainer}
+                        showsHorizontalScrollIndicator={true}
+                        onEndReached={()=>generateTrendingJobAiModel()}
                         ListFooterComponent={renderFooter}
                     />
                     {renderPaginationDots()}
@@ -1186,5 +1217,16 @@ const styles = StyleSheet.create({
     },
     inactiveDot: {
         backgroundColor: Colors.GRAY,
+    },
+    chipContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        width: '100%',
+        padding: 5
+    },
+    chip: {
+        margin: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
