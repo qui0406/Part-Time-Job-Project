@@ -24,17 +24,17 @@ import APIs, { authApi, endpoints } from './../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MyDispacthContext, MyUserContext } from './../../contexts/UserContext';
 import qs from 'qs';
-import { firebaseDB, analytics} from './../../configs/FireBaseConfig';
-import { useEffect } from 'react';
+// import { firebaseDB, analytics} from './../../configs/FireBaseConfig';
+// import { useEffect } from 'react';
 
-import * as Google from 'expo-auth-session/providers/google';
-import { makeRedirectUri } from 'expo-auth-session';
-import { getAuth, FacebookAuthProvider, signInWithCredential } from 'firebase/auth';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
+// import * as Google from 'expo-auth-session/providers/google';
+// import { makeRedirectUri } from 'expo-auth-session';
+// import { getAuth, FacebookAuthProvider, signInWithCredential } from 'firebase/auth';
+// import * as AuthSession from 'expo-auth-session';
+// import * as WebBrowser from 'expo-web-browser';
 
-import {app} from './../../configs/FireBaseConfig';
-import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
+// import {app} from './../../configs/FireBaseConfig';
+// import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
 
 export default function Login() {
 
@@ -46,24 +46,24 @@ export default function Login() {
   const dispatch = useContext(MyDispacthContext);
   const router = useRoute();
 
-  const loginWithFacebook = async () => {
+  // const loginWithFacebook = async () => {
     
-    const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-    if (result.isCancelled) {
-      console.log('Login cancelled');
-      return;
-    }
-    alert('Đăng nhập bằng Facebook');
-    const data= await AccessToken.getCurrentAccessToken();
-    if (!data) {
-      console.log('Failed to get access token');
-      return;
-    }
-    const auth = getAuth(app);
-    const credential = FacebookAuthProvider.credential(data.accessToken);
-    const user = await signInWithCredential(auth, credential);
-    console.log('Logged in with Facebook:', user);
-  }
+  //   const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+  //   if (result.isCancelled) {
+  //     console.log('Login cancelled');
+  //     return;
+  //   }
+  //   alert('Đăng nhập bằng Facebook');
+  //   const data= await AccessToken.getCurrentAccessToken();
+  //   if (!data) {
+  //     console.log('Failed to get access token');
+  //     return;
+  //   }
+  //   const auth = getAuth(app);
+  //   const credential = FacebookAuthProvider.credential(data.accessToken);
+  //   const user = await signInWithCredential(auth, credential);
+  //   console.log('Logged in with Facebook:', user);
+  // }
 
 
   const handleBlur = () => {
@@ -104,7 +104,7 @@ export default function Login() {
         }),
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/x-www-form-urlencoded'
           },
         }
       );
@@ -190,9 +190,9 @@ export default function Login() {
               <ActivityIndicator size="large" color={Colors.PRIMARY} />
             ) : (
               <>
-                <TouchableOpacity style={styles.button} onPress={loginWithFacebook}>
+                {/* <TouchableOpacity style={styles.button} onPress={loginWithFacebook}>
                   <Text style={styles.buttonText}>Đăng nhập bằng Facebook</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </>
             )}
             

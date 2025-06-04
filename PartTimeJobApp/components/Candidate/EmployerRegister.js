@@ -33,8 +33,8 @@ export default function EmployerRegister() {
         tax_id: '',
         company_phone: '',
         description: '',
-        latitude: '', // Lưu dưới dạng chuỗi trong state
-        longitude: '', // Lưu dưới dạng chuỗi trong state
+        latitude: '', 
+        longitude: '', 
         images: [],
     });
     const [error, setError] = useState('');
@@ -120,7 +120,6 @@ export default function EmployerRegister() {
     }, []);
 
 
-    // Hàm chọn hình ảnh từ thư viện
     const pickImage = async () => {
         let { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
@@ -150,7 +149,6 @@ export default function EmployerRegister() {
         }
     };
 
-    // Hàm xóa hình ảnh đã chọn
     const removeImage = (index) => {
         setEmployer((current) => ({
             ...current,
@@ -159,13 +157,11 @@ export default function EmployerRegister() {
     };
 
     const registerEmployer = async () => {
-        // Kiểm tra các trường bắt buộc
         if (!employer.company_name || !employer.address || !employer.company_email) {
             setError('Vui lòng điền đầy đủ thông tin bắt buộc');
             return;
         }
 
-        // Kiểm tra số lượng hình ảnh
         if (employer.images.length < 3) {
             setError('Vui lòng cung cấp ít nhất 3 hình ảnh về môi trường làm việc');
             return;
@@ -179,10 +175,8 @@ export default function EmployerRegister() {
             console.log('token:', token);
             let form = new FormData();
 
-            // Thêm các trường thông tin khác
             for (let field in employer) {
                 if (field !== 'images') {
-                    // Chuyển đổi latitude và longitude từ chuỗi sang số thực
                     if (field === 'latitude' || field === 'longitude') {
                         const value = employer[field] ? parseFloat(employer[field].replace(',', '.')) : 0;
                         form.append(field, value);
@@ -201,14 +195,14 @@ export default function EmployerRegister() {
                 });
             });
 
-            // Log dữ liệu form để kiểm tra
+            
             const formDataEntries = [];
             for (var pair of form.entries()) {
                 formDataEntries.push([pair[0], pair[1]]);
             }
             console.log('Form data entries:', formDataEntries);
 
-            // Gửi yêu cầu đến endpoint đúng
+            
             let res = await authApi(token).post(endpoints['create-employer'], form, {
                 headers: {
                     'Content-Type': 'multipart/form-data',

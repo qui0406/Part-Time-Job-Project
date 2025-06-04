@@ -703,14 +703,17 @@ class EmployerRatingViewSet(BaseRatingViewSet):
 
 
 class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-    queryset = EmployerRating.objects.all()
-    serializer_class = EmployerRatingSerializer
+    queryset = Message.objects.all()
+    serializer_class = CommentDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser]
     pagination_class = paginators.CommentPagination
 
     def get_permissions(self):
-        if self.action in ['update_reply_comment', 'delete_reply_comment']:
+        """
+        Customize permissions for update_comment and delete_comment to ensure only the comment's author can edit/delete.
+        """
+        if self.action in ['update_comment', 'delete_comment']:
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
         if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
             return [permissions.IsAuthenticated()]
@@ -723,10 +726,10 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True, context={'request': request})
+            serializer = EmployerRatingSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        serializer = EmployerRatingSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
 
@@ -764,15 +767,15 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         rating_employer_id = request.data.get('rating_employer_id') # ID của đánh giá mà employer muốn trả lời
         employer_reply = request.data.get('employer_reply')
 
-        if not rating_employer_id:
+        if not parent_comment_id:
             return Response(
-                {"detail": "Rating_employer_id is required."},
+                {"detail": "Parent comment ID is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not employer_reply:
+        if not comment:
             return Response(
-                {"detail": "Reply content is required."},
+                {"detail": "Comment content is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -785,7 +788,10 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             )
 
         data = {
-            'employer_reply': employer_reply
+            'comment': comment,
+            'parent_comment': parent_comment.id,
+            'user': user.id,
+            'company': parent_comment.application.job.company.id if parent_comment.application and parent_comment.application.job else None
         }
 
         if parent_comment:
@@ -822,7 +828,8 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
                                             context={'request': request, 'rating_employer': parent_comment})
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['delete'], url_path='delete-reply-comment', detail=True)

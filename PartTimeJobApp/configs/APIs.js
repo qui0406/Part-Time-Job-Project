@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const BASE_URL = 'https://d56a-171-250-162-121.ngrok-free.app/'; // Replace with your actual API base URL
-const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
+const BASE_URL = 'https://d5d7-171-252-189-157.ngrok-free.app/'; // Replace with your actual API base URL
+// const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -35,20 +35,19 @@ export const endpoints = {
     'review-application': '/review-application/', // /:id/ sẽ được thêm vào trong code
     'review-application-action': '/review-application/', // /:id/review/ sẽ được thêm vào để phê duyệt/từ chối
     'notification': '/notification/', // Thông báo
+    'comment-employer-details': '/comment-employer-details/', // Chi tiết đánh giá của ứng viên về nhà tuyển dụng
     'ratings': '/ratings/',
     'employer-ratings': '/employer-ratings/',
+    'comment-details': '/comment-details/',
     'verify-document': '/verify-document/verify/',
-    'conversations': '/conversations/', 
+    'conversations': '/conversations/',
     'messages': '/messages/',
     'verify-document-status': '/verify-document/status/',
-    'check-verification-status': '/verify-document/status/' ,
+    'check-verification-status': '/verify-document/status/',
     // Thống kê và báo cáo
-    'stats-report': '/stats/report/', // Thống kê theo thời gian
-    'stats-overview': '/stats/overview/', // Tổng quan hệ thống
-    'stats-jobs': '/stats/jobs/', // Thống kê việc làm
-    'stats-users': '/stats/users/', // Thống kê người dùng
-    'stats-applications': '/stats/applications/', // Thống kê đơn ứng tuyển
-    'stats-companies': '/stats/companies/', // Thống kê công ty
+    'stats-quantity-job': '/stats/stats-quantity-job/',
+    'stats-quantity-candidate': '/stats/stats-quantity-candidate/',
+    'stats-quantity-employer': '/stats/stats-quantity-employer/',
 }
 
 export const authApi = (token) => {

@@ -27,11 +27,9 @@ export default function AcceptedApplications() {
                 throw new Error('Không tìm thấy token xác thực');
             }
     
-            // Sử dụng endpoints['my-applications'] thay vì endpoints['applications']
-            const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['my-applications']}all-accepted-applications/`;
-            console.log('Đang gọi API danh sách:', requestUrl);
+            // const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['my-applications']}all-accepted-applications/`;
+            // console.log('Đang gọi API danh sách:', requestUrl);
     
-            // Cập nhật URL trong lời gọi API
             const res = await authApi(token).get(`${endpoints['my-applications']}all-accepted-applications/`);
     
             if (res.status === 401) {

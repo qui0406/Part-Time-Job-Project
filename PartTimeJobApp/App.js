@@ -19,7 +19,9 @@ import EmployerRegister from './components/Candidate/EmployerRegister';
 import EmployerSubmittedScreen from './components/Candidate/EmployerSubmittedScreen';
 import PostJob from './components/Company/PostJob';
 import CompanyNotifications from './components/Company/CompanyNotifications';
+import ReplyRating from './components/Company/ReplyRating';
 import CandidateNotifications from './components/Candidate/CandidateNotification';
+import ReplyRatingCompany from './components/Candidate/ReplyRatingCompany';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
 import AdminNotifications from './components/Admin/AdminNotifications';
 import CompanyApprovalScreen from './components/Admin/CompanyApprovalScreen';
@@ -194,6 +196,8 @@ export default function App() {
             <RootStack.Screen name="ApplicationDetail" component={ApplicationDetail} />
             <RootStack.Screen name="RateJob" component={RateJob} />
             <RootStack.Screen name="RateCandidate" component={RateCandidate} />
+            <RootStack.Screen name="ReplyRating" component={ReplyRating} />
+            <RootStack.Screen name="ReplyRatingCompany" component={ReplyRatingCompany} />
           </RootStack.Navigator>
         </MyDispacthContext.Provider>
       </MyUserContext.Provider>
