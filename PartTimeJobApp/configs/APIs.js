@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://4ab0-171-252-189-157.ngrok-free.app/'; // Replace with your actual API base URL
+const BASE_URL = 'https://d5d7-171-252-189-157.ngrok-free.app/'; // Replace with your actual API base URL
 // const BASE_URL = 'http://192.168.1.18:8000'; // Replace with your actual API base URL
 
 export const endpoints = {
@@ -40,17 +40,14 @@ export const endpoints = {
     'employer-ratings': '/employer-ratings/',
     'comment-details': '/comment-details/',
     'verify-document': '/verify-document/verify/',
-    'conversations': '/conversations/', 
+    'conversations': '/conversations/',
     'messages': '/messages/',
     'verify-document-status': '/verify-document/status/',
-    'check-verification-status': '/verify-document/status/' ,
+    'check-verification-status': '/verify-document/status/',
     // Thống kê và báo cáo
-    'stats-report': '/stats/report/', // Thống kê theo thời gian
-    'stats-overview': '/stats/overview/', // Tổng quan hệ thống
-    'stats-jobs': '/stats/jobs/', // Thống kê việc làm
-    'stats-users': '/stats/users/', // Thống kê người dùng
-    'stats-applications': '/stats/applications/', // Thống kê đơn ứng tuyển
-    'stats-companies': '/stats/companies/', // Thống kê công ty
+    'stats-quantity-job': '/stats/stats-quantity-job/',
+    'stats-quantity-candidate': '/stats/stats-quantity-candidate/',
+    'stats-quantity-employer': '/stats/stats-quantity-employer/',
 }
 
 export const authApi = (token) => {

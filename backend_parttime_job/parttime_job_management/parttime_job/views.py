@@ -394,7 +394,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         if self.action in ['get_all_my_applications', 'get_all_my_applications_nofilter']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
-        return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
+        return [AllowAny()]
 
     
     def list(self, request):
@@ -521,13 +521,19 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
+    
     @action(methods=['get'], url_path='my-all-applications-nofilter', detail=False, serializer_class= ApplicationDetailSerializer)
     def get_all_my_applications_nofilter(self, request):
         user = request.user
-
         applications = Application.objects.filter(user=user,active=True).select_related('job__company')
-
         serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
+    
+    @action(methods=['get'], url_path='notification-job-apply', detail=False, serializer_class= ApplicationDetailSerializer, permission_classes=[permissions.IsAuthenticated])
+    def get_my_notification(self, request):
+        user = request.user
+        application = Application.objects.filter(user=user, active=True).order_by('-created_date')
+        serializer = ApplicationSerializer(application, many=True)
         return Response(serializer.data)
 
 class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -726,14 +732,20 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         company_id = request.query_params.get('company_id')
         if not job_id:
             return Response({"detail": "Job ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not company_id:
+            return Response({"detail": "Company ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        comment_details = CommentDetail.objects.filter(
-            rating_employer__job_id=job_id,
-            rating_employer__company_id=company_id,
-            active=True
-        ).select_related('rating_employer')
+        try: 
+            comment_details = CommentDetail.objects.filter(
+                rating_employer__job_id=job_id,
+                rating_employer__company_id=company_id,
+                active=True
+            ).select_related('rating_employer')
 
-        queryset = Rating.objects.filter(company_id = company_id, job_id = job_id , active=True).order_by('-created_date')
+            queryset = Rating.objects.filter(company_id = company_id, job_id = job_id , active=True).order_by('-created_date')
+        except Rating.DoesNotExist:
+            return Response({"detail": "No ratings found for this job."}, status=status.HTTP_404_NOT_FOUND)
         page = self.paginate_queryset(queryset)
         if page:
             serializer = self.get_serializer(page, many=True, context={'request': request})
@@ -760,8 +772,13 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Fetch the parent EmployerRating
-        parent_comment = get_object_or_404(EmployerRating, pk=parent_comment_id)
+        parent_comment= Rating.objects.get(pk=rating_employer_id)
+
+        if CommentDetail.objects.filter(rating_employer=parent_comment).exists():
+            return Response(
+                {"detail": "Đánh giá này đã được employer phản hồi."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         data = {
             'comment': comment,
@@ -770,7 +787,11 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             'company': parent_comment.application.job.company.id if parent_comment.application and parent_comment.application.job else None
         }
 
-        serializer = CommentDetailSerializer(data=data, context={'request': request})
+        if parent_comment:
+            parent_comment.is_reading = True
+            parent_comment.save()
+
+        serializer = CommentDetailSerializer(data=data, context={'request': request, 'rating_employer': parent_comment})
         if serializer.is_valid():
             serializer.save(rating_employer=parent_comment) 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -786,6 +807,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             )
 
         parent_comment = get_object_or_404(Rating, pk=pk)
+        
         try:
             reply = CommentDetail.objects.get(rating_employer=parent_comment)
         except CommentDetail.DoesNotExist:
@@ -811,7 +833,6 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         except CommentDetail.DoesNotExist:
             return Response({"detail": "Không tồn tại phản hồi để xóa."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Kiểm tra employer có quyền xóa không
         if request.user != parent_comment.company.user:
             return Response({"detail": "Bạn không có quyền xóa phản hồi này."}, status=status.HTTP_403_FORBIDDEN)
 
@@ -849,7 +870,6 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         queryset = EmployerRating.objects.filter(user = user,
             active=True, is_reading=False).order_by('-created_date')
 
-        
         return Response({
             "ratings": EmployerRatingSerializer(queryset, many=True, context={'request': request}).data
         }, status=status.HTTP_200_OK)
@@ -896,63 +916,96 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from datetime import datetime
+class StatsViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+    permission_classes = [perms.IsAdmin]
+        
+    @action(detail=False, methods=['get'], url_path='stats-quantity-job')
+    def get_stats_quantity_job(self, request):
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
 
-class StatsViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.AllowAny]
-    @action(detail=False, methods=['get'], url_path='report')
-    def report(self, request):
-        today = datetime.today()
-        six_months_ago = today - timedelta(days=180)
-        granularity = request.query_params.get("granularity", "month").lower()
-        if granularity == "day":
-            trunc_fn = TruncDay
-            label_format = "%d/%m"
-        elif granularity == "week":
-            trunc_fn = TruncWeek
-            label_format = "Tuần %W/%Y"
-        elif granularity == "month":
-            trunc_fn = TruncMonth
-            label_format = "%m/%Y"
-        elif granularity == "quarter":
-            trunc_fn = TruncQuarter
-            label_format = "Q%q/%Y"  
-        elif granularity == "year":
-            trunc_fn = TruncYear
-            label_format = "%Y"
-        else:
-            return Response({"error": "Invalid granularity"}, status=400)
-
-        def get_stats(qs, date_field="created_date"):
-            return (
-                qs.filter(**{f"{date_field}__gte": six_months_ago})
-                .annotate(period=trunc_fn(date_field))
-                .values("period")
-                .annotate(count=Count("id"))
-                .order_by("period")
+        if not from_date or not to_date:
+            return Response(
+                {"error": "Missing 'from_date' or 'to_date' query parameters (format: YYYY-MM-DD)"},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        def format_stats(entries):
-            labels = []
-            for e in entries:
-                dt = e["period"]
-                if granularity == "quarter":
-                    quarter = (dt.month - 1) // 3 + 1
-                    labels.append(f"Q{quarter}/{dt.year}")
-                elif granularity == "week":
-                    labels.append(f"Tuần {dt.strftime('%W')}/{dt.year}")
-                else:
-                    labels.append(dt.strftime(label_format))
-            return {
-                "labels": labels,
-                "data": [e["count"] for e in entries]
-            }
+        try:
+            from_date = datetime.fromisoformat(from_date)
+            to_date = datetime.fromisoformat(to_date)
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use ISO format (YYYY-MM-DD)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        quantity_job = Job.objects.filter(
+            active=True,
+            created_date__gte=from_date,
+            created_date__lt=to_date
+        ).count()
 
         return Response({
-            "job_stats": format_stats(get_stats(Job.objects.all())),
-            "candidate_stats": format_stats(get_stats(User.objects.filter(role='candidate'))),
-            "employer_stats": format_stats(get_stats(User.objects.filter(role='employer')))
-        })
+            "quantity_job": quantity_job
+        }, status=status.HTTP_200_OK if quantity_job > 0 else status.HTTP_404_NOT_FOUND)
 
+
+    @action(detail=False, methods=['get'], url_path='stats-quantity-candidate')
+    def get_stats_quantity_candidate(self, request):
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+        if not from_date or not to_date:
+            return Response(
+                {"error": "Missing 'from_date' or 'to_date' query parameters (format: YYYY-MM-DD)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            from_date = datetime.fromisoformat(from_date)
+            to_date = datetime.fromisoformat(to_date)
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use ISO format (YYYY-MM-DD)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        quantity_user = User.objects.filter(active=True, role = 'candidate', created_date__gte=from_date,
+            created_date__lt=to_date).count()
+        if quantity_user > 0:
+            return Response({
+                "quantity_user": quantity_user
+            }, status=status.HTTP_200_OK)
+        return Response({"error": "No user found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+    @action(detail=False, methods=['get'], url_path='stats-quantity-employer')
+    def get_stats_quantity_employer(self, request):
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+        if not from_date or not to_date:
+            return Response(
+                {"error": "Missing 'from_date' or 'to_date' query parameters (format: YYYY-MM-DD)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            from_date = datetime.fromisoformat(from_date)
+            to_date = datetime.fromisoformat(to_date)
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use ISO format (YYYY-MM-DD)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        quantity_employer = User.objects.filter(active=True, role = 'employer',
+                                                created_date__gte=from_date,
+                                            created_date__lt=to_date).count()
+        if quantity_employer > 0:
+            return Response({
+                "quantity_employer": quantity_employer
+            }, status=status.HTTP_200_OK)
+        return Response({"error": "Employer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        
 
 class VerifyDocumentViewSet(viewsets.ViewSet, generics.ListAPIView):
     permission_classes = [IsAuthenticated]
