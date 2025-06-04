@@ -694,6 +694,13 @@ class EmployerRatingViewSet(BaseRatingViewSet):
             raise serializers.ValidationError("Bạn đã đánh giá ứng viên này cho đơn ứng tuyển này rồi.")
         serializer.save(employer=employer)
 
+    @action(methods=['get'], url_path='list-rating-employer', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def get_comment_from_employer(self, request):
+        user = request.user
+        queryset = EmployerRating.objects.filter(user= user, active=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Message.objects.all()
