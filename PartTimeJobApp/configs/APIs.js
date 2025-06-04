@@ -35,6 +35,7 @@ export const endpoints = {
     'review-application': '/review-application/', // /:id/ sẽ được thêm vào trong code
     'review-application-action': '/review-application/', // /:id/review/ sẽ được thêm vào để phê duyệt/từ chối
     'notification': '/notification/', // Thông báo
+    'comment-employer-details': '/comment-employer-details/', // Chi tiết đánh giá của ứng viên về nhà tuyển dụng
     'ratings': '/ratings/',
     'employer-ratings': '/employer-ratings/',
     'comment-details': '/comment-details/',
