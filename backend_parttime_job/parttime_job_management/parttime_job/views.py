@@ -694,7 +694,7 @@ class EmployerRatingViewSet(BaseRatingViewSet):
             raise serializers.ValidationError("Bạn đã đánh giá ứng viên này cho đơn ứng tuyển này rồi.")
         serializer.save(employer=employer)
 
-    @action(methods=['get'], url_path='list-rating-employer', detail=False, permission_classes=[permissions.IsAuthenticated])
+    
     def get_comment_from_employer(self, request):
         user = request.user
         queryset = EmployerRating.objects.filter(user= user, active=True)
@@ -703,17 +703,14 @@ class EmployerRatingViewSet(BaseRatingViewSet):
 
 
 class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-    queryset = Message.objects.all()
-    serializer_class = CommentDetailSerializer
+    queryset = EmployerRating.objects.all()
+    serializer_class = EmployerRatingSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser]
     pagination_class = paginators.CommentPagination
 
     def get_permissions(self):
-        """
-        Customize permissions for update_comment and delete_comment to ensure only the comment's author can edit/delete.
-        """
-        if self.action in ['update_comment', 'delete_comment']:
+        if self.action in ['update_reply_comment', 'delete_reply_comment']:
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
         if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
             return [permissions.IsAuthenticated()]
@@ -726,10 +723,10 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = EmployerRatingSerializer(page, many=True, context={'request': request})
+            serializer = self.get_serializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
 
-        serializer = EmployerRatingSerializer(queryset, many=True, context={'request': request})
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
 
@@ -761,21 +758,30 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         serializer = self.get_serializer(queryset, comment_details, many=True, context={'request': request})
         return Response(serializer.data)
     
+    @action(methods=['get'], url_path='get-comment-by-employer-for-user', detail=False, serializer_class= RatingWithCommentSerializer)
+    def get_rating_from_employer(self, request):
+        user = request.user
+        queryset = EmployerRating.objects.filter(user=user, active=True).order_by('-created_date')
+        
+        return Response({
+            "ratings": RatingEmployerWithCommentSerializer(queryset, many=True, context={'request': request}).data
+        }, status=status.HTTP_200_OK)
+    
 
     @action(methods=['post'], url_path='reply-comment', detail=False, permission_classes=[permissions.IsAuthenticated, perms.IsEmployer])
     def reply_comment(self, request):
         rating_employer_id = request.data.get('rating_employer_id') # ID của đánh giá mà employer muốn trả lời
         employer_reply = request.data.get('employer_reply')
 
-        if not parent_comment_id:
+        if not rating_employer_id:
             return Response(
-                {"detail": "Parent comment ID is required."},
+                {"detail": "Rating_employer_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not comment:
+        if not employer_reply:
             return Response(
-                {"detail": "Comment content is required."},
+                {"detail": "Reply content is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -788,10 +794,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             )
 
         data = {
-            'comment': comment,
-            'parent_comment': parent_comment.id,
-            'user': user.id,
-            'company': parent_comment.application.job.company.id if parent_comment.application and parent_comment.application.job else None
+            'employer_reply': employer_reply
         }
 
         if parent_comment:
@@ -828,8 +831,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
                                             context={'request': request, 'rating_employer': parent_comment})
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['delete'], url_path='delete-reply-comment', detail=True)

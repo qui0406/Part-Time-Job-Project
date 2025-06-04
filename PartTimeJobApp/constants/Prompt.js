@@ -9,5 +9,6 @@ export default {
     Chỉ cần tên công việc không cần giải thích gì thêm.
     Cần 5 công việc khác nhau, mỗi công việc là một đối tượng JSON riêng biệt.
     Trả về bằng tiếng Việt, không cần giải thích gì thêm.
+    Mõi lần ra mõi công việc khac nhau, không được trùng lặp.
     `,
 }
