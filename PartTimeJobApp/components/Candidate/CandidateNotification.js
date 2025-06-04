@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -28,15 +27,14 @@ export default function CandidateNotifications() {
                 throw new Error('Không tìm thấy token xác thực');
             }
 
-            const currentUserId = user.id; // ID của user hiện tại (ứng viên)
+            const currentUserId = user.id; 
 
-            // Gọi API để lấy thông báo đánh giá từ nhà tuyển dụng cho user hiện tại
             const ratingsResponse = await authApi(token).get(
                 `${endpoints['comment-employer-details']}get-notification-rating/`,
                 {
                     params: {
                         user_id: currentUserId, // Lọc các đánh giá liên quan đến user hiện tại
-                        is_reading: null // Lấy cả đã đọc và chưa đọc
+                        // is_reading: null // Lấy cả đã đọc và chưa đọc
                     }
                 }
             );
@@ -53,15 +51,15 @@ export default function CandidateNotifications() {
 
             // Tạo thông báo từ đánh giá của nhà tuyển dụng
             const ratingNotificationItems = employerRatingNotifications.map(rating => {
-                const employerName = rating.employer?.username || 'Nhà tuyển dụng';
-                const jobTitle = rating.application?.job?.title || 'Công việc không xác định';
+                const employerName = rating.employer || 'Nhà tuyển dụng không xác định';
+                const jobTitle = rating.job || 'Công việc không xác định';
                 const ratingValue = rating.rating || 0;
                 const stars = '⭐'.repeat(ratingValue);
 
                 return {
                     id: `employer_rating_${rating.id}`,
-                    title: 'Đánh giá từ nhà tuyển dụng',
-                    message: `${employerName} đã đánh giá ${stars} (${ratingValue}/5) cho công việc "${jobTitle}"${rating.comment ? `: "${rating.comment.substring(0, 50)}${rating.comment.length > 50 ? '...' : ''}"` : ''}`,
+                    title: `Đánh giá từ ${employerName}`,
+                    message: `Nhà tuyển dụng ${employerName} đã đánh giá bạn ${stars} (${ratingValue}/5) cho công việc "${jobTitle}" mà bạn đã làm${rating.comment ? `: "${rating.comment.substring(0, 50)}${rating.comment.length > 50 ? '...' : ''}"` : ''}`,
                     time: formatDate(rating.created_date || new Date().toISOString()),
                     ratingId: rating.id,
                     rating: rating,
@@ -139,34 +137,11 @@ export default function CandidateNotifications() {
 
     const handleNotificationPress = async (notification) => {
         if (notification.type === 'employer_rating_notification') {
-            console.log('Chuyển đến màn hình chi tiết đánh giá của nhà tuyển dụng:', notification.ratingId);
-            
-            const token = await AsyncStorage.getItem('token');
-            if (token && notification.rating && !notification.rating.is_reading) {
-                try {
-                    // Đánh dấu đã đọc bằng cách gọi lại API
-                    await authApi(token).patch(
-                        `${endpoints['comment-employer-details']}update-reading-status/${notification.ratingId}/`,
-                        { is_reading: true }
-                    );
+            console.log('Chuyển đến màn hình phản hồi đánh giá:', notification.ratingId);
 
-                    // Cập nhật trạng thái local
-                    setNotifications(prev =>
-                        prev.map(item =>
-                            item.id === notification.id
-                                ? { ...item, priority: 3, rating: { ...item.rating, is_reading: true } }
-                                : item
-                        )
-                    );
-                } catch (error) {
-                    console.error('Lỗi khi đánh dấu đã đọc:', error);
-                }
-            }
-
-            // Điều hướng đến màn hình chi tiết đánh giá
-            navigation.navigate('EmployerRatingDetail', {
-                rating: notification.rating,
-                ratingId: notification.ratingId
+            // Điều hướng đến màn hình ReplyRating với dữ liệu đánh giá
+            navigation.navigate('ReplyRatingCompany', {
+                rating: notification.rating
             });
         }
     };
