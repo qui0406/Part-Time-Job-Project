@@ -161,6 +161,36 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
                 return Response(serializer.data)
         return Response({serializer.error}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(methods=['post'], url_path='follow', detail=True, permission_classes=[permissions.IsAuthenticated, perms.IsCandidate])
+    def follow(self, request, pk=None):
+        try:
+            company = self.get_object()
+            if not company.is_approved:
+                return Response({"detail": "Cannot follow an unapproved company."}, status=status.HTTP_400_BAD_REQUEST)
+        except Company.DoesNotExist:
+            return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        follow, created = Follow.objects.get_or_create(
+            user=request.user, company=company, defaults={'active': True}
+        )
+        if not created:
+            follow.active = not follow.active
+            follow.save()
+
+        serializer = FollowSerializer(follow)
+        message = "Followed company." if follow.active else "Unfollowed company."
+        return Response({"detail": message, "data": serializer.data}, status=status.HTTP_200_OK)
+
+
+    @action(methods=['get'], url_path='followers-count', detail=True)  
+    def get_count_followers(self, request, pk=None):
+        try:
+            company = self.get_object()
+            followers_count = Follow.objects.filter(company=company, active=True).count()
+            return Response({"followers_count": followers_count}, status=status.HTTP_200_OK)
+        except Company.DoesNotExist:
+            return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
+
 
 class CompanyListViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Company.objects.filter(active=True, is_approved=True)
@@ -638,9 +668,13 @@ class EmployerRatingViewSet(BaseRatingViewSet):
         employer = request.user
         application_id = request.query_params.get('application_id')
 
-        application = Application.objects.get(pk=application_id, active=True, status='pending')
-        
-        employer_ratings = EmployerRating.objects.filter(user_id = application.user_id, active=True).order_by('-created_date')
+        try: 
+
+            application = Application.objects.get(pk=application_id, active=True, status='pending')
+            
+            employer_ratings = EmployerRating.objects.filter(user_id = application.user_id, active=True).order_by('-created_date')
+        except Exception as e:
+            return Response({"detail": "Đơn này không ở trạng thái đang chờ"}, status=status.HTTP_404_NOT_FOUND)
         
 
         return Response({
