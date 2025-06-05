@@ -54,9 +54,6 @@ export default function ReplyRatingCompany({ route }) {
                 }
             ]);
         } catch (err) {
-            console.error('Lỗi khi gửi phản hồi:', err);
-            console.error('Chi tiết lỗi:', err.response?.data);
-
             let errorMessage = 'Không thể phản hồi đánh giá.';
             if (err.response?.status === 400) {
                 errorMessage = err.response.data?.detail || JSON.stringify(err.response.data) || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.';

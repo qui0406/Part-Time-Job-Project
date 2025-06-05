@@ -37,6 +37,7 @@ export default function ChatNotifications() {
 
   const renderConversationItem = ({ item }) => {
     const candidateName = item.candidate_username || 'Ứng viên không xác định';
+    console.log('Rendering conversation for:', item);
     if (!item.candidate || !item.employer) {
       Alert.alert('Lỗi', 'Dữ liệu cuộc trò chuyện không đầy đủ.');
       return null;
@@ -54,8 +55,8 @@ export default function ChatNotifications() {
         </View>
         <View style={styles.conversationInfo}>
           <Text style={styles.candidateName}>{candidateName}</Text>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.last_message?.content || 'Chưa có tin nhắn'}
+          <Text style={styles.lastMessage} numberOfLines={1}>{item.last_message && `${item.last_message.sender}: ${item.last_message.content}` || 'Chưa có cuộc trò chuyện nào'}
+
           </Text>
         </View>
       </TouchableOpacity>

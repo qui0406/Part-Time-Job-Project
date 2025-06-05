@@ -49,13 +49,14 @@ export default function RateJob() {
                 Alert.alert('Thành công', 'Đánh giá của bạn đã được gửi!');
                 navigation.goBack();
             }
+            
         } catch (error) {
-            console.error('Lỗi khi gửi đánh giá:', error.response?.data);
             let errorMessage = 'Không thể gửi đánh giá. Vui lòng thử lại.';
             if (error.response?.status === 400) {
-                errorMessage = error.response.data.detail || 'Dữ liệu không hợp lệ.';
+                errorMessage = 'Bạn đã đánh giá công việc này rồi';
             }
-            Alert.alert('Lỗi', errorMessage);
+            Alert.alert(errorMessage);
+           
         } finally {
             setSubmitting(false);
         }

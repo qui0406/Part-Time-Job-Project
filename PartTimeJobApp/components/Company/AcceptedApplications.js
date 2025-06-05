@@ -60,7 +60,6 @@ export default function AcceptedApplications() {
             } else if (res.data && res.data.detail) {
                 throw new Error(res.data.detail);
             } else {
-                console.error('Dữ liệu API không hợp lệ:', res.data);
                 throw new Error('Dữ liệu trả về không đúng định dạng');
             }
 
@@ -81,7 +80,6 @@ export default function AcceptedApplications() {
             }
             setPage(pageNum);
         } catch (error) {
-            console.error('Lỗi khi tải danh sách ứng tuyển:', error);
             let errorMessage = 'Không thể tải danh sách ứng tuyển. Vui lòng thử lại.';
             if (error.message.includes('Không tìm thấy token xác thực')) {
                 errorMessage = 'Vui lòng đăng nhập lại để tiếp tục.';

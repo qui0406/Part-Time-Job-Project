@@ -44,12 +44,11 @@ export default function RateCandidate() {
                 throw new Error('Không thể gửi đánh giá. Vui lòng thử lại.');
             }
         } catch (error) {
-            console.error('Lỗi khi gửi đánh giá:', error);
             let errorMessage = 'Không thể gửi đánh giá. Vui lòng thử lại.';
             if (error.message.includes('Không tìm thấy token xác thực')) {
                 errorMessage = 'Vui lòng đăng nhập lại để tiếp tục.';
             } else if (error.response && error.response.data) {
-                errorMessage = error.response.data.detail || 'Có lỗi xảy ra khi gửi đánh giá.';
+                errorMessage = error.response.data.detail || 'Đánh giá rồi';
             }
             Alert.alert('Lỗi', errorMessage);
         } finally {
