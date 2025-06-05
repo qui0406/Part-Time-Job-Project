@@ -1288,9 +1288,11 @@ export default function ApplicationDetail() {
       return;
     }
 
-    const url = `${endpoints['comment-details']}get-comment-by-employer-for-user/`;
+    const url = `${endpoints['employer-ratings']}get-notification-rating-user-application/`;
     console.log('Gửi yêu cầu API:', url);
-    const res = await authApi(token).get(url);
+    const res = await authApi(token).get(url, {
+      
+      });
 
     console.log('API Response:', JSON.stringify(res.data, null, 2)); // Log để debug
 

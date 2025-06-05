@@ -24,6 +24,7 @@ export const endpoints = {
     'job': '/job/',
     'job-list': '/job-list/',
     'company-jobs': '/job/company-jobs/',
+    'job-company': 'job/get-all-job-by-employer/',
     // Applications
     'application': '/application/', // /:id/ sẽ được thêm vào trong code
     'application-profile': '/application-profile/', // Lấy danh sách đơn ứng tuyển cho nhà tuyển dụng

@@ -49,7 +49,9 @@ const Profile = () => {
             setJobsLoading(true);
             const token = await AsyncStorage.getItem('token');
             if (token && companyDetails && companyDetails.id) {
-                const response = await authApi(token).get(endpoints['job']);
+                const response = await authApi(token).get(endpoints['job-company']);
+                console.log("Fetched jobs:", response.data);
+                
                 // Lọc chỉ các công việc thuộc công ty của người dùng hiện tại
                 const companyJobs = response.data.filter(job => job.company === companyDetails.id);
                 setJobs(companyJobs);

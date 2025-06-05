@@ -363,6 +363,20 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(methods=['get'], url_path='get-all-job-by-employer', detail=False)
+    def get_company_job(sef, request):
+        user = request.user
+        company = Company.objects.filter(user=user, active=True, is_approved=True).first()
+        if not company:
+            return Response({"detail": "Bạn không có quyền truy cập vào công ty"}, status=403)
+        jobs = Job.objects.filter(company=company, active=True)
+        
+        try:
+            return Response({
+                "jobs": JobSerializer(jobs, many=True, context={'request': request}).data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": f"Không tìm thấy công việc: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
 
 class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True)
@@ -453,11 +467,12 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"detail": "Đã nộp cv rồi!"}, status=status.HTTP_400_BAD_REQUEST)
 
         data = request.data.copy()
-        data['job'] = job.id
+        data['job'] = job_id
         serializer = self.get_serializer(data=data, context={'request': request})
+        
         if serializer.is_valid():
             serializer.save(user=request.user, job=job)
-            
+
             return Response({"message": "Ứng tuyển thành công"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -669,8 +684,8 @@ class EmployerRatingViewSet(BaseRatingViewSet):
         application_id = request.query_params.get('application_id')
 
         try: 
-
             application = Application.objects.get(pk=application_id, active=True, status='pending')
+            
             
             employer_ratings = EmployerRating.objects.filter(user_id = application.user_id, active=True).order_by('-created_date')
         except Exception as e:
