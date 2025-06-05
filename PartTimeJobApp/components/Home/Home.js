@@ -899,7 +899,7 @@ export default function Home() {
                         console.log("Item:", item);
                         return (
                             <TouchableOpacity onPress={() => {}}>
-                                 <Chip icon="label" style={styles.chip}>{item.job}</Chip>
+                                 <Chip icon="label" style={styles.chip}>{item.cong_viec} {item.job}</Chip>
                             </TouchableOpacity>
                         );
                     }}
