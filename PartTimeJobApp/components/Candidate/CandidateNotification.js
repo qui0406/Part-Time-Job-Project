@@ -382,7 +382,7 @@ export default function CandidateNotifications() {
 
             const currentUserId = user.id;
 
-            // Lấy thông báo đánh giá từ nhà tuyển dụng
+            // Lấy đánh giá từ nhà tuyển dụng
             const ratingsResponse = await authApi(token).get(
                 `${endpoints['comment-employer-details']}get-notification-rating/`,
                 {
@@ -401,7 +401,6 @@ export default function CandidateNotifications() {
 
             console.log('Employer rating notifications found:', employerRatingNotifications.length);
 
-            // Tạo thông báo từ đánh giá của nhà tuyển dụng
             const ratingNotificationItems = employerRatingNotifications.map(rating => {
                 const employerName = rating.employer || 'Nhà tuyển dụng không xác định';
                 const jobTitle = rating.job || 'Công việc không xác định';
@@ -411,37 +410,43 @@ export default function CandidateNotifications() {
                 return {
                     id: `employer_rating_${rating.id}`,
                     title: `Đánh giá từ ${employerName}`,
-                    message: `Nhà tuyển dụng ${employerName} đã đánh giá bạn ${stars} (${ratingValue}/5) cho công việc "${jobTitle}"${rating.comment ? `: "${rating.comment.substring(0, 50)}${rating.comment.length > 50 ? '...' : ''}"` : ''}`,
+                    message: `Nhà tuyển dụng ${employerName} đã đánh giá bạn ${stars} (${ratingValue}/5) cho công việc "${jobTitle}" mà bạn đã làm${rating.comment ? `: "${rating.comment.substring(0, 50)}${rating.comment.length > 50 ? '...' : ''}"` : ''}`,
                     time: formatDate(rating.created_date || new Date().toISOString()),
                     ratingId: rating.id,
                     rating: rating,
                     type: 'employer_rating_notification',
-                    priority: rating.is_reading ? 3 : 2 // Chưa đọc có độ ưu tiên cao hơn
+                    priority: rating.is_reading ? 3 : 2
                 };
             });
 
-            // Lấy thông báo kết quả ứng tuyển
+            // Lấy thông báo kết quả đơn ứng tuyển
             const applicationsResponse = await authApi(token).get(
-                `${endpoints['application']}notification-job-apply/`
+                `${endpoints['application-profile']}notification-job-apply/`
             );
 
             console.log('Application API Response:', applicationsResponse.data);
 
-            // Tạo thông báo từ kết quả ứng tuyển
-            const applicationNotificationItems = applicationsResponse.data.map(application => {
-                const jobTitle = application.job?.title || 'Công việc không xác định';
-                const companyName = application.job?.company_name || 'Công ty không xác định';
-                const statusDisplay = application.status_display || 'Không xác định';
+            let applicationNotifications = [];
+            if (applicationsResponse.data) {
+                applicationNotifications = applicationsResponse.data.filter(app => app.status === 'accepted' || app.status === 'rejected');
+            }
+
+            console.log('Application notifications found:', applicationNotifications.length);
+
+            const applicationNotificationItems = applicationNotifications.map(app => {
+                const jobTitle = app.job?.title || 'Công việc không xác định';
+                const companyName = app.job?.company_name || 'Công ty không xác định';
+                const statusText = app.status === 'accepted' ? 'Đậu' : 'Rớt';
 
                 return {
-                    id: `application_${application.id}`,
-                    title: `Kết quả ứng tuyển: ${jobTitle}`,
-                    message: `Đơn ứng tuyển của bạn cho công việc "${jobTitle}" tại ${companyName} đã được cập nhật: ${statusDisplay}`,
-                    time: formatDate(application.created_date || new Date().toISOString()),
-                    applicationId: application.id,
-                    application: application,
+                    id: `application_${app.id}`,
+                    title: `Kết quả đơn ứng tuyển`,
+                    message: `Đơn ứng tuyển của bạn cho công việc "${jobTitle}" tại ${companyName} đã ${statusText}${app.employer_note ? `: "${app.employer_note.substring(0, 50)}${app.employer_note.length > 50 ? '...' : ''}"` : ''}`,
+                    time: formatDate(app.updated_date || app.created_date || new Date().toISOString()),
+                    applicationId: app.id,
+                    application: app,
                     type: 'application_notification',
-                    priority: application.status === 'pending' ? 3 : 2 // Ưu tiên hiển thị đơn đang chờ thấp hơn
+                    priority: app.is_read ? 3 : 2 // is_read được giả định từ backend, nếu không có thì mặc định chưa đọc
                 };
             });
 
@@ -519,7 +524,7 @@ export default function CandidateNotifications() {
                 rating: notification.rating
             });
         } else if (notification.type === 'application_notification') {
-            console.log('Chuyển đến màn hình chi tiết đơn ứng tuyển:', notification.applicationId);
+            console.log('Chuyển đến chi tiết đơn ứng tuyển:', notification.applicationId);
             navigation.navigate('ApplicationDetail', {
                 application: notification.application
             });
@@ -532,25 +537,25 @@ export default function CandidateNotifications() {
                 return {
                     ...styles.notificationItem,
                     borderLeftColor: '#FFD700', // Màu vàng cho đánh giá
-                    backgroundColor: notification.priority === 2 ? '#FFF9E6' : '#FFFFFF' // Highlight chưa đọc
+                    backgroundColor: notification.priority === 2 ? '#FFF9E6' : '#FFFFFF'
                 };
             case 'application_notification':
                 return {
                     ...styles.notificationItem,
-                    borderLeftColor: '#1E90FF', // Màu xanh cho kết quả ứng tuyển
-                    backgroundColor: notification.priority === 2 ? '#E6F3FF' : '#FFFFFF' // Highlight trạng thái mới
+                    borderLeftColor: notification.application.status === 'accepted' ? '#28a745' : '#dc3545', // Xanh cho đậu, đỏ cho rớt
+                    backgroundColor: notification.priority === 2 ? '#E6FFE6' : '#FFFFFF'
                 };
             default:
                 return styles.notificationItem;
         }
     };
 
-    const getNotificationIcon = (type) => {
+    const getNotificationIcon = (type, data) => {
         switch (type) {
             case 'employer_rating_notification':
                 return '⭐';
             case 'application_notification':
-                return '📄';
+                return data.application.status === 'accepted' ? '✅' : '❌';
             default:
                 return '📢';
         }
@@ -563,7 +568,7 @@ export default function CandidateNotifications() {
                 onPress={() => handleNotificationPress(item)}
             >
                 <View style={styles.notificationHeader}>
-                    <Text style={styles.notificationIcon}>{getNotificationIcon(item.type)}</Text>
+                    <Text style={styles.notificationIcon}>{getNotificationIcon(item.type, item)}</Text>
                     <View style={styles.notificationContent}>
                         <Text style={styles.notificationTitle}>{item.title}</Text>
                         {item.priority === 2 && (
@@ -607,7 +612,7 @@ export default function CandidateNotifications() {
                             )}
                         </Text>
                         <Text style={styles.summaryText}>
-                            📄 {applicationCount} kết quả ứng tuyển
+                            📋 {applicationCount} kết quả đơn ứng tuyển
                             {unreadApplicationCount > 0 && (
                                 <Text style={styles.unreadText}> ({unreadApplicationCount} mới)</Text>
                             )}
@@ -622,7 +627,7 @@ export default function CandidateNotifications() {
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Text style={styles.emptyText}>Không có thông báo mới</Text>
-                            <Text style={styles.emptySubText}>Các đánh giá từ nhà tuyển dụng và kết quả ứng tuyển sẽ hiển thị ở đây</Text>
+                            <Text style={styles.emptySubText}>Các đánh giá và kết quả đơn ứng tuyển sẽ hiển thị ở đây</Text>
                         </View>
                     }
                     refreshControl={

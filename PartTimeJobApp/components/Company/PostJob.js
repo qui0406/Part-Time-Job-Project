@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
-    SafeAreaView,
-    Alert,
-    Modal,
+    View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
+    SafeAreaView, Alert, Modal,
 } from 'react-native';
 import Colors from '../../constants/Colors';
 import APIs, { authApi, endpoints } from '../../configs/APIs';
@@ -29,9 +19,10 @@ export default function PostJob() {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    //gợi ý cách nhập dữ liệu
     const [showSalaryGuide, setShowSalaryGuide] = useState(false);
     const [showShiftGuide, setShowShiftGuide] = useState(false);
-    
+
     const navigation = useNavigation();
     const route = useRoute();
     const { onJobPosted } = route.params || {};
@@ -59,7 +50,7 @@ export default function PostJob() {
                 setLoading(false);
                 return;
             }
-            
+
             const formData = new FormData();
             for (const key in job) {
                 formData.append(key, job[key]);
@@ -105,7 +96,6 @@ export default function PostJob() {
                     <Text style={styles.modalText}>- Lương theo giờ: 30k-50k/giờ</Text>
                     <Text style={styles.modalText}>- Lương theo ca: 120k-200k/ca</Text>
                     <Text style={styles.modalText}>- Lương theo ngày: 200k-350k/ngày</Text>
-                    <Text style={styles.modalText}>- Lương theo tháng: 5-10 triệu/tháng</Text>
                     <TouchableOpacity style={styles.modalButton} onPress={() => setShowSalaryGuide(false)}>
                         <Text style={styles.modalButtonText}>Đóng</Text>
                     </TouchableOpacity>
