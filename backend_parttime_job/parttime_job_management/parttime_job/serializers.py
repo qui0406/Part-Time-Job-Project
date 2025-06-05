@@ -264,7 +264,20 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-
+class ApplicationJobSerializer(serializers.ModelSerializer):
+    job = serializers.CharField(source='job.title', read_only=True, allow_null=True)
+    company = serializers.CharField(source='job.company.company_name', read_only=True, allow_null=True)  
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    cv = serializers.FileField(required=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = Application
+        fields = [
+            'id', 'job', 'education', 'experience', 'current_job',
+            'hope_salary', 'cv', 'status', 'status_display', 'employer_note', 'user', 'company'
+        ]
+        read_only_fields = ['status', 'employer_note', 'company', 'user']
 
 class ApplicationDetailSerializer(ApplicationSerializer):
     job = JobSerializer(read_only=True)
