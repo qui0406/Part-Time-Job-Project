@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://b2e3-171-243-48-32.ngrok-free.app'; // Replace with your actual API base URL
+const BASE_URL = 'https://2a84-171-252-189-157.ngrok-free.app'; // Replace with your actual API base URL
 
 
 export const endpoints = {
@@ -24,6 +24,7 @@ export const endpoints = {
     'job': '/job/',
     'job-list': '/job-list/',
     'company-jobs': '/job/company-jobs/',
+    'job-company': 'job/get-all-job-by-employer/',
     // Applications
     'application': '/application/', // /:id/ sẽ được thêm vào trong code
     'application-profile': '/application-profile/', // Lấy danh sách đơn ứng tuyển cho nhà tuyển dụng

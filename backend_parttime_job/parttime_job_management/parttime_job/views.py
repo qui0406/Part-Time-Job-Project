@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, UserProfile, CommentDetail, ReplyCommetFromEmployerDetail
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer, CommentDetailSerializer, RatingDetailSerializer, RatingWithCommentSerializer, ReplyCommentEmployerDetailSerializer, RatingEmployerWithCommentSerializer
+from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer, CommentDetailSerializer, RatingDetailSerializer, RatingWithCommentSerializer, ReplyCommentEmployerDetailSerializer, RatingEmployerWithCommentSerializer, ApplicationJobSerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -363,6 +363,20 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(methods=['get'], url_path='get-all-job-by-employer', detail=False)
+    def get_company_job(sef, request):
+        user = request.user
+        company = Company.objects.filter(user=user, active=True, is_approved=True).first()
+        if not company:
+            return Response({"detail": "Bạn không có quyền truy cập vào công ty"}, status=403)
+        jobs = Job.objects.filter(company=company, active=True)
+        
+        try:
+            return Response({
+                "jobs": JobSerializer(jobs, many=True, context={'request': request}).data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": f"Không tìm thấy công việc: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
 
 class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True)
@@ -453,11 +467,12 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"detail": "Đã nộp cv rồi!"}, status=status.HTTP_400_BAD_REQUEST)
 
         data = request.data.copy()
-        data['job'] = job.id
+        data['job'] = job_id
         serializer = self.get_serializer(data=data, context={'request': request})
+        
         if serializer.is_valid():
             serializer.save(user=request.user, job=job)
-            
+
             return Response({"message": "Ứng tuyển thành công"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -506,11 +521,11 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
     
-    @action(methods=['get'], url_path='notification-job-apply', detail=False, serializer_class= ApplicationDetailSerializer, permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get'], url_path='notification-job-apply', detail=False, serializer_class= ApplicationJobSerializer, permission_classes=[permissions.IsAuthenticated])
     def get_my_notification(self, request):
         user = request.user
         application = Application.objects.filter(user=user, active=True).order_by('-created_date')
-        serializer = ApplicationSerializer(application, many=True)
+        serializer = ApplicationJobSerializer(application, many=True)
         return Response(serializer.data)
 
 class EmployerReviewApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -669,8 +684,8 @@ class EmployerRatingViewSet(BaseRatingViewSet):
         application_id = request.query_params.get('application_id')
 
         try: 
-
             application = Application.objects.get(pk=application_id, active=True, status='pending')
+            
             
             employer_ratings = EmployerRating.objects.filter(user_id = application.user_id, active=True).order_by('-created_date')
         except Exception as e:
@@ -908,90 +923,108 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 class StatsViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     permission_classes = [perms.IsAdmin]
         
+
     @action(detail=False, methods=['get'], url_path='stats-quantity-job')
     def get_stats_quantity_job(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
 
-        if not from_date or not to_date:
-            return Response(
-                {"error": "Nhập theo (format: YYYY-MM-DD)"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Initialize queryset
+        queryset = Job.objects.filter(active=True)
 
-        try:
-            from_date = datetime.fromisoformat(from_date)
-            to_date = datetime.fromisoformat(to_date)
-        except ValueError:
-            return Response(
-                {"error": "Invalid format format có dạng (YYYY-MM-DD)."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Apply date filters if provided
+        if from_date and to_date:
+            try:
+                from_date = datetime.fromisoformat(from_date)
+                to_date = datetime.fromisoformat(to_date)
+                if from_date >= to_date:
+                    return Response(
+                        {"error": "Ngày bắt đầu phải nhỏ hơn ngày kết thúc."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                queryset = queryset.filter(
+                    created_date__gte=from_date,
+                    created_date__lt=to_date
+                )
+            except ValueError:
+                return Response(
+                    {"error": "Định dạng ngày không hợp lệ, sử dụng định dạng YYYY-MM-DD."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        quantity_job = Job.objects.filter(
-            active=True,
-            created_date__gte=from_date,
-            created_date__lt=to_date
-        ).count()
-
-        return Response({
-            "quantity_job": quantity_job
-        }, status=status.HTTP_200_OK if quantity_job > 0 else status.HTTP_404_NOT_FOUND)
-
+        quantity_job = queryset.count()
+        return Response(
+            {"quantity_job": quantity_job},
+            status=status.HTTP_200_OK if quantity_job > 0 else status.HTTP_404_NOT_FOUND
+        )
 
     @action(detail=False, methods=['get'], url_path='stats-quantity-candidate')
     def get_stats_quantity_candidate(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
-        if not from_date or not to_date:
-            return Response(
-                {"error": "Nhập theo (format: YYYY-MM-DD)"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
-        try:
-            from_date = datetime.fromisoformat(from_date)
-            to_date = datetime.fromisoformat(to_date)
-        except ValueError:
-            return Response(
-                {"error": "Invalid format format có dạng (YYYY-MM-DD)."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        quantity_user = User.objects.filter(active=True, role = 'candidate', created_date__gte=from_date,
-            created_date__lt=to_date).count()
-        if quantity_user > 0:
-            return Response({
-                "quantity_user": quantity_user
-            }, status=status.HTTP_200_OK)
-        return Response({"error": "Không thấy candidate"}, status=status.HTTP_404_NOT_FOUND)
+        # Initialize queryset
+        queryset = User.objects.filter(active=True, role='candidate')
 
+        # Apply date filters if provided
+        if from_date and to_date:
+            try:
+                from_date = datetime.fromisoformat(from_date)
+                to_date = datetime.fromisoformat(to_date)
+                if from_date >= to_date:
+                    return Response(
+                        {"error": "Ngày bắt đầu phải nhỏ hơn ngày kết thúc."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                queryset = queryset.filter(
+                    created_date__gte=from_date,
+                    created_date__lt=to_date
+                )
+            except ValueError:
+                return Response(
+                    {"error": "Định dạng ngày không hợp lệ, sử dụng định dạng YYYY-MM-DD."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        quantity_user = queryset.count()
+        return Response(
+            {"quantity_user": quantity_user},
+            status=status.HTTP_200_OK if quantity_user > 0 else status.HTTP_404_NOT_FOUND
+        )
 
     @action(detail=False, methods=['get'], url_path='stats-quantity-employer')
     def get_stats_quantity_employer(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
-        if not from_date or not to_date:
-            return Response(
-                {"error": "Nhập theo (format: YYYY-MM-DD)"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
-        try:
-            from_date = datetime.fromisoformat(from_date)
-            to_date = datetime.fromisoformat(to_date)
-        except ValueError:
-            return Response(
-                {"error": "Invalid format format có dạng (YYYY-MM-DD)."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        quantity_employer = User.objects.filter(active=True, role = 'employer',
-                                                created_date__gte=from_date,
-                                            created_date__lt=to_date).count()
-        if quantity_employer > 0:
-            return Response({
-                "quantity_employer": quantity_employer
-            }, status=status.HTTP_200_OK)
-        return Response({"error": "Không tìm thấy nhà tuyển dụng"}, status=status.HTTP_404_NOT_FOUND)
+        # Initialize queryset
+        queryset = User.objects.filter(active=True, role='employer')
+
+        # Apply date filters if provided
+        if from_date and to_date:
+            try:
+                from_date = datetime.fromisoformat(from_date)
+                to_date = datetime.fromisoformat(to_date)
+                if from_date >= to_date:
+                    return Response(
+                        {"error": "Ngày bắt đầu phải nhỏ hơn ngày kết thúc."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                queryset = queryset.filter(
+                    created_date__gte=from_date,
+                    created_date__lt=to_date
+                )
+            except ValueError:
+                return Response(
+                    {"error": "Định dạng ngày không hợp lệ, sử dụng định dạng YYYY-MM-DD."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        quantity_employer = queryset.count()
+        return Response(
+            {"quantity_employer": quantity_employer},
+            status=status.HTTP_200_OK if quantity_employer > 0 else status.HTTP_404_NOT_FOUND
+        )
 
         
 
