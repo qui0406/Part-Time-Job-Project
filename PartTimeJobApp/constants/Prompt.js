@@ -10,5 +10,45 @@ export default {
     Cần 5 công việc khác nhau, mỗi công việc là một đối tượng JSON riêng biệt.
     Trả về bằng tiếng Việt, không cần giải thích gì thêm.
     Mõi lần ra mõi công việc khac nhau, không được trùng lặp.
+    Trả ra dữ liệu có dạng: 
+    [
+  {
+    "cong_viec": "Sáng tạo nội dung"
+  },
+  {
+    "cong_viec": "Quản lý dự án"
+  },
+  {
+    "cong_viec": "Hỗ trợ kỹ thuật"
+  },
+  {
+    "cong_viec": "Dịch sách"
+  },
+  {
+    "cong_viec": "Giảng viên online"
+  }
+]
+ LOG  Item: {"cong_viec": "Sáng tạo nội dung"}
+ LOG  Item: {"cong_viec": "Quản lý dự án"}
+ LOG  Item: {"cong_viec": "Hỗ trợ kỹ thuật"}
+ LOG  Item: {"cong_viec": "Dịch sách"}
+ LOG  Item: {"cong_viec": "Giảng viên online"}
+ LOG  Kết quả từ AI model: [
+  {
+    "job": ""
+  },
+  {
+    "job": ""
+  },
+  {
+    "job": ""
+  },
+  {
+    "job": ""
+  },
+  {
+    "job": ""
+  }
+]
     `,
 }

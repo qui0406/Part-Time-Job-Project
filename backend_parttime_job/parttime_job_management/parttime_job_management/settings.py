@@ -44,7 +44,6 @@ WORKFLOW_ID = 'b5e8c290-d48f-4cbc-b602-b2b52987f392'  # ID của workflow bạn 
 ID_ANALYZER_API_KEY= '1cmi6EWuJ0cbIT6yqsFQvYbUqNFLwfpe'
 
 
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
