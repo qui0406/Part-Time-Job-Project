@@ -30,13 +30,13 @@ export default function AdminAnalytics() {
         candidate_stats: { labels: [], data: [], total: 0 },
         employer_stats: { labels: [], data: [], total: 0 },
     });
-    
+
     // State cho DateTimePicker - FIX: Thêm state riêng cho việc hiển thị picker
     const [fromDate, setFromDate] = useState(new Date(new Date().setMonth(new Date().getMonth() - 6)));
     const [toDate, setToDate] = useState(new Date());
     const [showFromDatePicker, setShowFromDatePicker] = useState(false);
     const [showToDatePicker, setShowToDatePicker] = useState(false);
-    
+
     const user = useContext(MyUserContext);
 
     useEffect(() => {
@@ -47,9 +47,121 @@ export default function AdminAnalytics() {
         }
     }, [fromDate, toDate]);
 
+    // const fetchStats = async () => {
+    //     setLoading(true);
+    //     setError('');
+    //     try {
+    //         const token = await AsyncStorage.getItem('token');
+    //         if (!token) {
+    //             setError('Vui lòng đăng nhập lại.');
+    //             setLoading(false);
+    //             return;
+    //         }
+
+    //         const fromDateStr = fromDate.toISOString().split('T')[0];
+
+    //         const adjustedToDate = new Date(toDate);
+    //         adjustedToDate.setDate(adjustedToDate.getDate() + 1);
+    //         const toDateStr = adjustedToDate.toISOString().split('T')[0];
+
+
+    //         const [jobRes, candidateRes, employerRes] = await Promise.all([
+    //             authApi(token).get(endpoints['stats-quantity-job'], {
+    //                 params: { from_date: fromDateStr, to_date: toDateStr },
+    //             }),
+    //             authApi(token).get(endpoints['stats-quantity-candidate'], {
+    //                 params: { from_date: fromDateStr, to_date: toDateStr },
+    //             }),
+    //             authApi(token).get(endpoints['stats-quantity-employer'], {
+    //                 params: { from_date: fromDateStr, to_date: toDateStr },
+    //             }),
+    //         ]);
+    //         console.log('From:', fromDateStr, 'To:', toDateStr);
+
+    //         console.log('Job Response:', jobRes.data);
+    //         console.log('Candidate Response:', candidateRes.data);
+    //         console.log('Employer Response:', employerRes.data);
+
+    //         // FIX: Sửa lại cách tạo data cho chart
+    //         const processStatsData = (responseData, total) => {
+    //             const labels = [];
+    //             const data = [];
+    //             const diffTime = Math.abs(toDate - fromDate);
+    //             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    //             let current = new Date(fromDate);
+
+    //             // Xác định loại đơn vị thời gian
+    //             let timeUnit = 'day';
+    //             if (diffDays > 365) timeUnit = 'year';
+    //             else if (diffDays > 30) timeUnit = 'month';
+
+    //             // Tạo nhãn theo ngày/tháng/năm
+    //             while (current <= toDate) {
+    //                 if (timeUnit === 'day') {
+    //                     labels.push(current.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }));
+    //                     current.setDate(current.getDate() + 1);
+    //                 } else if (timeUnit === 'month') {
+    //                     labels.push(`${current.getMonth() + 1}/${current.getFullYear()}`);
+    //                     current.setMonth(current.getMonth() + 1);
+    //                 } else {
+    //                     labels.push(current.getFullYear().toString());
+    //                     current.setFullYear(current.getFullYear() + 1);
+    //                 }
+    //             }
+
+    //             // Chia đều total lên các mốc thời gian
+    //             const step = total > 0 ? Math.floor(total / labels.length) : 0;
+    //             const remainder = total % labels.length;
+    //             for (let i = 0; i < labels.length; i++) {
+    //                 data.push(i < remainder ? step + 1 : step);
+    //             }
+
+    //             return { labels, data };
+    //         };
+
+
+    //         const jobTotal = jobRes.data.quantity_job || 0;
+    //         const candidateTotal = candidateRes.data.quantity_user || 0;
+    //         const employerTotal = employerRes.data.quantity_employer || 0;
+
+    //         const jobStats = processStatsData(jobRes.data, jobTotal);
+    //         const candidateStats = processStatsData(candidateRes.data, candidateTotal);
+    //         const employerStats = processStatsData(employerRes.data, employerTotal);
+
+    //         setStats({
+    //             job_stats: {
+    //                 ...jobStats,
+    //                 total: jobTotal,
+    //             },
+    //             candidate_stats: {
+    //                 ...candidateStats,
+    //                 total: candidateTotal,
+    //             },
+    //             employer_stats: {
+    //                 ...employerStats,
+    //                 total: employerTotal,
+    //             },
+    //         });
+    //     } catch (e) {
+    //         console.error('Lỗi khi lấy dữ liệu thống kê:', e);
+    //         if (e.response && e.response.status === 404) {
+    //             setStats({
+    //                 job_stats: { labels: [], data: [], total: 0 },
+    //                 candidate_stats: { labels: [], data: [], total: 0 },
+    //                 employer_stats: { labels: [], data: [], total: 0 },
+    //             });
+    //         } else {
+    //             setError('Không thể tải dữ liệu thống kê. Vui lòng kiểm tra kết nối hoặc thử lại.');
+    //         }
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
     const fetchStats = async () => {
         setLoading(true);
         setError('');
+
         try {
             const token = await AsyncStorage.getItem('token');
             if (!token) {
@@ -59,119 +171,115 @@ export default function AdminAnalytics() {
             }
 
             const fromDateStr = fromDate.toISOString().split('T')[0];
-            const toDateStr = toDate.toISOString().split('T')[0];
 
-            const [jobRes, candidateRes, employerRes] = await Promise.all([
-                authApi(token).get(endpoints['stats-quantity-job'], {
-                    params: { from_date: fromDateStr, to_date: toDateStr },
-                }),
-                authApi(token).get(endpoints['stats-quantity-candidate'], {
-                    params: { from_date: fromDateStr, to_date: toDateStr },
-                }),
-                authApi(token).get(endpoints['stats-quantity-employer'], {
-                    params: { from_date: fromDateStr, to_date: toDateStr },
-                }),
-            ]);
+            // ✅ Cộng thêm 1 ngày để bao gồm cả ngày toDate
+            const adjustedToDate = new Date(toDate);
+            adjustedToDate.setDate(adjustedToDate.getDate() + 1);
+            const toDateStr = adjustedToDate.toISOString().split('T')[0];
 
-            console.log('Job Response:', jobRes.data);
-            console.log('Candidate Response:', candidateRes.data);
-            console.log('Employer Response:', employerRes.data);
+            let jobTotal = 0, candidateTotal = 0, employerTotal = 0;
 
-            // FIX: Sửa lại cách tạo data cho chart
+            try {
+                const res = await authApi(token).get(endpoints['stats-quantity-job'], {
+                    params: { from_date: fromDateStr, to_date: toDateStr },
+                });
+                jobTotal = res.data.quantity_job || 0;
+            } catch (err) {
+                if (err.response?.status !== 404) throw err;
+            }
+
+            try {
+                const res = await authApi(token).get(endpoints['stats-quantity-candidate'], {
+                    params: { from_date: fromDateStr, to_date: toDateStr },
+                });
+                candidateTotal = res.data.quantity_user || 0;
+            } catch (err) {
+                if (err.response?.status !== 404) throw err;
+            }
+
+            try {
+                const res = await authApi(token).get(endpoints['stats-quantity-employer'], {
+                    params: { from_date: fromDateStr, to_date: toDateStr },
+                });
+                employerTotal = res.data.quantity_employer || 0;
+            } catch (err) {
+                if (err.response?.status !== 404) throw err;
+            }
             const processStatsData = (responseData, total) => {
                 const labels = [];
                 const data = [];
+            
                 const diffTime = Math.abs(toDate - fromDate);
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
                 let current = new Date(fromDate);
-                
+                let unitCount = 0;
+            
                 if (diffDays <= 30) {
                     // Hiển thị theo ngày
                     while (current <= toDate) {
                         const dateStr = current.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
                         labels.push(dateStr);
-                        
-                        // Tạo dữ liệu ngẫu nhiên dựa trên total (thay thế bằng dữ liệu thực từ API)
-                        const randomValue = Math.floor(Math.random() * (total * 0.3)) + Math.floor(total * 0.1);
-                        data.push(randomValue);
-                        
                         current.setDate(current.getDate() + 1);
+                        unitCount++;
                     }
                 } else if (diffDays <= 365) {
                     // Hiển thị theo tháng
                     while (current <= toDate) {
                         const monthStr = `${current.getMonth() + 1}/${current.getFullYear()}`;
                         labels.push(monthStr);
-                        
-                        // Tạo dữ liệu ngẫu nhiên dựa trên total
-                        const randomValue = Math.floor(Math.random() * (total * 0.4)) + Math.floor(total * 0.2);
-                        data.push(randomValue);
-                        
                         current.setMonth(current.getMonth() + 1);
+                        unitCount++;
                     }
                 } else {
                     // Hiển thị theo năm
                     while (current <= toDate) {
                         const yearStr = current.getFullYear().toString();
                         labels.push(yearStr);
-                        
-                        // Tạo dữ liệu ngẫu nhiên dựa trên total
-                        const randomValue = Math.floor(Math.random() * (total * 0.5)) + Math.floor(total * 0.3);
-                        data.push(randomValue);
-                        
                         current.setFullYear(current.getFullYear() + 1);
+                        unitCount++;
                     }
                 }
-                
+            
+                // Chia đều tổng số lượng
+                const evenValue = unitCount > 0 ? Math.floor(total / unitCount) : 0;
+                for (let i = 0; i < unitCount; i++) {
+                    data.push(evenValue);
+                }
+            
+                // Cộng phần dư vào các mốc đầu tiên
+                for (let i = 0; i < total % unitCount; i++) {
+                    data[i]++;
+                }
+            
                 return { labels, data };
             };
-
-            const jobTotal = jobRes.data.quantity_job || 0;
-            const candidateTotal = candidateRes.data.quantity_user || 0;
-            const employerTotal = employerRes.data.quantity_employer || 0;
-
-            const jobStats = processStatsData(jobRes.data, jobTotal);
-            const candidateStats = processStatsData(candidateRes.data, candidateTotal);
-            const employerStats = processStatsData(employerRes.data, employerTotal);
+            
+            const jobStats = processStatsData({}, jobTotal);
+            const candidateStats = processStatsData({}, candidateTotal);
+            const employerStats = processStatsData({}, employerTotal);
 
             setStats({
-                job_stats: {
-                    ...jobStats,
-                    total: jobTotal,
-                },
-                candidate_stats: {
-                    ...candidateStats,
-                    total: candidateTotal,
-                },
-                employer_stats: {
-                    ...employerStats,
-                    total: employerTotal,
-                },
+                job_stats: { ...jobStats, total: jobTotal },
+                candidate_stats: { ...candidateStats, total: candidateTotal },
+                employer_stats: { ...employerStats, total: employerTotal },
             });
+
         } catch (e) {
             console.error('Lỗi khi lấy dữ liệu thống kê:', e);
-            if (e.response && e.response.status === 404) {
-                setStats({
-                    job_stats: { labels: [], data: [], total: 0 },
-                    candidate_stats: { labels: [], data: [], total: 0 },
-                    employer_stats: { labels: [], data: [], total: 0 },
-                });
-            } else {
-                setError('Không thể tải dữ liệu thống kê. Vui lòng kiểm tra kết nối hoặc thử lại.');
-            }
+            setError('Không thể tải dữ liệu thống kê. Vui lòng kiểm tra kết nối hoặc thử lại.');
         } finally {
             setLoading(false);
         }
     };
 
+
     // FIX: Sửa lại cách handle date change để tránh hiển thị 2 button
     const onFromDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || fromDate;
-        
+
         // Đóng picker trước
         setShowFromDatePicker(false);
-        
+
         if (Platform.OS === 'android') {
             // Trên Android, chỉ cập nhật khi user chọn OK
             if (event.type === 'set') {
@@ -195,10 +303,10 @@ export default function AdminAnalytics() {
 
     const onToDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || toDate;
-        
+
         // Đóng picker trước
         setShowToDatePicker(false);
-        
+
         if (Platform.OS === 'android') {
             // Trên Android, chỉ cập nhật khi user chọn OK
             if (event.type === 'set') {
@@ -401,9 +509,9 @@ export default function AdminAnalytics() {
                             {/* Date Range Picker */}
                             <View style={styles.dateSelector}>
                                 <Text style={styles.sectionTitle}>Khoảng thời gian</Text>
-                                
+
                                 <View style={styles.datePickerContainer}>
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         style={styles.datePickerButton}
                                         onPress={() => setShowFromDatePicker(true)}
                                     >
@@ -417,7 +525,7 @@ export default function AdminAnalytics() {
                                         <Icon name="keyboard-arrow-down" size={20} color={Colors.PRIMARY} />
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         style={styles.datePickerButton}
                                         onPress={() => setShowToDatePicker(true)}
                                     >
@@ -520,7 +628,7 @@ const styles = StyleSheet.create({
         color: '#1A1A1A',
         marginBottom: 16,
     },
-    
+
     // Summary Cards
     summaryContainer: {
         marginBottom: 32,
