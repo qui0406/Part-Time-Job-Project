@@ -54,7 +54,6 @@ export default function MyApplications() {
     
             setApplications(applicationData);
         } catch (error) {
-            console.error('Lỗi khi tải danh sách ứng tuyển:', error);
             Alert.alert('Lỗi', 'Không thể tải danh sách ứng tuyển. Vui lòng thử lại.');
             setApplications([]);
         } finally {
