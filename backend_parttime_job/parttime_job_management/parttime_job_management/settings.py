@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-mxv%^zkz*#e&olze4&4&t-_m%h+qc2+7v%iua7w4$q-n3@j&8b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.1.18', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.ngrok-free.app', '192.168.2.170', 'localhost', '127.0.0.1']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
                                                                                        
 
@@ -44,7 +44,6 @@ WORKFLOW_ID = 'b5e8c290-d48f-4cbc-b602-b2b52987f392'  # ID của workflow bạn 
 ID_ANALYZER_API_KEY= '1cmi6EWuJ0cbIT6yqsFQvYbUqNFLwfpe'
 
 
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',

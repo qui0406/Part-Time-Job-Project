@@ -431,11 +431,11 @@ export default function CandidateNotifications() {
                 applicationNotifications = applicationsResponse.data.filter(app => app.status === 'accepted' || app.status === 'rejected');
             }
 
-            console.log('Application notifications found:', applicationNotifications.length);
+            console.log('Application notifications found:', applicationNotifications);
 
             const applicationNotificationItems = applicationNotifications.map(app => {
-                const jobTitle = app.job?.title || 'Công việc không xác định';
-                const companyName = app.job?.company_name || 'Công ty không xác định';
+                const jobTitle = app.job || 'Công việc không xác định';
+                const companyName = app.job|| 'Công ty không xác định';
                 const statusText = app.status === 'accepted' ? 'Đậu' : 'Rớt';
 
                 return {
