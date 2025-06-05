@@ -52,14 +52,9 @@ const JobDetail = () => {
                 setRatings([]);
             }
         } catch (ex) {
-            // console.error('Lỗi khi lấy đánh giá:', ex);
-            // if (ex.response?.status === 404) {
-            //     setRatings([]);
-            // } else if (ex.response?.status === 403) {
-            //     alert('Lỗi: Bạn không có quyền xem đánh giá này');
-            // } else {
-            //     alert('Lỗi: Không thể tải danh sách đánh giá. Vui lòng thử lại.');
-            // }
+            alert('Lỗi: Không thể tải đánh giá, vui lòng thử lại sau');
+            setRatings([]);
+            setNextPage(null);
         } finally {
             setLoading(false);
         }
