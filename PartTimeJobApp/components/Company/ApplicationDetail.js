@@ -1274,62 +1274,54 @@ export default function ApplicationDetail() {
 
   // Lấy đánh giá và phản hồi cho ứng viên
   const loadRatings = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        Alert.alert('Lỗi', 'Vui lòng đăng nhập để xem đánh giá');
-        return;
-      }
-  
-      const application_id = applicationId || initialApplication?.id;
-      if (!application_id) {
-        console.log('Thiếu application_id:', { initialApplication, application });
-        Alert.alert('Lỗi', 'Không tìm thấy ID đơn ứng tuyển');
-        return;
-      }
-  
-      // Lấy employer_id từ application hoặc user hiện tại
-      const source = initialApplication || application;
-      const employer_id = source?.job?.company?.user?.id || user?.id; // Employer ID có thể là từ job company hoặc user hiện tại
-      
-      if (!employer_id) {
-        console.log('Thiếu employer_id. Dữ liệu:', JSON.stringify(source, null, 2));
-        Alert.alert('Lỗi', 'Không tìm thấy thông tin nhà tuyển dụng');
-        return;
-      }
-  
-      // Ghi log yêu cầu API để debug
-      console.log('Gửi yêu cầu API:', {
-        url: `${endpoints['comment-employer-details']}get-all-comments/`,
-        employer_id,
-        application_id,
-      });
-  
-      // Sử dụng đúng tham số theo API endpoint
-      const url = `${endpoints['comment-employer-details']}get-all-comments/?employer_id=${employer_id}&application_id=${application_id}`;
-      const res = await authApi(token).get(url);
-      
-      console.log('API Response:', res.data); // Log để debug
-      setRatings(res.data || []);
-    } catch (ex) {
-      console.error('Lỗi khi lấy đánh giá:', ex);
-      console.log('Chi tiết lỗi:', {
-        status: ex.response?.status,
-        data: ex.response?.data,
-        message: ex.message,
-      });
-  
-      if (ex.response?.status === 404) {
-        setRatings([]);
-      } else if (ex.response?.status === 403) {
-        Alert.alert('Lỗi', 'Bạn không có quyền xem đánh giá này');
-      } else if (ex.response?.status === 500) {
-        Alert.alert('Lỗi', 'Hệ thống gặp sự cố. Vui lòng thử lại sau.');
-      } else {
-        Alert.alert('Lỗi', `Không thể tải danh sách đánh giá: ${ex.message}`);
-      }
+  try {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      Alert.alert('Lỗi', 'Vui lòng đăng nhập để xem đánh giá');
+      return;
     }
-  };
+
+    const application_id = applicationId || initialApplication?.id;
+    if (!application_id) {
+      console.log('Thiếu application_id:', { initialApplication, application });
+      Alert.alert('Lỗi', 'Không tìm thấy ID đơn ứng tuyển');
+      return;
+    }
+
+    const url = `${endpoints['comment-details']}get-comment-by-employer-for-user/`;
+    console.log('Gửi yêu cầu API:', url);
+    const res = await authApi(token).get(url);
+
+    console.log('API Response:', JSON.stringify(res.data, null, 2)); // Log để debug
+
+    // Kiểm tra và đảm bảo ratings là một mảng
+    const ratingsData = res.data?.ratings || [];
+    if (!Array.isArray(ratingsData)) {
+      console.warn('Dữ liệu ratings không phải mảng:', ratingsData);
+      setRatings([]);
+    } else {
+      setRatings(ratingsData);
+    }
+  } catch (ex) {
+    console.error('Lỗi khi lấy đánh giá:', ex);
+    console.log('Chi tiết lỗi:', {
+      status: ex.response?.status,
+      data: ex.response?.data,
+      message: ex.message,
+    });
+
+    if (ex.response?.status === 404) {
+      setRatings([]);
+    } else if (ex.response?.status === 403) {
+      Alert.alert('Lỗi', 'Bạn không có quyền xem đánh giá này');
+    } else if (ex.response?.status === 500) {
+      Alert.alert('Lỗi', 'Hệ thống gặp sự cố. Vui lòng thử lại sau.');
+    } else {
+      Alert.alert('Lỗi', `Không thể tải danh sách đánh giá: ${ex.message}`);
+    }
+    setRatings([]); // Đặt ratings về mảng rỗng trong trường hợp lỗi
+  }
+};
   
 
   const handleOpenCV = async () => {
