@@ -3,7 +3,6 @@ from rest_framework.routers import DefaultRouter
 from parttime_job import views
 import oauth2_provider.views as oauth2_views
 from django.conf import settings
-from django_rest_passwordreset import urls as reset_password_urls
 from rest_framework import routers
 
 
@@ -22,7 +21,6 @@ router.register('ratings', views.RatingViewSet, basename='rating')
 router.register('employer-ratings', views.EmployerRatingViewSet, basename='employer-rating')
 router.register('stats', views.StatsViewSet, basename='stats')
 router.register('verify-document', views.VerifyDocumentViewSet, basename='verify-document')
-
 router.register('conversations', views.ConversationViewSet, basename='conversation')
 router.register('messages', views.MessageViewSet, basename='message')
 router.register('comment-details', views.CommentDetailViewSet, basename='comment-details')

@@ -3,24 +3,14 @@ from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.models import PermissionsMixin
-from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
 import uuid
 from django.utils import timezone
-# from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django_rest_passwordreset.signals import reset_password_token_created
-from django.dispatch import receiver
-from django.urls import reverse
-from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
-from django.utils.html import strip_tags
 
-from rest_framework.authtoken.models import Token
 from django.conf import settings
 from django.core import signing
-
+from django.core.validators import validate_email
 
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)
@@ -43,10 +33,10 @@ class User(AbstractUser, BaseModel):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     role = models.CharField(
         max_length=20, choices=ROLE_CHOICES, default=CANDIDATE)
-    email = models.EmailField(unique=True, null=True, blank=True)
-    avatar = CloudinaryField(null=True)
+    email = models.EmailField(unique=True, blank=True, validators=[validate_email])
+    avatar = CloudinaryField(null= False)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
-    is_verified = models.BooleanField(default=False)  # Xac thuc nguoi dung
+    is_verified = models.BooleanField(default=False)  
 
     modified_date = models.DateTimeField(default=timezone.now)
 
@@ -67,7 +57,6 @@ class UserProfile(models.Model):
     def firebase_password(self):
         if self._firebase_password:
             try:
-                # Decode bytes to string and load the signed value
                 password_str = self._firebase_password.decode('utf-8')
                 return signing.loads(password_str)
             except (signing.BadSignature, UnicodeDecodeError, ValueError) as e:
@@ -77,14 +66,12 @@ class UserProfile(models.Model):
     @firebase_password.setter
     def firebase_password(self, value):
         if value:
-            # Serialize and encode to bytes
             self._firebase_password = signing.dumps(value).encode('utf-8')
         else:
             self._firebase_password = None
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
-
 
 
 class Company(BaseModel):
@@ -119,10 +106,6 @@ class CompanyApprovalHistory(models.Model):
     is_rejected = models.BooleanField()
     reason = models.TextField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        status = "Phê duyệt" if self.is_approved else "Từ chối"
-        return f"{status} - {self.company.name} - {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
 
 
 class Job(BaseModel):
@@ -160,8 +143,7 @@ class Application(BaseModel):
         unique_together = ('job', 'user')
 
     def __str__(self):
-        return f"{self.user.username if self.user else 'No User'} ứng tuyển {self.job.title}"
-
+        return self.job.title
 
 
 class Notification(BaseModel):
@@ -171,7 +153,7 @@ class Notification(BaseModel):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, null=True, blank=True) 
 
     def __str__(self):
-        return f"Notification to {self.user.username} - {'Đã đọc' if self.is_read else 'Chưa đọc'}"
+        return self.message
 
 class Follow(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -179,7 +161,7 @@ class Follow(BaseModel):
     class Meta:
         unique_together = ('user', 'company')
     def __str__(self):
-        return f"{self.user.username} follows {self.company.company_name}"
+        return self.company.company_name
 
 
 class Rating(BaseModel):
@@ -194,27 +176,26 @@ class Rating(BaseModel):
         unique_together = ('user', 'company', 'job')
 
     def __str__(self):
-        return f"Rating({self.user} → {self.company}): {self.rating}★"
+        return self.rating 
 
 class CommentDetail(BaseModel):
-    rating_employer = models.OneToOneField('Rating', on_delete=models.CASCADE) # nhà tuyển dụng 
+    rating_employer = models.OneToOneField('Rating', on_delete=models.CASCADE) 
     employer_reply = models.TextField(blank=True)
     
     def __str__(self):
-        return f"CommentDetail for {self.rating_employer.employer.username} on {self.rating_employer.user.username}"
+        return self.employer_reply
     
 class ReplyCommetFromEmployerDetail(BaseModel):
-    rating_candidate = models.OneToOneField('EmployerRating', on_delete=models.CASCADE) # nhà tuyển dụng 
+    rating_candidate = models.OneToOneField('EmployerRating', on_delete=models.CASCADE) 
     candidate_reply = models.TextField(blank=True)
     
     def __str__(self):
-        return f"CommentDetail for {self.rating_employer.employer.username} on {self.rating_employer.user.username}"
-    
+        return self.candidate_reply
 
 
 class EmployerRating(BaseModel):
     employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given_applicant_ratings") 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="candidate_ratings")  # ứng viên
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="candidate_ratings")
     application = models.ForeignKey(Application, on_delete=models.SET_NULL, null=True, blank=True)
     rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
@@ -224,8 +205,8 @@ class EmployerRating(BaseModel):
         unique_together = ('employer', 'user', 'application')
 
     def __str__(self):
-        return f"EmployerRating({self.employer.username} → {self.user.username}): {self.rating}★"
-
+        return self.rating
+    
 class VerificationDocument(models.Model):
     DOCUMENT_TYPE_CHOICES = (
         ('id_card', 'CMND/CCCD'),
@@ -233,7 +214,6 @@ class VerificationDocument(models.Model):
         ('student_card', 'Thẻ sinh viên'),
         ('other', 'Khác'),
     )
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -245,20 +225,14 @@ class VerificationDocument(models.Model):
     selfie_image = CloudinaryField('selfie_image', resource_type='image', blank=True, null=True)
 
     verified = models.BooleanField(default=False)
-    reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="reviewed_documents"
-    )
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="reviewed_documents")
     reviewed_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True, null=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.get_document_type_display()} - {'Đã xác minh' if self.verified else 'Chưa xác minh'}"
+        return self.user.username
 
 class Conversation(BaseModel):
     candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name="candidate_conversations")
@@ -270,8 +244,7 @@ class Conversation(BaseModel):
         ordering = ['-created_date']
 
     def __str__(self):
-        return f"Conversation between {self.candidate.username} and {self.employer.username}"
-
+        return self.candidate.username + " - " + self.employer.username
 
 class Message(BaseModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
@@ -283,4 +256,4 @@ class Message(BaseModel):
     is_read = models.BooleanField(default=False)
     
     def __str__(self):
-        return f"{self.sender} to {self.receiver}: {self.content}"
+        return self.conversation

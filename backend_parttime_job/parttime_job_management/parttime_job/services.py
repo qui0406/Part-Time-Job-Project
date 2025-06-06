@@ -11,7 +11,6 @@ class IdAnalyzerService:
     @staticmethod
     def verify_document(document_front, document_back=None, selfie_image=None):
         if not document_front:
-            logger.warning("No front document image provided — verification failed.")
             return {
                 'success': False,
                 'verified': False,
@@ -24,12 +23,9 @@ class IdAnalyzerService:
         
         if document_back:
             files['backfile'] = (document_back.name, document_back.read(), document_back.content_type)
-            logger.info(f"Processing back image: {document_back.name}, size: {document_back.size} bytes")
         
         if selfie_image:
             files['biometric_photo'] = (selfie_image.name, selfie_image.read(), selfie_image.content_type)
-            logger.info(f"Processing selfie: {selfie_image.name}, size: {selfie_image.size} bytes")
-
         payload = {
             'apikey': IdAnalyzerService.API_KEY,
             'outputimage': 'false',
@@ -43,14 +39,11 @@ class IdAnalyzerService:
         }
 
         try:
-            logger.debug(f"API request - Payload: {payload}, Files: {list(files.keys())}")
             response = requests.post(IdAnalyzerService.API_URL, data=payload, files=files)
             response.raise_for_status()
-            
             return IdAnalyzerService._process_response(response.json())
         
         except requests.RequestException as e:
-            logger.error(f"API verification error: {str(e)}")
             return {
                 'success': False,
                 'verified': False,
