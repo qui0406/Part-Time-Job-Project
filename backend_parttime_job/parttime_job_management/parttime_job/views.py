@@ -5,7 +5,7 @@ from . import paginators, perms, models, signals
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, UserProfile, CommentDetail, ReplyCommetFromEmployerDetail, UserProfile
 from .serializers import UserSerializer, UserUpdateSerializer, CompanySerializer, CompanyImageSerializer, JobSerializer, ApplicationSerializer, FollowSerializer, NotificationSerializer, RatingSerializer, EmployerRatingSerializer, DocumentVerificationSerializer, ApplicationDetailSerializer, ConversationSerializer, MessageSerializer, CommentDetailSerializer, RatingDetailSerializer, RatingWithCommentSerializer, ReplyCommentEmployerDetailSerializer, RatingEmployerWithCommentSerializer, ApplicationJobSerializer
-from rest_framework import status as drf_status
+from rest_framework import status
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.conf import settings
@@ -215,7 +215,7 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
     pagination_class = paginators.JobPagination
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = self.queryset
         title = self.request.query_params.get('title')
         min_salary = self.request.query_params.get('min_salary')
         max_salary = self.request.query_params.get('max_salary')
@@ -247,29 +247,6 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
-    def list(self, request):
-        queryset = self.get_queryset()
-        title = request.query_params.get('title')
-        min_salary = self.request.query_params.get('min_salary')
-        max_salary = self.request.query_params.get('max_salary')
-        work_time = self.request.query_params.get('working_time')
-
-        if title:
-            queryset = queryset.filter(title__icontains=title)
-        if min_salary:
-            queryset = queryset.filter(salary__gte=min_salary)
-        if max_salary:
-            queryset = queryset.filter(salary__lte=max_salary)
-        if work_time:
-            queryset = queryset.filter(working_time__icontains=work_time)
-        queryset = queryset.distinct()
-
-        page = self.paginate_queryset(queryset)
-        if page:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
     @action(methods=['post'], url_path='create-job', detail=False)
     def create_job(self, request):
@@ -375,7 +352,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
         try: 
             company = Company.objects.filter(user=user, active=True, is_approved=True).first()
         except Exception as e:
-            return Response({"detail": "Không tìm user"}, status=drf_status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm user"}, status=status.HTTP_404_NOT_FOUND)
         if not company:
             return Response({"detail": "Bạn không có quyền truy cập vào công ty"}, status=403)
         jobs = Job.objects.filter(company=company, active=True)
@@ -398,18 +375,18 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
 
             if application.job.company.user != user:
                 return Response({"detail": "Bạn không có quyền cập nhật đơn ứng tuyển"},
-                                status=drf_status.HTTP_403_FORBIDDEN)
+                                status=status.HTTP_403_FORBIDDEN)
 
             new_status = request.data.get('status')
             if new_status not in ['accepted', 'rejected']:
                 return Response({"detail": "Sai cú pháp"},
-                                status=drf_status.HTTP_400_BAD_REQUEST)
+                                status=status.HTTP_400_BAD_REQUEST)
 
             application.status = new_status
             application.save()
             return Response({"detail": f"Đơn ứng tuyển đã được cập nhật trạng thái '{new_status}'."})
         except Exception as e:
-            return Response({"detail": f"Không tìm thấy: {str(e)}"}, status=drf_status.HTTP_404_NOT_FOUND)
+            return Response({"detail": f"Không tìm thấy: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
 
 
     @action(methods=['post'], url_path='apply', detail=False)

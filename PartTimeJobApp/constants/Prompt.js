@@ -34,21 +34,6 @@ export default {
  LOG  Item: {"cong_viec": "Dịch sách"}
  LOG  Item: {"cong_viec": "Giảng viên online"}
  LOG  Kết quả từ AI model: [
-  {
-    "job": ""
-  },
-  {
-    "job": ""
-  },
-  {
-    "job": ""
-  },
-  {
-    "job": ""
-  },
-  {
-    "job": ""
-  }
-]
+  
     `,
 }
