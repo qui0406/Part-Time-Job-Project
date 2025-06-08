@@ -11,20 +11,23 @@ import Prompt from './../../constants/Prompt';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Chip } from 'react-native-paper';
 
-export default function Home() {
+const Home = () => {
+
     const [jobs, setJobs] = useState([]);
-    const [visibleJobs, setVisibleJobs] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+
+
+    const [q, setQ] = useState('');
     const [searchField, setSearchField] = useState('title');
     const [isSearching, setIsSearching] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
-    const [jobAiGenerated, setJobAiGenerated] = useState([]);
 
-    const navigation = useNavigation();
+
+    const [trendingJobs, setTrendingJobs] = useState([]);
+
+    const nav = useNavigation();
     const user = useContext(MyUserContext);
 
     const searchOptions = [
@@ -33,75 +36,74 @@ export default function Home() {
         { label: 'Thời gian làm việc', value: 'working_time' }
     ];
 
-    useEffect(() => {
-        if (user && user.role === 'candidate') {
-            generateTrendingJobAiModel();
-            fetchJobs(true, 1);
-        }
-    }, [user]);
-
-    const generateTrendingJobAiModel = async () => {
+    const loadTrendingJobs = async () => {
         try {
             const PROMT = Prompt.GenerateTrendingJob;
             const aiRes = await GenerateTrendingJob.sendMessage(PROMT);
             const result = aiRes.response.text();
-            console.log('Kết quả từ AI model:', result);
             const parsedResult = JSON.parse(result);
-            if (!Array.isArray(parsedResult) || parsedResult.length === 0) {
-                throw new Error('Invalid or empty AI job data');
+
+            if (Array.isArray(parsedResult) && parsedResult.length > 0) {
+                setTrendingJobs(parsedResult.map((item, index) => ({
+                    ...item,
+                    id: item.id || `trending_${index}_${item.cong_viec || item.job || 'unknown'}`, // Tạo id duy nhất
+                    job_title: item.cong_viec || item.job || 'Unknown'
+                })));
+            } else {
+                setTrendingJobs([]);
             }
-            setJobAiGenerated(parsedResult.map(item => ({
-                ...item,
-                job_title: item.cong_viec || item.job || 'Unknown'
-            })));
         } catch (error) {
             console.error('AI model error:', error);
-            Alert.alert('Error', 'Failed to load trending jobs. Please try again later.');
+            setTrendingJobs([]);
         }
     };
 
-    const fetchJobs = async (isInitial = false, page = 1, filters = {}) => {
-        try {
-            setLoading(true);
-            const token = await AsyncStorage.getItem('token');
-            if (!token) {
-                throw new Error('No authentication token found');
+    // Load jobs
+    const loadJobs = useCallback(async () => {
+        if (page > 0) {
+            try {
+                setLoading(true);
+                const token = await AsyncStorage.getItem('token');
+                if (!token) throw new Error('No token');
+
+                let url = `${endpoints['job-list']}?page=${page}&page_size=3`;
+                if (q) {
+                    if (searchField === 'salary') {
+                        const salaryParams = parseSalary(q);
+                        if (salaryParams) {
+                            if (salaryParams.min_salary) url += `&min_salary=${salaryParams.min_salary}`;
+                            if (salaryParams.max_salary) url += `&max_salary=${salaryParams.max_salary}`;
+                        }
+                    } else {
+                        url += `&${searchField}=${q}`;
+                    }
+                }
+
+                const res = await authApi(token).get(url);
+                console.log('Jobs API response:', res.data);
+                const jobsData = res.data.results || [];
+
+                const uniqueJobs = jobsData.map((item, index) => ({
+                    ...item,
+                    id: item.id || `job_${index}_${page}`, // Fallback id
+                }));
+
+                setJobs(page === 1 ? uniqueJobs : [...jobs, ...uniqueJobs]);
+                setTotalPages(Math.ceil((res.data.count || 0) / 3));
+
+                if (res.data.next === null) {
+                    setPage(0);
+                }
+            } catch (error) {
+                console.error('Load jobs error:', error);
+                Alert.alert('Lỗi', 'Không thể tải danh sách công việc');
+            } finally {
+                setLoading(false);
             }
-            const url = `${endpoints['job-list']}?page=${page}&page_size=3${filters ? `&${new URLSearchParams(filters).toString()}` : ''}`;
-            const response = await authApi(token).get(url);
-            const jobsData = response.data.results || [];
-
-            if (!Array.isArray(jobsData)) {
-                throw new Error('Invalid job data format');
-            }
-
-            console.log('Jobs data:', jobsData);
-
-            const newJobs = isInitial ? jobsData : [...jobs, ...jobsData].filter((job, index, self) =>
-                index === self.findIndex((t) => t.id === job.id)
-            );
-            setJobs(newJobs);
-            setVisibleJobs(isInitial ? jobsData : newJobs);
-            setTotalPages(Math.ceil((response.data.count || 0) / 3));
-            setCurrentPage(page);
-            setHasMore(!!response.data.next);
-        } catch (error) {
-            console.error('Fetch jobs error:', error);
-            Alert.alert(
-                'Error',
-                error.message === 'Invalid job data format'
-                    ? 'Invalid job data received from server.'
-                    : 'Failed to load jobs. Please check your network and try again.',
-                [
-                    { text: 'Retry', onPress: () => fetchJobs(isInitial, page, filters) },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [page, q, searchField]);
 
+    // Parse salary 
     const parseSalary = (query) => {
         const cleanQuery = query.replace(/[^0-9kKmM-]/g, '').toLowerCase();
         const rangeMatch = cleanQuery.match(/(\d+[km]?)-(\d+[km]?)/);
@@ -118,65 +120,73 @@ export default function Home() {
         return null;
     };
 
+    // Load initial data 
+    useEffect(() => {
+        if (user && user.role === 'candidate') {
+            setPage(1);
+            setJobs([]);
+            loadTrendingJobs();
+            loadJobs();
+        }
+    }, [user]);
+
+    // Load jobs với delay 
+    useEffect(() => {
+        let timer = setTimeout(() => {
+            loadJobs();
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [q, page, searchField]);
+
+    // Load more function
+    const loadMore = () => {
+        if (!loading && page > 0) {
+            setPage(page + 1);
+        }
+    };
+
+    // Search function 
+    const search = (value, callback) => {
+        setPage(1);
+        setJobs([]);
+        callback(value);
+    };
+
+    // Handle search 
     const handleSearch = useCallback(async () => {
-        if (!searchQuery.trim()) {
+        if (!q.trim()) {
             if (isSearching) {
                 clearSearch();
             }
             return;
         }
 
-        setIsSearching(true);
-        const filters = {};
-
         if (searchField === 'salary') {
-            const salaryParams = parseSalary(searchQuery);
+            const salaryParams = parseSalary(q);
             if (!salaryParams) {
                 Alert.alert('Lỗi', 'Vui lòng nhập mức lương hợp lệ (VD: 30k, 30k-50k, 5m)');
                 return;
             }
-            Object.assign(filters, salaryParams);
-        } else {
-            filters[searchField] = searchQuery;
         }
 
-        try {
-            await fetchJobs(true, 1, filters);
-            if (jobs.length === 0) {
-                Alert.alert('Thông báo', 'Không tìm thấy công việc phù hợp.');
-            }
-        } catch (error) {
-            Alert.alert('Lỗi', 'Không thể thực hiện tìm kiếm, vui lòng thử lại');
-        }
-    }, [searchQuery, searchField, jobs, isSearching]);
+        setIsSearching(true);
+        search(q, setQ);
+    }, [q, searchField, isSearching]);
 
+    // Clear search 
     const clearSearch = useCallback(() => {
-        setSearchQuery('');
+        search('', setQ);
         setIsSearching(false);
-        setCurrentPage(1);
-        fetchJobs(true, 1);
     }, []);
 
-    const handleApply = async (jobId) => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            await authApi(token).post(`${endpoints['job-list']}${jobId}/apply/`);
-            Alert.alert('Thành công', 'Ứng tuyển thành công!');
-        } catch (error) {
-            Alert.alert('Lỗi', 'Không thể ứng tuyển, vui lòng thử lại');
-        }
-    };
-
-    const handleCompanyClick = useCallback((companyId, companyName) => {
-        navigation.navigate('CompanyDetail', { company: { id: companyId, company_name: companyName } });
-    }, [navigation]);
-
+    // Render functions
     const renderSearchPlaceholder = () => {
         switch (searchField) {
             case 'salary':
                 return 'Nhập mức lương (VD: 30k, 30k-50k)';
             case 'working_time':
-                return 'Nhập thời gian làm việc (VD: Ca sáng)';
+                return 'Nhập thời gian làm việc';
             default:
                 return 'Tìm kiếm công việc';
         }
@@ -185,54 +195,39 @@ export default function Home() {
     const renderJobItem = useCallback(({ item }) => (
         <TouchableOpacity
             style={styles.jobCard}
-            onPress={() => navigation.navigate('JobDetail', { job: item })}
+            onPress={() => nav.navigate('JobDetail', { job: item })}
             activeOpacity={0.7}
-            accessible={true}
-            accessibilityLabel={`Job: ${item.title}`}
         >
             <View style={styles.companyHeader}>
-                <TouchableOpacity onPress={() => handleCompanyClick(item.company, item.company_name)}>
+                <TouchableOpacity onPress={() => nav.navigate('CompanyDetail', { company: { id: item.company, company_name: item.company_name } })}>
                     <Text style={styles.companyName}>
                         {item.company_name || 'Công ty không xác định'}
                     </Text>
                 </TouchableOpacity>
-                <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} style={styles.heartIcon} />
+                <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} />
             </View>
             <Text style={styles.jobTitle}>{item.title}</Text>
             <Text style={styles.salary}>VNĐ {item.salary}</Text>
             <Text style={styles.jobDetail}>{item.working_time}</Text>
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={styles.applyButton}
-                    onPress={() => handleApply(item.id)}
-                    accessible={true}
-                    accessibilityLabel={`Apply for ${item.title}`}
-                >
-                    <Text style={styles.buttonText}>Ứng tuyển</Text>
-                </TouchableOpacity>
-            </View>
         </TouchableOpacity>
-    ), [navigation, handleCompanyClick]);
+    ), [nav]);
 
-    const renderFooter = () => {
-        if (loading) return <ActivityIndicator size="large" color={Colors.PRIMARY} style={styles.loader} />;
-        return null;
-    };
-
+    // Render pagination dots
     const renderPaginationDots = () => {
         if (totalPages <= 1) return null;
         const dots = [];
+        // const currentPage = Math.ceil(jobs.length / 3) || 1;
+
         for (let i = 1; i <= totalPages; i++) {
             dots.push(
                 <TouchableOpacity
                     key={i}
-                    style={[styles.dot, currentPage === i ? styles.activeDot : styles.inactiveDot]}
+                    style={[styles.dot, page === i ? styles.activeDot : styles.inactiveDot]}
                     onPress={() => {
-                        setCurrentPage(i);
-                        fetchJobs(true, i);
+                        setPage(i);
+                        setJobs([]);
+                        loadJobs();
                     }}
-                    accessible={true}
-                    accessibilityLabel={`Go to page ${i}`}
                 />
             );
         }
@@ -243,154 +238,149 @@ export default function Home() {
         );
     };
 
-    if (user.role !== 'candidate') {
+    // Kiểm tra role user
+    if (!user || user.role !== 'candidate') {
         return (
-            <View style={styles.container}>
+            <SafeAreaView style={styles.container}>
                 <Text style={styles.noJobsText}>Chào nhà tuyển dụng.</Text>
-            </View>
+            </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={{ flex: 1 }}>
-            <View style={styles.container}>
-                <View style={styles.searchWrapper}>
-                    <View style={styles.searchContainer}>
-                        <TouchableOpacity
-                            style={styles.dropdownButton}
-                            onPress={() => setShowDropdown(!showDropdown)}
-                            accessible={true}
-                            accessibilityLabel={`Search by ${searchOptions.find(opt => opt.value === searchField)?.label || 'title'}`}
-                        >
-                            <Text style={styles.dropdownButtonText}>
-                                {searchOptions.find(opt => opt.value === searchField)?.label || 'Tiêu đề'}
-                            </Text>
-                            <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={16} color={Colors.BLACK} />
-                        </TouchableOpacity>
-                        <TextInput
-                            style={styles.input}
-                            placeholder={renderSearchPlaceholder()}
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            onSubmitEditing={handleSearch}
-                            keyboardType={searchField === 'salary' ? 'numeric' : 'default'}
-                            accessible={true}
-                            accessibilityLabel="Search jobs"
-                        />
-                        {searchQuery.length > 0 && (
-                            <TouchableOpacity style={styles.clearButton} onPress={clearSearch} accessible={true} accessibilityLabel="Clear search">
-                                <Ionicons name="close-circle" size={20} color={Colors.GRAY} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                    <TouchableOpacity style={styles.searchButton} onPress={handleSearch} accessible={true} accessibilityLabel="Search">
-                        <Ionicons name="search" size={24} color={Colors.WHITE} />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.trendingContainer}>
-                    <Text style={styles.trendingLabel}>Trending Jobs</Text>
-                    <FlatList
-                        data={jobAiGenerated}
-                        keyExtractor={(item, index) => `CV${item.job_title}-${index}`}
-                        horizontal
-                        showsHorizontalScrollIndicator={true}
-                        contentContainerStyle={styles.horizontalList}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setSearchQuery(item.job_title);
-                                    setSearchField('title');
-                                    handleSearch();
-                                }}
-                                accessible={true}
-                                accessibilityLabel={`Search for ${item.job_title}`}
-                            >
-                                <Chip icon="label" style={styles.chip}>{item.job_title}</Chip>
-                            </TouchableOpacity>
-                        )}
-                    />
-                </View>
-                <Modal
-                    transparent={true}
-                    visible={showDropdown}
-                    animationType="fade"
-                    onRequestClose={() => setShowDropdown(false)}
-                >
+        <SafeAreaView style={styles.container}>
+
+            {/* Search Section với dropdown */}
+            <View style={styles.searchWrapper}>
+                <View style={styles.searchContainer}>
                     <TouchableOpacity
-                            style={styles.modalOverlay}
-                            activeOpacity={1}
-                            onPress={() => setShowDropdown(false)}
-                            accessible={true}
-                            accessibilityLabel="Close dropdown"
+                        style={styles.dropdownButton}
+                        onPress={() => setShowDropdown(!showDropdown)}
                     >
-                        <View style={styles.dropdownModal}>
-                            {searchOptions.map(option => (
-                                <TouchableOpacity
-                                    key={option.value}
-                                    style={[styles.dropdownItem, searchField === option.value && styles.dropdownItemActive]}
-                                    onPress={() => {
-                                        setSearchField(option.value);
-                                        setShowDropdown(false);
-                                    }}
-                                    accessible={true}
-                                    accessibilityLabel={`Select ${option.label}`}
-                                >
-                                    <Text
-                                        style={[styles.dropdownItemText, searchField === option.value && styles.dropdownItemTextActive]}
-                                    >
-                                        {option.label}
-                                    </Text>
-                                    {searchField === option.value && (
-                                        <Ionicons name="checkmark" size={20} color={Colors.PRIMARY} />
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </TouchableOpacity>
-                </Modal>
-                {isSearching && (
-                    <View style={styles.searchInfoContainer}>
-                        <Text style={styles.searchInfoText}>
-                            Tìm kiếm: {searchOptions.find(opt => opt.value === searchField)?.label} - "{searchQuery}"
+                        <Text style={styles.dropdownButtonText}>
+                            {searchOptions.find(opt => opt.value === searchField)?.label || 'Tiêu đề'}
                         </Text>
-                        <TouchableOpacity onPress={clearSearch} accessible={true} accessibilityLabel="Clear search results">
-                            <Text style={styles.clearSearchText}>Xóa</Text>
+                        <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={16} color={Colors.BLACK} />
+                    </TouchableOpacity>
+
+                    <TextInput
+                        style={styles.input}
+                        placeholder={renderSearchPlaceholder()}
+                        value={q}
+                        onChangeText={t => search(t, setQ)}
+                        onSubmitEditing={handleSearch}
+                        keyboardType={searchField === 'salary' ? 'numeric' : 'default'}
+                    />
+
+                    {q && q.length > 0 && (
+                        <TouchableOpacity style={styles.clearButton} onPress={clearSearch}>
+                            <Ionicons name="close-circle" size={20} color={Colors.GRAY} />
                         </TouchableOpacity>
+                    )}
+                </View>
+
+                <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+                    <Ionicons name="search" size={24} color={Colors.WHITE} />
+                </TouchableOpacity>
+            </View>
+            <View style={styles.trendingContainer}>
+                <Text style={styles.trendingLabel}>Công việc xu hướng</Text>
+                {/* <View style={[styles.row, styles.wrap]}>
+                    {trendingJobs.map((job, index) => (
+                        <TouchableOpacity
+                            key={`Trending${index}`}
+                            onPress={() => search(job.job_title, setQ)}
+                        >
+                            <Chip icon="label" style={styles.chip}>
+                                {job.job_title}
+                            </Chip>
+                        </TouchableOpacity>
+                    ))}
+                </View> */}
+                <View style={[styles.row, styles.wrap]}>
+                    {trendingJobs.map((job, index) => (
+                        <TouchableOpacity
+                            key={job.id || `trending_${index}_${job.job_title}`} // Sử dụng id duy nhất
+                            onPress={() => search(job.job_title, setQ)}
+                        >
+                            <Chip icon="label" style={styles.chip}>
+                                {job.job_title}
+                            </Chip>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+            {/* Search Info */}
+            {isSearching && (
+                <View style={styles.searchInfoContainer}>
+                    <Text style={styles.searchInfoText}>
+                        Tìm kiếm: {searchOptions.find(opt => opt.value === searchField)?.label} - "{q}"
+                    </Text>
+                    <TouchableOpacity onPress={clearSearch}>
+                        <Text style={styles.clearSearchText}>Xóa</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Dropdown Modal */}
+            <Modal
+                transparent={true}
+                visible={showDropdown}
+                animationType="fade"
+                onRequestClose={() => setShowDropdown(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowDropdown(false)}
+                >
+                    <View style={styles.dropdownModal}>
+                        {searchOptions.map(option => (
+                            <TouchableOpacity
+                                key={option.value}
+                                style={[styles.dropdownItem, searchField === option.value && styles.dropdownItemActive]}
+                                onPress={() => {
+                                    setSearchField(option.value);
+                                    setShowDropdown(false);
+                                }}
+                            >
+                                <Text style={[styles.dropdownItemText, searchField === option.value && styles.dropdownItemTextActive]}>
+                                    {option.label}
+                                </Text>
+                                {searchField === option.value && (
+                                    <Ionicons name="checkmark" size={20} color={Colors.PRIMARY} />
+                                )}
+                            </TouchableOpacity>
+                        ))}
                     </View>
-                )}
-                {visibleJobs.length > 0 ? (
-                    <>
-                        <FlatList
-                            data={visibleJobs}
-                            renderItem={renderJobItem}
-                            keyExtractor={(item) => item.id.toString()}
-                            contentContainerStyle={styles.listContainer}
-                            showsVerticalScrollIndicator={true}
-                            onEndReached={() => {
-                                if (!isSearching && hasMore && currentPage < totalPages) {
-                                    fetchJobs(false, currentPage + 1);
-                                }
-                            }}
-                            onEndReachedThreshold={0.5}
-                            ListFooterComponent={renderFooter}
-                        />
-                        {renderPaginationDots()}
-                    </>
-                ) : loading ? (
-                    <ActivityIndicator size="large" color={Colors.PRIMARY} style={styles.loader} />
-                ) : (
+                </TouchableOpacity>
+            </Modal>
+
+            <FlatList
+                onEndReached={loadMore}
+                onEndReachedThreshold={0.2}
+                ListFooterComponent={loading && <ActivityIndicator size="large" color={Colors.PRIMARY} style={styles.loader} />}
+                data={jobs}
+                renderItem={renderJobItem}
+                keyExtractor={(item) => item.id.toString()} // Đảm bảo id là duy nhất
+                contentContainerStyle={styles.listContainer}
+                showsVerticalScrollIndicator={true}
+                ListEmptyComponent={!loading && (
                     <View style={styles.noJobsContainer}>
                         <Ionicons name="search-outline" size={60} color={Colors.GRAY} />
                         <Text style={styles.noJobsText}>Không tìm thấy công việc phù hợp.</Text>
-                        <TouchableOpacity style={styles.retryButton} onPress={() => fetchJobs(true, 1)} accessible={true} accessibilityLabel="Reload job list">
+                        <TouchableOpacity style={styles.retryButton} onPress={() => { setPage(1); setJobs([]); loadJobs(); }}>
                             <Text style={styles.retryButtonText}>Tải lại danh sách</Text>
                         </TouchableOpacity>
                     </View>
                 )}
-            </View>
+            />
+
+            {/* Pagination Dots */}
+            {renderPaginationDots()}
         </SafeAreaView>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -399,6 +389,28 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingTop: 15,
     },
+    // Trending section styles
+    trendingContainer: {
+        marginBottom: 15,
+    },
+    trendingLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.BLACK,
+        marginBottom: 10,
+    },
+    row: {
+        flexDirection: 'row',
+    },
+    wrap: {
+        flexWrap: 'wrap',
+    },
+    chip: {
+        margin: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    // Search styles
     searchWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -457,6 +469,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3,
     },
+    // Modal styles
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.2)',
@@ -494,6 +507,7 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
+    // Search info styles
     searchInfoContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -513,6 +527,7 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
+    // List styles
     listContainer: {
         paddingBottom: 20,
     },
@@ -541,9 +556,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#1E90FF',
     },
-    heartIcon: {
-        marginLeft: 10,
-    },
     jobTitle: {
         fontSize: 16,
         fontWeight: 'bold',
@@ -562,29 +574,12 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         fontWeight: '500',
     },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        marginTop: 10,
-    },
-    applyButton: {
-        backgroundColor: Colors.SUCCESS,
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-        width: 120,
-    },
-    buttonText: {
-        color: Colors.WHITE,
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
+    // Empty state styles
     noJobsContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingBottom: 50,
+        paddingVertical: 50,
     },
     noJobsText: {
         fontSize: 16,
@@ -606,6 +601,7 @@ const styles = StyleSheet.create({
     loader: {
         marginVertical: 10,
     },
+    // Pagination styles
     paginationContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
@@ -624,21 +620,6 @@ const styles = StyleSheet.create({
     inactiveDot: {
         backgroundColor: Colors.GRAY,
     },
-    trendingContainer: {
-        marginBottom: 15,
-    },
-    trendingLabel: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.BLACK,
-        marginBottom: 10,
-    },
-    horizontalList: {
-        paddingHorizontal: 5,
-    },
-    chip: {
-        margin: 5,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
 });
+
+export default Home;
