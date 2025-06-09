@@ -95,8 +95,13 @@ const Home = () => {
                     setPage(0);
                 }
             } catch (error) {
-                console.error('Load jobs error:', error);
-                Alert.alert('Lỗi', 'Không thể tải danh sách công việc');
+                // console.error('Load jobs error:', error);
+                if (error.response && error.response.status === 404) {
+                    setJobs([]); 
+                    setTotalPages(1);
+                } else {
+                    Alert.alert('Lỗi', 'Không thể tải danh sách công việc');
+                }
             } finally {
                 setLoading(false);
             }

@@ -31,7 +31,6 @@ export default function AdminAnalytics() {
         employer_stats: { labels: [], data: [], total: 0 },
     });
 
-    // State cho DateTimePicker - FIX: Thêm state riêng cho việc hiển thị picker
     const [fromDate, setFromDate] = useState(new Date(new Date().setMonth(new Date().getMonth() - 6)));
     const [toDate, setToDate] = useState(new Date());
     const [showFromDatePicker, setShowFromDatePicker] = useState(false);
@@ -47,117 +46,6 @@ export default function AdminAnalytics() {
         }
     }, [fromDate, toDate]);
 
-    // const fetchStats = async () => {
-    //     setLoading(true);
-    //     setError('');
-    //     try {
-    //         const token = await AsyncStorage.getItem('token');
-    //         if (!token) {
-    //             setError('Vui lòng đăng nhập lại.');
-    //             setLoading(false);
-    //             return;
-    //         }
-
-    //         const fromDateStr = fromDate.toISOString().split('T')[0];
-
-    //         const adjustedToDate = new Date(toDate);
-    //         adjustedToDate.setDate(adjustedToDate.getDate() + 1);
-    //         const toDateStr = adjustedToDate.toISOString().split('T')[0];
-
-
-    //         const [jobRes, candidateRes, employerRes] = await Promise.all([
-    //             authApi(token).get(endpoints['stats-quantity-job'], {
-    //                 params: { from_date: fromDateStr, to_date: toDateStr },
-    //             }),
-    //             authApi(token).get(endpoints['stats-quantity-candidate'], {
-    //                 params: { from_date: fromDateStr, to_date: toDateStr },
-    //             }),
-    //             authApi(token).get(endpoints['stats-quantity-employer'], {
-    //                 params: { from_date: fromDateStr, to_date: toDateStr },
-    //             }),
-    //         ]);
-    //         console.log('From:', fromDateStr, 'To:', toDateStr);
-
-    //         console.log('Job Response:', jobRes.data);
-    //         console.log('Candidate Response:', candidateRes.data);
-    //         console.log('Employer Response:', employerRes.data);
-
-    //         // FIX: Sửa lại cách tạo data cho chart
-    //         const processStatsData = (responseData, total) => {
-    //             const labels = [];
-    //             const data = [];
-    //             const diffTime = Math.abs(toDate - fromDate);
-    //             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    //             let current = new Date(fromDate);
-
-    //             // Xác định loại đơn vị thời gian
-    //             let timeUnit = 'day';
-    //             if (diffDays > 365) timeUnit = 'year';
-    //             else if (diffDays > 30) timeUnit = 'month';
-
-    //             // Tạo nhãn theo ngày/tháng/năm
-    //             while (current <= toDate) {
-    //                 if (timeUnit === 'day') {
-    //                     labels.push(current.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }));
-    //                     current.setDate(current.getDate() + 1);
-    //                 } else if (timeUnit === 'month') {
-    //                     labels.push(`${current.getMonth() + 1}/${current.getFullYear()}`);
-    //                     current.setMonth(current.getMonth() + 1);
-    //                 } else {
-    //                     labels.push(current.getFullYear().toString());
-    //                     current.setFullYear(current.getFullYear() + 1);
-    //                 }
-    //             }
-
-    //             // Chia đều total lên các mốc thời gian
-    //             const step = total > 0 ? Math.floor(total / labels.length) : 0;
-    //             const remainder = total % labels.length;
-    //             for (let i = 0; i < labels.length; i++) {
-    //                 data.push(i < remainder ? step + 1 : step);
-    //             }
-
-    //             return { labels, data };
-    //         };
-
-
-    //         const jobTotal = jobRes.data.quantity_job || 0;
-    //         const candidateTotal = candidateRes.data.quantity_user || 0;
-    //         const employerTotal = employerRes.data.quantity_employer || 0;
-
-    //         const jobStats = processStatsData(jobRes.data, jobTotal);
-    //         const candidateStats = processStatsData(candidateRes.data, candidateTotal);
-    //         const employerStats = processStatsData(employerRes.data, employerTotal);
-
-    //         setStats({
-    //             job_stats: {
-    //                 ...jobStats,
-    //                 total: jobTotal,
-    //             },
-    //             candidate_stats: {
-    //                 ...candidateStats,
-    //                 total: candidateTotal,
-    //             },
-    //             employer_stats: {
-    //                 ...employerStats,
-    //                 total: employerTotal,
-    //             },
-    //         });
-    //     } catch (e) {
-    //         console.error('Lỗi khi lấy dữ liệu thống kê:', e);
-    //         if (e.response && e.response.status === 404) {
-    //             setStats({
-    //                 job_stats: { labels: [], data: [], total: 0 },
-    //                 candidate_stats: { labels: [], data: [], total: 0 },
-    //                 employer_stats: { labels: [], data: [], total: 0 },
-    //             });
-    //         } else {
-    //             setError('Không thể tải dữ liệu thống kê. Vui lòng kiểm tra kết nối hoặc thử lại.');
-    //         }
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
     const fetchStats = async () => {
         setLoading(true);
         setError('');
@@ -172,7 +60,6 @@ export default function AdminAnalytics() {
 
             const fromDateStr = fromDate.toISOString().split('T')[0];
 
-            // ✅ Cộng thêm 1 ngày để bao gồm cả ngày toDate
             const adjustedToDate = new Date(toDate);
             adjustedToDate.setDate(adjustedToDate.getDate() + 1);
             const toDateStr = adjustedToDate.toISOString().split('T')[0];
@@ -205,6 +92,7 @@ export default function AdminAnalytics() {
             } catch (err) {
                 if (err.response?.status !== 404) throw err;
             }
+
             const processStatsData = (responseData, total) => {
                 const labels = [];
                 const data = [];
@@ -215,7 +103,6 @@ export default function AdminAnalytics() {
                 let unitCount = 0;
             
                 if (diffDays <= 30) {
-                    // Hiển thị theo ngày
                     while (current <= toDate) {
                         const dateStr = current.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
                         labels.push(dateStr);
@@ -223,7 +110,6 @@ export default function AdminAnalytics() {
                         unitCount++;
                     }
                 } else if (diffDays <= 365) {
-                    // Hiển thị theo tháng
                     while (current <= toDate) {
                         const monthStr = `${current.getMonth() + 1}/${current.getFullYear()}`;
                         labels.push(monthStr);
@@ -231,7 +117,6 @@ export default function AdminAnalytics() {
                         unitCount++;
                     }
                 } else {
-                    // Hiển thị theo năm
                     while (current <= toDate) {
                         const yearStr = current.getFullYear().toString();
                         labels.push(yearStr);
@@ -240,13 +125,11 @@ export default function AdminAnalytics() {
                     }
                 }
             
-                // Chia đều tổng số lượng
                 const evenValue = unitCount > 0 ? Math.floor(total / unitCount) : 0;
                 for (let i = 0; i < unitCount; i++) {
                     data.push(evenValue);
                 }
             
-                // Cộng phần dư vào các mốc đầu tiên
                 for (let i = 0; i < total % unitCount; i++) {
                     data[i]++;
                 }
@@ -272,16 +155,12 @@ export default function AdminAnalytics() {
         }
     };
 
-
-    // FIX: Sửa lại cách handle date change để tránh hiển thị 2 button
     const onFromDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || fromDate;
 
-        // Đóng picker trước
         setShowFromDatePicker(false);
 
         if (Platform.OS === 'android') {
-            // Trên Android, chỉ cập nhật khi user chọn OK
             if (event.type === 'set') {
                 if (currentDate <= toDate) {
                     setFromDate(currentDate);
@@ -291,7 +170,6 @@ export default function AdminAnalytics() {
                 }
             }
         } else {
-            // Trên iOS, cập nhật ngay lập tức
             if (currentDate <= toDate) {
                 setFromDate(currentDate);
             } else {
@@ -304,11 +182,9 @@ export default function AdminAnalytics() {
     const onToDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || toDate;
 
-        // Đóng picker trước
         setShowToDatePicker(false);
 
         if (Platform.OS === 'android') {
-            // Trên Android, chỉ cập nhật khi user chọn OK
             if (event.type === 'set') {
                 if (currentDate >= fromDate) {
                     setToDate(currentDate);
@@ -318,7 +194,6 @@ export default function AdminAnalytics() {
                 }
             }
         } else {
-            // Trên iOS, cập nhật ngay lập tức
             if (currentDate >= fromDate) {
                 setToDate(currentDate);
             } else {
@@ -326,6 +201,16 @@ export default function AdminAnalytics() {
                 setTimeout(() => setError(''), 3000);
             }
         }
+    };
+
+    const toggleFromDatePicker = () => {
+        console.log('Toggle from date picker'); // Log debug
+        setShowFromDatePicker(!showFromDatePicker);
+    };
+
+    const toggleToDatePicker = () => {
+        console.log('Toggle to date picker'); // Log debug
+        setShowToDatePicker(!showToDatePicker);
     };
 
     const chartConfig = {
@@ -460,7 +345,6 @@ export default function AdminAnalytics() {
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                 <View style={styles.container}>
-                    {/* Header */}
                     <View style={styles.header}>
                         <Text style={styles.title}>Thống kê & Báo cáo</Text>
                         <Text style={styles.subtitle}>Tổng quan hệ thống</Text>
@@ -473,7 +357,6 @@ export default function AdminAnalytics() {
                         </View>
                     ) : (
                         <>
-                            {/* Summary Cards */}
                             <View style={styles.summaryContainer}>
                                 <View style={[styles.summaryBox, styles.jobsCard]}>
                                     <View style={styles.summaryIcon}>
@@ -506,14 +389,13 @@ export default function AdminAnalytics() {
                                 </View>
                             </View>
 
-                            {/* Date Range Picker */}
                             <View style={styles.dateSelector}>
                                 <Text style={styles.sectionTitle}>Khoảng thời gian</Text>
 
                                 <View style={styles.datePickerContainer}>
                                     <TouchableOpacity
                                         style={styles.datePickerButton}
-                                        onPress={() => setShowFromDatePicker(true)}
+                                        onPress={toggleFromDatePicker}
                                     >
                                         <Icon name="date-range" size={20} color={Colors.PRIMARY} />
                                         <View style={styles.datePickerText}>
@@ -527,7 +409,7 @@ export default function AdminAnalytics() {
 
                                     <TouchableOpacity
                                         style={styles.datePickerButton}
-                                        onPress={() => setShowToDatePicker(true)}
+                                        onPress={toggleToDatePicker}
                                     >
                                         <Icon name="date-range" size={20} color={Colors.PRIMARY} />
                                         <View style={styles.datePickerText}>
@@ -540,7 +422,6 @@ export default function AdminAnalytics() {
                                     </TouchableOpacity>
                                 </View>
 
-                                {/* FIX: DateTimePicker chỉ hiển thị khi cần thiết và được xử lý đúng cách */}
                                 {showFromDatePicker && (
                                     <DateTimePicker
                                         testID="fromDateTimePicker"
@@ -629,7 +510,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
 
-    // Summary Cards
     summaryContainer: {
         marginBottom: 32,
     },
@@ -673,7 +553,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 
-    // Date Picker
     dateSelector: {
         marginBottom: 32,
     },
@@ -711,7 +590,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
-    // Error Handling
     errorContainer: {
         alignItems: 'center',
         padding: 40,
@@ -741,7 +619,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 
-    // Loading
     loadingContainer: {
         alignItems: 'center',
         padding: 40,
@@ -753,7 +630,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 
-    // Charts
     chartsContainer: {
         gap: 24,
     },
