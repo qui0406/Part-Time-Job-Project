@@ -189,7 +189,7 @@ class EmployerRating(BaseModel):
         unique_together = ('employer', 'user', 'application')
 
     def __str__(self):
-        return self.rating
+        return f"{self.employer.username} - {self.user.username} - {self.rating}"
     
 class VerificationDocument(models.Model):
     DOCUMENT_TYPE_CHOICES = (

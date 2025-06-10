@@ -1,18 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    TouchableWithoutFeedback,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
-    Alert,
-    Image, Button
+import {View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView,
+    Platform, ActivityIndicator, Alert, Image, Button
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from '../../constants/Colors';
@@ -69,7 +57,6 @@ export default function EmployerRegister() {
     });
 
 
-    // Function to search address using Nominatim API
     const searchAddress = async () => {
 
             try {
@@ -186,7 +173,6 @@ export default function EmployerRegister() {
                 }
             }
 
-            // Thêm hình ảnh vào form với tên trường là "images"
             employer.images.forEach((image, index) => {
                 form.append('images', {
                     name: image.fileName || `image_${index}.jpg`,
@@ -309,7 +295,6 @@ export default function EmployerRegister() {
 
 
 
-                            {/* Trường hình ảnh */}
                             <View style={styles.fieldContainer}>
                                 <Text style={styles.label}>Hình ảnh môi trường làm việc (ít nhất 3) *</Text>
                                 <TouchableOpacity style={styles.imageButton} onPress={pickImage}>

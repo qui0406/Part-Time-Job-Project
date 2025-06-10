@@ -152,8 +152,9 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             follow.active = not follow.active
             follow.save()
         serializer = FollowSerializer(follow)
-        message = "Đã theo dõi" if follow.active else "Bỏ theo dõi"
-        return Response({"detail": message, "data": serializer.data}, status=status.HTTP_200_OK)
+        status_follow = True if follow.active else False
+        
+        return Response({"detail": status_follow, "data": serializer.data}, status=status.HTTP_200_OK)
 
 
     @action(methods=['get'], url_path='followers-count', detail=True)  
@@ -330,6 +331,20 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
         except Exception as e:
             return Response({"detail": f"Không tìm thấy công việc: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(methods=['get'], url_path='get-all-job-company-by-candidate', detail=False, permission_classes= [permissions.IsAuthenticated, perms.IsCandidate])
+    def get_all_job_by_candidate(sef, request):
+        company_id = request.query_params.get('company_id')
+        company = Company.objects.filter(pk = company_id, active=True, is_approved=True).first()
+        if not company:
+            return Response({"detail": "Bạn không có quyền truy cập vào công ty"}, status=403)
+        jobs = Job.objects.filter(company=company, active=True)
+        
+        try:
+            return Response({
+                "jobs": JobSerializer(jobs, many=True, context={'request': request}).data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": f"Không tìm thấy công việc: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
 
 class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True)
@@ -626,6 +641,7 @@ class EmployerRatingViewSet(BaseRatingViewSet):
     queryset = EmployerRating.objects.all()
     serializer_class = EmployerRatingSerializer
     permission_classes = [permissions.IsAuthenticated, perms.IsEmployer]
+    pagination_class = paginators.RatingPagination
 
     def perform_create(self, serializer):
         employer = self.request.user
@@ -643,19 +659,17 @@ class EmployerRatingViewSet(BaseRatingViewSet):
         try: 
             application = Application.objects.get(pk=application_id, active=True)
             
-            employer_ratings = EmployerRating.objects.filter(user_id = application.user_id, active=True).order_by('-created_date')
+            employer_ratings = EmployerRating.objects.filter(user = application.user, active=True).order_by('-created_date')
         except Exception as e:
             return Response({"detail": "Đơn này không ở trạng thái đang chờ"}, status=status.HTTP_404_NOT_FOUND)
-        
+   
         page = self.paginate_queryset(employer_ratings)
-        if page:
+        if page is not None:
             serializer = RatingEmployerWithCommentSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
 
-        return Response({
-            "ratings": RatingEmployerWithCommentSerializer(employer_ratings, many=True, context={'request': request}).data
-        }, status=status.HTTP_200_OK)
-
+        serializer = RatingEmployerWithCommentSerializer(employer_ratings, many=True, context={'request': request})
+        return Response({"ratings": serializer.data}, status=status.HTTP_200_OK)
 
 class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = EmployerRating.objects.all()

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, Button, Alert, StyleSheet, ScrollView
-} from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';

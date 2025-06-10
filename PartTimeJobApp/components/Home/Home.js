@@ -93,8 +93,13 @@ const Home = () => {
                     setPage(0);
                 }
             } catch (error) {
-                console.error('Load jobs error:', error);
-                Alert.alert('Lỗi', 'Không thể tải danh sách công việc');
+                // console.error('Load jobs error:', error);
+                if (error.response && error.response.status === 404) {
+                    setJobs([]); 
+                    setTotalPages(1);
+                } else {
+                    Alert.alert('Lỗi', 'Không thể tải danh sách công việc');
+                }
             } finally {
                 setLoading(false);
             }
@@ -195,25 +200,45 @@ const Home = () => {
         }
     };
 
-    const renderJobItem = useCallback(({ item }) => (
-        <TouchableOpacity
-            style={styles.jobCard}
-            onPress={() => nav.navigate('JobDetail', { job: item })}
-            activeOpacity={0.7}
-        >
-            <View style={styles.companyHeader}>
-                <TouchableOpacity onPress={() => nav.navigate('CompanyDetail', { company: { id: item.company, company_name: item.company_name } })}>
-                    <Text style={styles.companyName}>
-                        {item.company_name || 'Công ty không xác định'}
-                    </Text>
-                </TouchableOpacity>
-                <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} />
-            </View>
-            <Text style={styles.jobTitle}>{item.title}</Text>
-            <Text style={styles.salary}>VNĐ {item.salary}</Text>
-            <Text style={styles.jobDetail}>{item.working_time}</Text>
-        </TouchableOpacity>
-    ), [nav]);
+    const renderJobItem = useCallback(({ item }) => {
+    const handleNavigation = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                Alert.alert('Lỗi', 'Không tìm thấy token. Vui lòng đăng nhập lại.');
+                nav.navigate('Login'); // Điều hướng đến màn hình đăng nhập nếu không có token
+                return;
+            }
+            nav.navigate('CompanyDetail', {
+                company: { id: item.company, company_name: item.company_name },
+                token,
+            });
+        } catch (error) {
+            console.error('Lỗi khi lấy token:', error);
+            Alert.alert('Lỗi', 'Không thể lấy token. Vui lòng thử lại.');
+        }
+    };
+
+        return (
+            <TouchableOpacity
+                style={styles.jobCard}
+                onPress={handleNavigation}
+                activeOpacity={0.7}
+            >
+                <View style={styles.companyHeader}>
+                    <TouchableOpacity onPress={handleNavigation}>
+                        <Text style={styles.companyName}>
+                            {item.company_name || 'Công ty không xác định'}
+                        </Text>
+                    </TouchableOpacity>
+                    <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} />
+                </View>
+                <Text style={styles.jobTitle}>{item.title}</Text>
+                <Text style={styles.salary}>VNĐ {item.salary}</Text>
+                <Text style={styles.jobDetail}>{item.working_time}</Text>
+            </TouchableOpacity>
+        );
+    }, [nav]);
 
     // Render pagination dots
     const renderPaginationDots = () => {

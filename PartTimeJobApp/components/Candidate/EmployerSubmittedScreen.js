@@ -11,7 +11,7 @@ export default function EmployerSubmittedScreen() {
     return (
         <View style={styles.container}>
             <Image
-                source={require('./../../assets/success.png')} // Bạn cần thêm hình ảnh này vào thư mục assets
+                source={require('./../../assets/success.png')} 
                 style={styles.image}
             />
             <Text style={styles.title}>Đăng ký đã được gửi!</Text>
