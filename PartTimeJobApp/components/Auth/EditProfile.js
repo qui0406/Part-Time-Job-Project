@@ -16,7 +16,6 @@ const EditProfile = () => {
     const currentUser = useContext(MyUserContext);
     const dispatch = useContext(MyDispacthContext);
     
-    // User profile state
     const [userData, setUserData] = useState({
         first_name: user?.first_name || "",
         last_name: user?.last_name || "",
@@ -25,7 +24,6 @@ const EditProfile = () => {
         phone_number: user?.phone_number || "",
     });
 
-    // Company state (only for employers)
     const [companyData, setCompanyData] = useState({
         company_name: companyDetails?.company_name || "",
         address: companyDetails?.address || "",

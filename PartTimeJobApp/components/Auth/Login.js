@@ -1,19 +1,6 @@
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Linking,
-  Alert,
-  ScrollView,
-  TouchableWithoutFeedback,
-  Keyboard,
+import {View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Linking, Alert, ScrollView, TouchableWithoutFeedback, Keyboard, 
   KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
+  Platform, ActivityIndicator,} from 'react-native';
 import axios from 'axios';
 import React, { useContext, useRef, useState } from 'react';
 import Colors from './../../constants/Colors';
@@ -67,7 +54,6 @@ export default function Login() {
 
 
   const handleBlur = () => {
-    // Ẩn bàn phím khi TextInput mất focus
     nav.navigate('Login');
   };
 
@@ -116,9 +102,6 @@ export default function Login() {
         let user = await authApi(res.data.access_token).get(endpoints['current-user']);
 
         dispatch({ "type": 'login', "payload": user.data });
-
-        // Lưu access_token vào AsyncStorage
-        // Lưu thông tin người dùng vào AsyncStorage
         AsyncStorage.setItem('user', JSON.stringify(user.data));
         nav.replace('MainTab')
       }, 100)
@@ -154,7 +137,7 @@ export default function Login() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <Image
-              source={require('./../../assets/logo.png')} // Thay bằng đường dẫn logo của bạn
+              source={require('./../../assets/logo.png')} 
               style={styles.logo}
               resizeMode="contain"
             />

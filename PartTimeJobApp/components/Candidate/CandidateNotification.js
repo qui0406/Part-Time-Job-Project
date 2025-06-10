@@ -29,7 +29,6 @@ export default function CandidateNotifications() {
 
             const currentUserId = user.id;
 
-            // Lấy đánh giá từ nhà tuyển dụng
             const ratingsResponse = await authApi(token).get(
                 `${endpoints['comment-employer-details']}get-notification-rating/`,
                 {
@@ -43,7 +42,7 @@ export default function CandidateNotifications() {
 
             let employerRatingNotifications = [];
             if (ratingsResponse.data && ratingsResponse.data.ratings) {
-                employerRatingNotifications = ratingsResponse.data.ratings;
+                employerRatingNotifications = ratingsResponse.data.ratings.filter(rating => !rating.is_reading);
             }
 
             console.log('Employer rating notifications found:', employerRatingNotifications.length);
@@ -62,11 +61,10 @@ export default function CandidateNotifications() {
                     ratingId: rating.id,
                     rating: rating,
                     type: 'employer_rating_notification',
-                    priority: rating.is_reading ? 3 : 2
+                    priority: 1 
                 };
             });
 
-            // Lấy thông báo kết quả đơn ứng tuyển
             const applicationsResponse = await authApi(token).get(
                 `${endpoints['application-profile']}notification-job-apply/`
             );
@@ -78,11 +76,11 @@ export default function CandidateNotifications() {
                 applicationNotifications = applicationsResponse.data.filter(app => app.status === 'accepted' || app.status === 'rejected');
             }
 
-            console.log('Application notifications found:', applicationNotifications);
+            console.log('Application notifications found:', applicationNotifications.length);
 
             const applicationNotificationItems = applicationNotifications.map(app => {
                 const jobTitle = app.job || 'Công việc không xác định';
-                const companyName = app.job|| 'Công ty không xác định';
+                const companyName = app.company || 'Công ty không xác định';
                 const statusText = app.status === 'accepted' ? 'Đậu' : 'Rớt';
 
                 return {
@@ -93,17 +91,16 @@ export default function CandidateNotifications() {
                     applicationId: app.id,
                     application: app,
                     type: 'application_notification',
-                    priority: app.is_read ? 3 : 2 // is_read được giả định từ backend, nếu không có thì mặc định chưa đọc
+                    priority: 2  
                 };
             });
 
-            // Kết hợp và sắp xếp thông báo
             const allNotifications = [...ratingNotificationItems, ...applicationNotificationItems]
                 .sort((a, b) => {
                     if (a.priority !== b.priority) {
-                        return a.priority - b.priority;
+                        return a.priority - b.priority; 
                     }
-                    return new Date(b.time) - new Date(a.time);
+                    return new Date(b.time) - new Date(a.time); 
                 });
 
             console.log('Tổng số thông báo:', allNotifications.length);
@@ -183,14 +180,14 @@ export default function CandidateNotifications() {
             case 'employer_rating_notification':
                 return {
                     ...styles.notificationItem,
-                    borderLeftColor: '#FFD700', // Màu vàng cho đánh giá
-                    backgroundColor: notification.priority === 2 ? '#FFF9E6' : '#FFFFFF'
+                    borderLeftColor: '#FFD700', // Màu vàng 
+                    backgroundColor: '#FFF9E6' // Màu nền
                 };
             case 'application_notification':
                 return {
                     ...styles.notificationItem,
                     borderLeftColor: notification.application.status === 'accepted' ? '#28a745' : '#dc3545', // Xanh cho đậu, đỏ cho rớt
-                    backgroundColor: notification.priority === 2 ? '#E6FFE6' : '#FFFFFF'
+                    backgroundColor: '#FFFFFF' // Màu nền trắng
                 };
             default:
                 return styles.notificationItem;
@@ -218,7 +215,7 @@ export default function CandidateNotifications() {
                     <Text style={styles.notificationIcon}>{getNotificationIcon(item.type, item)}</Text>
                     <View style={styles.notificationContent}>
                         <Text style={styles.notificationTitle}>{item.title}</Text>
-                        {item.priority === 2 && (
+                        {item.type === 'employer_rating_notification' && (
                             <View style={styles.newBadge}>
                                 <Text style={styles.newBadgeText}>MỚI</Text>
                             </View>
@@ -241,9 +238,7 @@ export default function CandidateNotifications() {
     }
 
     const employerRatingCount = notifications.filter(n => n.type === 'employer_rating_notification').length;
-    const unreadEmployerRatingCount = notifications.filter(n => n.type === 'employer_rating_notification' && n.priority === 2).length;
     const applicationCount = notifications.filter(n => n.type === 'application_notification').length;
-    const unreadApplicationCount = notifications.filter(n => n.type === 'application_notification' && n.priority === 2).length;
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -254,15 +249,12 @@ export default function CandidateNotifications() {
                     <View style={styles.summaryContainer}>
                         <Text style={styles.summaryText}>
                             ⭐ {employerRatingCount} đánh giá từ nhà tuyển dụng
-                            {unreadEmployerRatingCount > 0 && (
-                                <Text style={styles.unreadText}> ({unreadEmployerRatingCount} mới)</Text>
+                            {employerRatingCount > 0 && (
+                                <Text style={styles.unreadText}> ({employerRatingCount} mới)</Text>
                             )}
                         </Text>
                         <Text style={styles.summaryText}>
                             📋 {applicationCount} kết quả đơn ứng tuyển
-                            {unreadApplicationCount > 0 && (
-                                <Text style={styles.unreadText}> ({unreadApplicationCount} mới)</Text>
-                            )}
                         </Text>
                     </View>
                 )}

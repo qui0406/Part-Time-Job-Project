@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import {
-    View, Text, TextInput, Button, Alert, StyleSheet, ScrollView
-} from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { authApi, endpoints } from '../../configs/APIs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,11 +16,6 @@ export default function ReplyRatingCompany({ route }) {
             return;
         }
 
-        if (!rating?.id) {
-            Alert.alert('Lỗi', 'Không tìm thấy đánh giá để phản hồi.');
-            return;
-        }
-
         const token = await AsyncStorage.getItem('token');
         console.log('Token lấy được:', token);
 
@@ -35,24 +28,15 @@ export default function ReplyRatingCompany({ route }) {
             console.log('Dữ liệu gửi lên:', data);
 
             const response = await authApi(token).post(
-                `${endpoints['comment-employer-details']}${rating.id}/reply-comment/`,
-                data,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    }
-                }
+                `${endpoints['comment-employer-details']}${rating.id}/reply-comment/`, data
             );
 
             console.log('Phản hồi từ API:', response.data);
 
-            Alert.alert('Thành công', 'Đã phản hồi đánh giá!', [
-                {
-                    text: 'OK',
-                    onPress: () => {
-                        onPress: () => navigation.goBack()                    }
-                }
-            ]);
+            if (res.status === 201) {
+                Alert.alert('Thành công', 'Đánh giá của bạn đã được gửi!');
+                navigation.goBack();
+            }
         } catch (err) {
             let errorMessage = 'Không thể phản hồi đánh giá.';
             if (err.response?.status === 400) {
