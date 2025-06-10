@@ -26,7 +26,7 @@ const Profile = () => {
     }, [user]);
     useEffect(() => {
         if (companyDetails && user && user.role === 'employer') {
-            fetchJobs(); // Cập nhật jobs khi companyDetails thay đổi
+            fetchJobs(); 
         }
     }, [companyDetails]);
     const fetchCompanyDetails = async () => {
@@ -52,7 +52,6 @@ const Profile = () => {
                 const response = await authApi(token).get(endpoints['job-company']);
                 console.log("Fetched jobs:", response.data);
                 
-                // Lọc chỉ các công việc thuộc công ty của người dùng hiện tại
                 if (Array.isArray(response.data.jobs)) {
                     const companyJobs = response.data.jobs.filter(job => job.company === companyDetails.id);
                     setJobs(companyJobs);
@@ -98,7 +97,6 @@ const Profile = () => {
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-                {/* Profile Card with Avatar and Basic Info */}
                 <View style={styles.profileCard}>
                     <View style={styles.profileHeader}>
                         <View style={styles.avatarContainer}>
@@ -156,10 +154,8 @@ const Profile = () => {
                     </View>
                 </View>
 
-                {/* Employer Specific Options */}
                 {user.role === 'employer' ? (
                     <View>
-                        {/* Company Information Section */}
                         <View style={styles.sectionCard}>
                             <Text style={styles.sectionTitle}>Thông tin công ty</Text>
                             {loading ? (
@@ -186,7 +182,6 @@ const Profile = () => {
                             )}
                         </View>
 
-                        {/* Job Listings Section */}
                         <View style={styles.sectionCard}>
                             <Text style={styles.sectionTitle}>Tin tuyển dụng</Text>
                             {jobsLoading ? (
@@ -206,7 +201,6 @@ const Profile = () => {
                             )}
                         </View>
 
-                        {/* Post Job Button for employers */}
                         <TouchableOpacity
                             onPress={navigateToPostJob}
                             style={styles.actionButton}
@@ -215,7 +209,6 @@ const Profile = () => {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    // Candidate-specific options
                     <TouchableOpacity
                         onPress={navigateToEmployerRegister}
                         style={styles.actionButton}
@@ -224,7 +217,6 @@ const Profile = () => {
                     </TouchableOpacity>
                 )}
 
-                {/* Logout Button */}
                 <Button
                     icon="logout"
                     onPress={() => dispatch({ type: "logout" })}

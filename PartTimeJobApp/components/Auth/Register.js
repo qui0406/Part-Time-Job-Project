@@ -1,19 +1,5 @@
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Linking,
-  Alert,
-  ScrollView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Linking, Alert, ScrollView, TouchableWithoutFeedback, Keyboard,
+ KeyboardAvoidingView, Platform,ActivityIndicator,} from 'react-native';
 import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import Colors from './../../constants/Colors';
@@ -29,16 +15,17 @@ export default function Register() {
   const [lastName, setLastName] = useState();
   const [email, setEmail] = useState();
   const [password, setPassword] = useState();
+
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState({});
-  const [error, setError] = useState(false);
-  const [usernameError, setUsernameError] = useState(''); // Thêm trạng thái lỗi cho username
-  const [emailError, setEmailError] = useState(''); // Thêm trạng thái lỗi cho email
-  const nav = useNavigation();
   const userRef = useRef();
 
+  const [error, setError] = useState(false);
+  const [usernameError, setUsernameError] = useState(''); 
+  const [emailError, setEmailError] = useState('');
+  const nav = useNavigation();
+
   const handleBlur = () => {
-    // Ẩn bàn phím khi TextInput mất focus
     Keyboard.dismiss();
   };
 
@@ -80,8 +67,8 @@ export default function Register() {
     } else {
       setError(false);
       setLoading(true);
-      setUsernameError(''); // Xóa lỗi trước đó
-      setEmailError(''); // Xóa lỗi trước đó
+      setUsernameError(''); 
+      setEmailError('');
   
       try {
         let form = new FormData();
