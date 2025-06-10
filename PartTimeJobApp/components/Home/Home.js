@@ -56,7 +56,6 @@ const Home = () => {
         }
     };
 
-    // Load jobs
     const loadJobs = useCallback(async () => {
         if (page > 0) {
             try {
@@ -83,7 +82,7 @@ const Home = () => {
 
                 const uniqueJobs = jobsData.map((item, index) => ({
                     ...item,
-                    id: item.id || `job_${index}_${page}`, // Fallback id
+                    id: item.id || `job_${index}_${page}`, 
                 }));
 
                 setJobs(page === 1 ? uniqueJobs : [...jobs, ...uniqueJobs]);
@@ -93,7 +92,6 @@ const Home = () => {
                     setPage(0);
                 }
             } catch (error) {
-                // console.error('Load jobs error:', error);
                 if (error.response && error.response.status === 404) {
                     setJobs([]); 
                     setTotalPages(1);
@@ -106,7 +104,6 @@ const Home = () => {
         }
     }, [page, q, searchField]);
 
-    // Parse salary 
     const parseSalary = (query) => {
         const cleanQuery = query.replace(/[^0-9kKmM-]/g, '').toLowerCase();
         const rangeMatch = cleanQuery.match(/(\d+[km]?)-(\d+[km]?)/);
@@ -123,7 +120,6 @@ const Home = () => {
         return null;
     };
 
-    // Load initial data 
     useEffect(() => {
         if (user && user.role === 'candidate') {
             setPage(1);
@@ -138,7 +134,6 @@ const Home = () => {
         }
     }, [user])
 
-    // Load jobs với delay 
     useEffect(() => {
         let timer = setTimeout(() => {
             loadJobs();
@@ -147,21 +142,18 @@ const Home = () => {
         return () => clearTimeout(timer);
     }, [q, page, searchField]);
 
-    // Load more function
     const loadMore = () => {
         if (!loading && page > 0) {
             setPage(page + 1);
         }
     };
 
-    // Search function 
     const search = (value, callback) => {
         setPage(1);
         setJobs([]);
         callback(value);
     };
 
-    // Handle search 
     const handleSearch = useCallback(async () => {
         if (!q.trim()) {
             if (isSearching) {
@@ -188,7 +180,6 @@ const Home = () => {
         setIsSearching(false);
     }, []);
 
-    // Render functions
     const renderSearchPlaceholder = () => {
         switch (searchField) {
             case 'salary':
@@ -201,32 +192,36 @@ const Home = () => {
     };
 
     const renderJobItem = useCallback(({ item }) => {
-    const handleNavigation = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            if (!token) {
-                Alert.alert('Lỗi', 'Không tìm thấy token. Vui lòng đăng nhập lại.');
-                nav.navigate('Login'); // Điều hướng đến màn hình đăng nhập nếu không có token
-                return;
+        const handleJobNavigation = async () => {
+            try {
+                const token = await AsyncStorage.getItem('token');
+                nav.navigate('JobDetail', {
+                    job: item,
+                    token,
+                });
+            } catch (error) {
+                Alert.alert('Lỗi. Vui lòng thử lại.');
             }
-            nav.navigate('CompanyDetail', {
-                company: { id: item.company, company_name: item.company_name },
-                token,
-            });
-        } catch (error) {
-            console.error('Lỗi khi lấy token:', error);
-            Alert.alert('Lỗi', 'Không thể lấy token. Vui lòng thử lại.');
-        }
-    };
-
+        };
+        const handleCompanyNavigation = async () => {
+            try {
+                const token = await AsyncStorage.getItem('token');
+                nav.navigate('CompanyDetail', {
+                    company: { id: item.company, company_name: item.company_name },
+                    token,
+                });
+            } catch (error) {
+                Alert.alert('Lỗi. Vui lòng thử lại.');
+            }
+        };
         return (
             <TouchableOpacity
                 style={styles.jobCard}
-                onPress={handleNavigation}
+                onPress={handleJobNavigation}
                 activeOpacity={0.7}
             >
                 <View style={styles.companyHeader}>
-                    <TouchableOpacity onPress={handleNavigation}>
+                    <TouchableOpacity onPress={handleCompanyNavigation}>
                         <Text style={styles.companyName}>
                             {item.company_name || 'Công ty không xác định'}
                         </Text>
@@ -240,11 +235,9 @@ const Home = () => {
         );
     }, [nav]);
 
-    // Render pagination dots
     const renderPaginationDots = () => {
         if (totalPages <= 1) return null;
         const dots = [];
-        // const currentPage = Math.ceil(jobs.length / 3) || 1;
 
         for (let i = 1; i <= totalPages; i++) {
             dots.push(
@@ -277,8 +270,6 @@ const Home = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-
-            {/* Search Section với dropdown */}
             <View style={styles.searchWrapper}>
                 <View style={styles.searchContainer}>
                     <TouchableOpacity
@@ -334,7 +325,6 @@ const Home = () => {
                         )}
                     />
                 </View>
-            {/* Search Info */}
             {isSearching && (
                 <View style={styles.searchInfoContainer}>
                     <Text style={styles.searchInfoText}>
@@ -386,7 +376,7 @@ const Home = () => {
                 ListFooterComponent={loading && <ActivityIndicator size="large" color={Colors.PRIMARY} style={styles.loader} />}
                 data={jobs}
                 renderItem={renderJobItem}
-                keyExtractor={(item) => item.id.toString()} // Đảm bảo id là duy nhất
+                keyExtractor={(item) => item.id.toString()} 
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={true}
                 ListEmptyComponent={!loading && (
@@ -400,7 +390,6 @@ const Home = () => {
                 )}
             />
 
-            {/* Pagination Dots */}
             {renderPaginationDots()}
         </SafeAreaView>
     );
