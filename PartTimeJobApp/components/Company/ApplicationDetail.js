@@ -1363,7 +1363,10 @@ export default function ApplicationDetail() {
       }get-notification-rating-user-application/?application_id=${application_id}&page=${pageNum}`;
       const res = await authApi(token).get(url);
 
-      const ratingsData = res.data?.ratings || [];
+      const ratingsData = res.data.results || [];
+
+
+
       if (!Array.isArray(ratingsData)) {
         console.warn('Dữ liệu ratings không phải mảng:', ratingsData);
         setRatings([]);

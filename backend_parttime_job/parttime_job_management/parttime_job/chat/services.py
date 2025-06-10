@@ -51,8 +51,6 @@ def sync_message_to_firebase(message):
 
         except ObjectDoesNotExist:
             raise ValueError("User profile not found. Ensure UserProfile exists.")
-
-        # Authenticate with Firebase
         try:
   
             logger.debug(f"Attempting Firebase login with email: {firebase_email}")
@@ -77,11 +75,7 @@ def sync_message_to_firebase(message):
             'timestamp': message.timestamp.isoformat(),
             'is_read': message.is_read,
         }
-
-        # Get or create conversation reference
         conversation_id = message.conversation.firebase_conversation_id or str(message.conversation.id)
-        
-        # Push message to Firebase
         messages_ref = db.child('conversations').child(conversation_id).child('messages')
         result = messages_ref.push(message_data, user['idToken'])
         

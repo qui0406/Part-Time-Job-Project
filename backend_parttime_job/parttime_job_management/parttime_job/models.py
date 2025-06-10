@@ -11,6 +11,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
 from django.core import signing
 from django.core.validators import validate_email
+import hashlib
 
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)
@@ -51,24 +52,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     firebase_uid = models.CharField(max_length=255, blank=True, null=True, help_text="Firebase user UID")
     firebase_email = models.EmailField(blank=True, null=True, help_text="Firebase authentication email")
-    _firebase_password = models.BinaryField(max_length=255, blank=True, null=True)
-
-    @property
-    def firebase_password(self):
-        if self._firebase_password:
-            try:
-                password_str = self._firebase_password.decode('utf-8')
-                return signing.loads(password_str)
-            except (signing.BadSignature, UnicodeDecodeError, ValueError) as e:
-                return None
-        return None
-
-    @firebase_password.setter
-    def firebase_password(self, value):
-        if value:
-            self._firebase_password = signing.dumps(value).encode('utf-8')
-        else:
-            self._firebase_password = None
+    firebase_password = models.CharField(max_length=64, blank=True, null=True)  
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
@@ -205,7 +189,7 @@ class EmployerRating(BaseModel):
         unique_together = ('employer', 'user', 'application')
 
     def __str__(self):
-        return self.rating
+        return f"{self.employer.username} - {self.user.username} - {self.rating}"
     
 class VerificationDocument(models.Model):
     DOCUMENT_TYPE_CHOICES = (

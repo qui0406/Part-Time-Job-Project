@@ -25,7 +25,7 @@ const Home = () => {
     const [showDropdown, setShowDropdown] = useState(false);
 
 
-    const [trendingJobs, setTrendingJobs] = useState([]);
+    const [jobAiGenerated, setJobAiGenerated] = useState([]);
 
     const nav = useNavigation();
     const user = useContext(MyUserContext);
@@ -36,25 +36,23 @@ const Home = () => {
         { label: 'Thời gian làm việc', value: 'working_time' }
     ];
 
-    const loadTrendingJobs = async () => {
+    const generateTrendingJobAiModel = async () => {
         try {
             const PROMT = Prompt.GenerateTrendingJob;
             const aiRes = await GenerateTrendingJob.sendMessage(PROMT);
             const result = aiRes.response.text();
+            console.log('Kết quả từ AI model:', result);
             const parsedResult = JSON.parse(result);
-
-            if (Array.isArray(parsedResult) && parsedResult.length > 0) {
-                setTrendingJobs(parsedResult.map((item, index) => ({
-                    ...item,
-                    id: item.id || `trending_${index}_${item.cong_viec || item.job || 'unknown'}`, // Tạo id duy nhất
-                    job_title: item.cong_viec || item.job || 'Unknown'
-                })));
-            } else {
-                setTrendingJobs([]);
+            if (!Array.isArray(parsedResult) || parsedResult.length === 0) {
+                throw new Error('Invalid or empty AI job data');
             }
+            setJobAiGenerated(parsedResult.map(item => ({
+                ...item,
+                job_title: item.cong_viec || item.job || 'Unknown'
+            })));
         } catch (error) {
             console.error('AI model error:', error);
-            setTrendingJobs([]);
+            Alert.alert('Error', 'Failed to load trending jobs. Please try again later.');
         }
     };
 
@@ -130,10 +128,15 @@ const Home = () => {
         if (user && user.role === 'candidate') {
             setPage(1);
             setJobs([]);
-            loadTrendingJobs();
             loadJobs();
         }
     }, [user]);
+    
+    useEffect(()=>{
+        if (user && user.role === 'candidate') {
+            generateTrendingJobAiModel();
+        }
+    }, [user])
 
     // Load jobs với delay 
     useEffect(() => {
@@ -197,25 +200,45 @@ const Home = () => {
         }
     };
 
-    const renderJobItem = useCallback(({ item }) => (
-        <TouchableOpacity
-            style={styles.jobCard}
-            onPress={() => nav.navigate('JobDetail', { job: item })}
-            activeOpacity={0.7}
-        >
-            <View style={styles.companyHeader}>
-                <TouchableOpacity onPress={() => nav.navigate('CompanyDetail', { company: { id: item.company, company_name: item.company_name } })}>
-                    <Text style={styles.companyName}>
-                        {item.company_name || 'Công ty không xác định'}
-                    </Text>
-                </TouchableOpacity>
-                <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} />
-            </View>
-            <Text style={styles.jobTitle}>{item.title}</Text>
-            <Text style={styles.salary}>VNĐ {item.salary}</Text>
-            <Text style={styles.jobDetail}>{item.working_time}</Text>
-        </TouchableOpacity>
-    ), [nav]);
+    const renderJobItem = useCallback(({ item }) => {
+    const handleNavigation = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                Alert.alert('Lỗi', 'Không tìm thấy token. Vui lòng đăng nhập lại.');
+                nav.navigate('Login'); // Điều hướng đến màn hình đăng nhập nếu không có token
+                return;
+            }
+            nav.navigate('CompanyDetail', {
+                company: { id: item.company, company_name: item.company_name },
+                token,
+            });
+        } catch (error) {
+            console.error('Lỗi khi lấy token:', error);
+            Alert.alert('Lỗi', 'Không thể lấy token. Vui lòng thử lại.');
+        }
+    };
+
+        return (
+            <TouchableOpacity
+                style={styles.jobCard}
+                onPress={handleNavigation}
+                activeOpacity={0.7}
+            >
+                <View style={styles.companyHeader}>
+                    <TouchableOpacity onPress={handleNavigation}>
+                        <Text style={styles.companyName}>
+                            {item.company_name || 'Công ty không xác định'}
+                        </Text>
+                    </TouchableOpacity>
+                    <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} />
+                </View>
+                <Text style={styles.jobTitle}>{item.title}</Text>
+                <Text style={styles.salary}>VNĐ {item.salary}</Text>
+                <Text style={styles.jobDetail}>{item.working_time}</Text>
+            </TouchableOpacity>
+        );
+    }, [nav]);
 
     // Render pagination dots
     const renderPaginationDots = () => {
@@ -289,32 +312,28 @@ const Home = () => {
                 </TouchableOpacity>
             </View>
             <View style={styles.trendingContainer}>
-                <Text style={styles.trendingLabel}>Công việc xu hướng</Text>
-                {/* <View style={[styles.row, styles.wrap]}>
-                    {trendingJobs.map((job, index) => (
-                        <TouchableOpacity
-                            key={`Trending${index}`}
-                            onPress={() => search(job.job_title, setQ)}
-                        >
-                            <Chip icon="label" style={styles.chip}>
-                                {job.job_title}
-                            </Chip>
-                        </TouchableOpacity>
-                    ))}
-                </View> */}
-                <View style={[styles.row, styles.wrap]}>
-                    {trendingJobs.map((job, index) => (
-                        <TouchableOpacity
-                            key={job.id || `trending_${index}_${job.job_title}`} // Sử dụng id duy nhất
-                            onPress={() => search(job.job_title, setQ)}
-                        >
-                            <Chip icon="label" style={styles.chip}>
-                                {job.job_title}
-                            </Chip>
-                        </TouchableOpacity>
-                    ))}
+                    <Text style={styles.trendingLabel}>Trending Jobs</Text>
+                    <FlatList
+                        data={jobAiGenerated}
+                        keyExtractor={(item, index) => `CV${item.job_title}-${index}`}
+                        horizontal
+                        showsHorizontalScrollIndicator={true}
+                        contentContainerStyle={styles.horizontalList}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setQ(item.job_title);
+                                    setSearchField('title');
+                                    handleSearch();
+                                }}
+                                accessible={true}
+                                accessibilityLabel={`Search for ${item.job_title}`}
+                            >
+                                <Chip icon="label" style={styles.chip}>{item.job_title}</Chip>
+                            </TouchableOpacity>
+                        )}
+                    />
                 </View>
-            </View>
             {/* Search Info */}
             {isSearching && (
                 <View style={styles.searchInfoContainer}>

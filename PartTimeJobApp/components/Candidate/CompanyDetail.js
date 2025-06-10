@@ -479,7 +479,7 @@ import MapView, { Marker } from 'react-native-maps';
 export default function CompanyDetail() {
     const navigation = useNavigation();
     const route = useRoute();
-    const { company, token } = route.params; // Lấy token từ route.params
+    const { company, token } = route.params; 
     const [companyData, setCompanyData] = useState(null);
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -541,9 +541,10 @@ export default function CompanyDetail() {
 
     const fetchCompanyJobs = async () => {
         try {
-            const response = await authApi(token).get(endpoints['job'], {
-                params: { company: company.id }
+            const response = await authApi(token).get(endpoints['job-from-company'], {
+                params: { company_id: company.id }
             });
+            console.log('Danh sách công việc:', response.data);
             setJobs(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Lỗi khi lấy danh sách công việc:', error);
@@ -564,12 +565,19 @@ export default function CompanyDetail() {
 
     const handleFollow = async () => {
         try {
+            console.log("Company", company); // Kiểm tra thông tin công ty
+            // console.log('Token:', token); // Kiểm tra token
             const response = await authApi(token).post(`${endpoints['company-follow']}${company.id}/follow/`);
-            setIsFollowing(response.data.data.active);
+
+            if (response.data.detail === true)
+                setIsFollowing(true);
+            else
+                setIsFollowing(false);
+            console.log('Phản hồi từ API:', response.data); // Kiểm tra phản hồi từ API
             await checkFollowStatus();
             Alert.alert(
                 'Thông báo',
-                response.data.detail === "Followed company."
+                response.data.detail === true
                     ? 'Bạn đã theo dõi công ty thành công! Bạn sẽ nhận thông báo qua email khi có tin tuyển dụng mới.'
                     : 'Bạn đã bỏ theo dõi công ty.'
             );
