@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MyUserContext } from '../../contexts/UserContext';
@@ -10,28 +10,34 @@ export default function AcceptedApplications() {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const navigation = useNavigation();
     const user = useContext(MyUserContext);
 
     useEffect(() => {
         if (user && user.role === 'employer') {
-            loadApplications();
+            loadApplications(1);
         }
     }, [user]);
 
-    const loadApplications = async () => {
+    const loadApplications = useCallback(async (pageNum, isRefresh = false) => {
         try {
-            setLoading(true);
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
+                setIsLoadingMore(true);
+            }
             const token = await AsyncStorage.getItem('token');
             if (!token) {
                 throw new Error('Không tìm thấy token xác thực');
             }
-    
-            // const requestUrl = `${authApi(token).defaults.baseURL}${endpoints['my-applications']}all-accepted-applications/`;
-            // console.log('Đang gọi API danh sách:', requestUrl);
-    
-            const res = await authApi(token).get(`${endpoints['my-applications']}all-accepted-applications/`);
-    
+
+            const res = await authApi(token).get(
+                `${endpoints['my-applications']}all-accepted-applications/?page=${pageNum}`
+            );
+
             if (res.status === 401) {
                 throw new Error('Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.');
             } else if (res.status === 403) {
@@ -41,34 +47,38 @@ export default function AcceptedApplications() {
             } else if (res.status !== 200) {
                 throw new Error(`Lỗi HTTP: ${res.status}`);
             }
-    
+
             let acceptedApplications = [];
+            let nextPage = null;
             if (Array.isArray(res.data)) {
                 acceptedApplications = res.data;
+                setHasMore(false); // Không có phân trang
             } else if (res.data && Array.isArray(res.data.results)) {
                 acceptedApplications = res.data.results;
+                nextPage = res.data.next; // Kiểm tra xem có trang tiếp theo không
+                setHasMore(!!nextPage);
             } else if (res.data && res.data.detail) {
                 throw new Error(res.data.detail);
             } else {
                 throw new Error('Dữ liệu trả về không đúng định dạng');
             }
-    
-            console.log('Đơn ứng tuyển accepted:', acceptedApplications);
-    
+
             const validApplications = acceptedApplications.filter(application => application.id);
-            console.log(`Đơn hợp lệ: ${validApplications.length}, Loại bỏ: ${acceptedApplications.length - validApplications.length}`);
-    
+
             const applicationData = validApplications.map(application => ({
                 id: application.id,
                 title: application.job.title || 'Công việc không xác định',
                 candidate: application.user?.username || 'Ứng viên không xác định',
-                time: formatDate(application.created_date || new Date().toISOString()),
                 job: application.job,
                 user: application.user,
             }));
-    
-            console.log('Dữ liệu ứng tuyển:', applicationData);
-            setApplications(applicationData);
+
+            if (isRefresh) {
+                setApplications(applicationData);
+            } else {
+                setApplications(prev => [...prev, ...applicationData]);
+            }
+            setPage(pageNum);
         } catch (error) {
             let errorMessage = 'Không thể tải danh sách ứng tuyển. Vui lòng thử lại.';
             if (error.message.includes('Không tìm thấy token xác thực')) {
@@ -79,41 +89,30 @@ export default function AcceptedApplications() {
                 errorMessage = 'Bạn không có quyền xem danh sách ứng tuyển.';
             }
             Alert.alert('Lỗi', errorMessage);
-            setApplications([]);
+            if (isRefresh) {
+                setApplications([]);
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setIsLoadingMore(false);
         }
-    };
+    }, []);
 
     const onRefresh = () => {
         setRefreshing(true);
-        loadApplications();
+        setHasMore(true);
+        setPage(1);
+        loadApplications(1, true);
     };
 
-    const formatDate = (dateString) => {
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return 'Không xác định';
-            }
-            const now = new Date();
-            const diffTime = Math.abs(now - date);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 0) {
-                return 'Hôm nay';
-            } else if (diffDays === 1) {
-                return 'Hôm qua';
-            } else if (diffDays < 7) {
-                return `${diffDays} ngày trước`;
-            } else {
-                return date.toLocaleDateString('vi-VN');
-            }
-        } catch {
-            return 'Không xác định';
+    const loadMoreApplications = () => {
+        if (!isLoadingMore && hasMore) {
+            loadApplications(page + 1);
         }
     };
+
+   
 
     const handleApplicationPress = (application) => {
         console.log('Chuyển đến màn hình đánh giá với application:', application);
@@ -137,7 +136,17 @@ export default function AcceptedApplications() {
         );
     };
 
-    if (loading) {
+    const renderFooter = () => {
+        if (!isLoadingMore) return null;
+        return (
+            <View style={styles.footerLoading}>
+                <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                <Text style={styles.footerText}>Đang tải thêm...</Text>
+            </View>
+        );
+    };
+
+    if (loading && page === 1) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.PRIMARY} />
@@ -167,6 +176,9 @@ export default function AcceptedApplications() {
                             colors={[Colors.PRIMARY]}
                         />
                     }
+                    onEndReached={loadMoreApplications}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={renderFooter}
                 />
             </View>
         </SafeAreaView>
@@ -240,5 +252,14 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: Colors.PRIMARY,
         marginTop: 8,
+    },
+    footerLoading: {
+        padding: 16,
+        alignItems: 'center',
+    },
+    footerText: {
+        marginTop: 8,
+        color: Colors.PRIMARY,
+        fontSize: 14,
     },
 });

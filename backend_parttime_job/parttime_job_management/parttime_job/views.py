@@ -20,6 +20,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Message
 from firebase_admin import auth
 from .tasks import send_new_job_email
+import hashlib
 
 from parttime_job.chat.services import sync_message_to_firebase
 from parttime_job.firebase import initialize_firebase
@@ -39,19 +40,29 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         user = serializer.save()
+        
         try:
+            email = serializer.validated_data.get('email')
+            password = request.data.get('password')
+
             firebase_user = auth.create_user(
-                email=serializer.get('email'),
-                password=request.data.get('password') 
+                email=email ,
+                password=password, 
             )
             firebase_uid = firebase_user.uid
+
+            password = str(hashlib.sha256(password.strip().encode("utf-8")).hexdigest())
 
             UserProfile.objects.create(
                 user=user,
                 firebase_uid=firebase_uid,
-                firebase_email=serializer.get('email'),
-                firebase_password=request.data.get('password') 
+                firebase_email=email,
+                firebase_password=password
             )
 
         except Exception as e:
@@ -69,8 +80,9 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     @action(methods=['get'], url_path='current-user', detail=False)
     def current_user(self, request):
         return Response(UserSerializer(request.user).data)
+    
 
-    @action(methods=['patch'], url_path='update-user', detail=False)
+    @action(methods=['put', 'patch'], url_path='update-user', detail=False)
     def update_user_info(self, request):
         user = request.user
         serializer = UserUpdateSerializer(user, data=request.data, partial=True)
@@ -94,6 +106,7 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return [permissions.IsAuthenticated(), perms.IsCandidate()]
         return [permissions.AllowAny()]
 
+    #
     @action(methods=['get'], url_path='current-company', detail=False)
     def get_current_company(self, request):
         if not hasattr(request.user, 'employer_profile'):
@@ -102,6 +115,7 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         serializer = self.get_serializer(company)
         return Response(serializer.data)
 
+    #
     @action(methods=['post'], url_path='create-company', detail=False)
     def create_current_company(self, request):
         if hasattr(request.user, 'employer_profile'):
@@ -112,7 +126,7 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+    #
     @action(methods=['patch'], url_path='update-company', detail=False)
     def update_company_info(self, request):
         company = request.user.employer_profile
@@ -133,8 +147,7 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return Response({"detail": "Không tìm thấy công ty"}, status=status.HTTP_404_NOT_FOUND)
 
         follow, created = Follow.objects.get_or_create(
-            user=request.user, company=company, defaults={'active': True}
-        )
+            user=request.user, company=company, defaults={'active': True})
         if not created:
             follow.active = not follow.active
             follow.save()
@@ -195,8 +208,8 @@ class CompanyIsApprovedViewSet(viewsets.ViewSet, generics.ListAPIView):
 
             if is_approved:
                 employer = company.user
-                if employer.role != 'employer':
-                    employer.role = 'employer'
+                if employer.role != User.EMPLOYER:
+                    employer.role = User.EMPLOYER
                     employer.save()
 
             return Response({
@@ -207,6 +220,7 @@ class CompanyIsApprovedViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"detail": "Không tìm thấy công ty"},
                             status=status.HTTP_404_NOT_FOUND)
 
+#
 class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Job.objects.filter(active=True, company__active=True, company__is_approved=True).prefetch_related('company')
     serializer_class = JobSerializer
@@ -235,7 +249,7 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
         return queryset.distinct()
     
 
-
+#
 class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Job.objects.filter(active=True, company__active=True, company__is_approved=True)
     serializer_class = JobSerializer
@@ -247,7 +261,7 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsEmployer(), perms.OwnerPerms()]
         return [permissions.AllowAny()]
 
-
+    #
     @action(methods=['post'], url_path='create-job', detail=False)
     def create_job(self, request):
         company = Company.objects.get(user=request.user, active=True, is_approved=True)
@@ -300,6 +314,7 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    #
     @action(methods=['get'], url_path='get-all-job-by-employer', detail=False)
     def get_company_job(sef, request):
         user = request.user
@@ -314,6 +329,7 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"detail": f"Không tìm thấy công việc: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
+
 
 class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Application.objects.filter(active=True)
@@ -564,7 +580,9 @@ class RatingViewSet(BaseRatingViewSet):
     @action(methods=['get'], url_path='rating-from-employer', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_rating_from_employer(self, request):
         application_id = request.query_params.get('application_id')
-        queryset = Rating.objects.filter(user=self.request.user, application_id=application_id)
+        if not application_id:
+            return Response({"detail": "Cần application id"}, status=status.HTTP_400_BAD_REQUEST)
+        queryset = Rating.objects.filter(user=request.user, application_id=application_id)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
@@ -651,7 +669,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
         if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
             return [permissions.IsAuthenticated()]
-        return super().get_permissions()
+        return permissions.AllowAny()
 
     @action(methods=['get'], url_path='get-all-comments', detail=False)
     def get_all_comments(self, request):
@@ -683,6 +701,9 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
                 rating_employer__company_id=company_id,
                 active=True
             ).select_related('rating_employer')
+
+            if not comment_details.exists():
+                return Response({"detail": "Không tìm thấy bình luận cho công việc này"}, status=status.HTTP_404_NOT_FOUND)
 
             queryset = Rating.objects.filter(company_id = company_id, job_id = job_id , active=True).order_by('-created_date')
         except Exception as e:
@@ -838,7 +859,7 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             )
 
         try:
-            rating_instance = EmployerRating.objects.get(pk=rating_id)
+            rating = EmployerRating.objects.get(pk=rating_id)
             
         except EmployerRating.DoesNotExist:
             return Response(
@@ -846,9 +867,9 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if rating_instance:
-            rating_instance.is_reading = True
-            rating_instance.save()
+        if rating:
+            rating.is_reading = True
+            rating.save()
 
         data = {
             'candidate_reply': candidate_reply,
@@ -857,7 +878,7 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
         serializer = ReplyCommentEmployerDetailSerializer(data=data, context={'request': request})
         if serializer.is_valid():
-            serializer.save(rating_candidate=rating_instance)
+            serializer.save(rating_candidate=rating)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1036,7 +1057,7 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
         candidate_id = request.query_params.get('candidate')
         
         try:
-            if user.role.__eq__('employer'):
+            if user.role.__eq__(User.EMPLOYER):
                 if not candidate_id:
                     return Response({"detail": "Candidate ID là bắt buộc"}, status=status.HTTP_400_BAD_REQUEST)
                 conversation = Conversation.objects.get(employer=user, candidate_id=candidate_id)
@@ -1073,7 +1094,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = self.get_queryset()
         conversation_id = self.request.query_params.get('conversation_id')
         if conversation_id:
             queryset = queryset.filter(conversation_id=conversation_id)
