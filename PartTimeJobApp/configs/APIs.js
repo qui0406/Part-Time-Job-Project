@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const BASE_URL = 'https://8805-171-252-189-157.ngrok-free.app'; // Replace with your actual API base URL
 
-
 export const endpoints = {
     'register': '/user/',
     'login': '/o/token/',

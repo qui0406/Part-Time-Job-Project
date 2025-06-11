@@ -105,7 +105,10 @@ export default function ApplicationDetail() {
   };
 
   const handleOpenCV = async () => {
-        let cv = application?.cv + '.docx'
+        let cv = application?.cv
+        if (cv.endsWith('.docx')=== false) {
+          cv = cv + '.docx'; 
+        }
         console.log('CV URL:', cv);
         if (!cv) {
           Alert.alert('Thông báo', 'Không tìm thấy CV của ứng viên');
