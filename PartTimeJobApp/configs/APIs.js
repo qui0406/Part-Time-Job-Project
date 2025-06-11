@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://8805-171-252-189-157.ngrok-free.app';
-
+const BASE_URL = 'https://8805-171-252-189-157.ngrok-free.app'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -11,15 +10,14 @@ export const endpoints = {
     'password-reset': '/api/password_reset/',
     'password-reset-confirm': '/api/password_reset/confirm/',
     'password-reset-token': '/api/password_reset/:token/',
-    // Thông tin công ty 
+    // Thông tin công ty và đăng ký
     'create-employer': '/company/create-company/',
-    'company-details': '/company/', 
+    'company-details': '/company/', // /:id/ sẽ được thêm vào trong code
     'company-follow': '/company/',
     'company-approval-list': '/company-approved/',
     'company-approval': '/company-approved/',
     'current-company': '/company/current-company/',
     'update-company': '/company/update-company/',
-    // Job
     'create-post-job': '/job/create-job/',
     'create-location': '/location/',
     'job': '/job/',
@@ -28,30 +26,26 @@ export const endpoints = {
     'job-company': 'job/get-all-job-by-employer/',
     'job-from-company': '/job/get-all-job-company-by-candidate/',
     // Applications
-    'application': '/application/', 
-    'application-profile': '/application-profile/', 
-    'job-applications': '/application-profile/',
-    'my-applications': '/application-profile/', 
-    'application-detail': '/application-profile/', 
-    'application-profile-apply': '/application-profile/apply/', 
+    'application': '/application/', // /:id/ sẽ được thêm vào trong code
+    'application-profile': '/application-profile/', // Lấy danh sách đơn ứng tuyển cho nhà tuyển dụng
+    'job-applications': '/application-profile/', // Alias cho application-profile
+    'my-applications': '/application-profile/', // Danh sách đơn ứng tuyển của người dùng
+    'application-detail': '/application-profile/', // /:id/ sẽ được thêm vào để lấy chi tiết đơn
+    'application-profile-apply': '/application-profile/apply/', // Nộp đơn ứng tuyển
     'application-profile-my-all-applications-nofilter': '/application-profile/my-all-applications-nofilter/',
-    'update-my-application': '/application-profile/my-applications/', 
-    'review-application': '/review-application/', 
-    'review-application-action': '/review-application/',
-    // Thông báo
-    'notification': '/notification/', 
-    // Đánh giá
-    'comment-employer-details': '/comment-employer-details/',
+    'update-my-application': '/application-profile/my-applications/', // /:id/ để cập nhật đơn ứng tuyển của ứng viên
+    'review-application': '/review-application/', // /:id/ sẽ được thêm vào trong code
+    'review-application-action': '/review-application/', // /:id/review/ sẽ được thêm vào để phê duyệt/từ chối
+    'notification': '/notification/', // Thông báo
+    'comment-employer-details': '/comment-employer-details/', // Chi tiết đánh giá của ứng viên về nhà tuyển dụng
     'ratings': '/ratings/',
     'employer-ratings': '/employer-ratings/',
     'comment-details': '/comment-details/',
-    // Xác thực
     'verify-document': '/verify-document/verify/',
-    'verify-document-status': '/verify-document/status/',
-    'check-verification-status': '/verify-document/status/',
-    //Chat
     'conversations': '/conversations/',
     'messages': '/messages/',
+    'verify-document-status': '/verify-document/status/',
+    'check-verification-status': '/verify-document/status/',
     // Thống kê và báo cáo
     'stats-quantity-job': '/stats/stats-quantity-job/',
     'stats-quantity-candidate': '/stats/stats-quantity-candidate/',

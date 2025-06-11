@@ -87,6 +87,7 @@ export default function CompanyDetail() {
     const checkFollowStatus = async () => {
         try {
             const response = await authApi(token).get(`${endpoints['company-details']}${company.id}/`);
+            console.log('Trạng thái theo dõiouscccccccccccccb:', response.data);
             setIsFollowing(response.data.followed);
         } catch (error) {
             console.error('Lỗi khi kiểm tra trạng thái theo dõi:', error);

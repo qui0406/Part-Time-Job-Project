@@ -359,7 +359,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         if self.action in ['get_all_my_applications', 'get_all_my_applications_nofilter']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
-        return [AllowAny()]
+        return [permissions.AllowAny()]
 
     
     def list(self, request):
@@ -424,6 +424,7 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
     @action(methods=['post'], url_path='apply', detail=False)
     def create_application(self, request):
         document_exists = VerificationDocument.objects.filter(user=request.user).exists()
+        
         if not document_exists:
             return Response({"detail": "Bạn cần xác minh tài liệu trước khi nộp đơn ứng tuyển."}, status=status.HTTP_403_FORBIDDEN)
             
@@ -439,7 +440,8 @@ class ApplicationViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"detail": "Đã nộp cv rồi!"}, status=status.HTTP_400_BAD_REQUEST)
 
         data = request.data.copy()
-        data['job'] = job_id
+        data['job_id'] = job_id
+
         serializer = self.get_serializer(data=data, context={'request': request})
         
         if serializer.is_valid():
@@ -684,7 +686,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
         if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
             return [permissions.IsAuthenticated()]
-        return [permissions.AllowAny]
+        return [permissions.AllowAny()]
 
     @action(methods=['get'], url_path='get-all-comments', detail=False)
     def get_all_comments(self, request):
@@ -844,7 +846,7 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         return Response(serializer.data)
     
 
-    @action(methods=['get'], url_path='get-notification-rating', detail=False, permission_classes=[permissions.IsAuthenticated], serializer_class= ReplyCommentEmployerDetailSerializer)
+    @action(methods=['get'], url_path='get-notification-rating', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_notification_rating(self, request): 
         user = request.user
 
@@ -1065,7 +1067,8 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, perms.OwnerPerms]
     parser_classes = [parsers.MultiPartParser]
 
-    @action(methods=['get'], url_path='get-conversations', detail=False)
+
+    @action(methods=['get'], url_path='get-conversations', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_conversation(self, request):
         user = request.user
         employer_id = request.query_params.get('employer')
@@ -1085,7 +1088,7 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
         except Conversation.DoesNotExist:
             return Response({"detail": "Không tìm thấy cuộc trò chuyện"}, status=status.HTTP_404_NOT_FOUND)
 
-    @action(methods=['get'], url_path='get-conversation-for-employer', detail = False)
+    @action(methods=['get'], url_path='get-conversation-for-employer', detail = False, permission_classes=[permissions.IsAuthenticated, perms.IsEmployer, perms.OwnerPerms])
     def get_conversation_for_employer(self, request):
         user = request.user
         conversations = Conversation.objects.filter(employer = user)
@@ -1100,7 +1103,7 @@ class ConversationViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class MessageViewSet(viewsets.ModelViewSet):
+class MessageViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     filter_backends = [DjangoFilterBackend]
