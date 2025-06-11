@@ -192,7 +192,7 @@ const Profile = () => {
                                         <Text style={styles.jobTitle}>{job.title}</Text>
                                         <Text style={styles.jobDetail}>Địa điểm: {job.location}</Text>
                                         <Text style={styles.jobDetail}>Kỹ năng: {job.skills}</Text>
-                                        <Text style={styles.jobDetail}>Lương: {job.salary}</Text>
+                                        <Text style={styles.jobDetail}>Lương: {job.from_salary} - {job.to_salary} VNĐ</Text>
                                         <Text style={styles.jobDetail}>Thời gian làm việc: {job.working_time}</Text>
                                     </View>
                                 ))

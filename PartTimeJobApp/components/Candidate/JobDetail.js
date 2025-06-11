@@ -102,7 +102,10 @@ const JobDetail = () => {
             return dateString;
         }
     };
-
+    const formatCurrency = (value) => {
+        if (!value) return '0';
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    };
     const calculateAverageRating = () => {
         if (ratings.length === 0) return 0;
         const totalRating = ratings.reduce((sum, rating) => sum + (rating.rating || 0), 0);
@@ -174,7 +177,9 @@ const JobDetail = () => {
                 <Text style={styles.jobTitle}>{job.title}</Text>
                 <Text style={styles.companyName}>{job.company_name || 'Không rõ công ty'}</Text>
                 <Text style={styles.jobDetail}>📍 Địa điểm: {job.location || 'Không rõ'}</Text>
-                <Text style={styles.jobDetail}>💰 Mức lương: {job.salary || 'Thỏa thuận'}</Text>
+                <Text style={styles.jobDetail}>
+                    💰 Mức lương: {formatCurrency(job.from_salary)} - {formatCurrency(job.to_salary)} VNĐ
+                </Text>                
                 <Text style={styles.jobDetail}>⏰ Thời gian làm việc: {job.working_time || 'Không rõ'}</Text>
                 <Text style={styles.jobDetail}>🔧 Kỹ năng yêu cầu: {job.skills || 'Không yêu cầu cụ thể'}</Text>
                 <Text style={styles.jobDescriptionTitle}>📋 Mô tả công việc:</Text>

@@ -82,7 +82,7 @@ const Home = () => {
 
                 const uniqueJobs = jobsData.map((item, index) => ({
                     ...item,
-                    id: item.id || `job_${index}_${page}`, 
+                    id: item.id || `job_${index}_${page}`,
                 }));
 
                 setJobs(page === 1 ? uniqueJobs : [...jobs, ...uniqueJobs]);
@@ -93,7 +93,7 @@ const Home = () => {
                 }
             } catch (error) {
                 if (error.response && error.response.status === 404) {
-                    setJobs([]); 
+                    setJobs([]);
                     setTotalPages(1);
                 } else {
                     Alert.alert('Lỗi', 'Không thể tải danh sách công việc');
@@ -104,6 +104,10 @@ const Home = () => {
         }
     }, [page, q, searchField]);
 
+    const formatCurrency = (value) => {
+        if (!value) return '0';
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    };
     const parseSalary = (query) => {
         const cleanQuery = query.replace(/[^0-9kKmM-]/g, '').toLowerCase();
         const rangeMatch = cleanQuery.match(/(\d+[km]?)-(\d+[km]?)/);
@@ -127,8 +131,8 @@ const Home = () => {
             loadJobs();
         }
     }, [user]);
-    
-    useEffect(()=>{
+
+    useEffect(() => {
         if (user && user.role === 'candidate') {
             generateTrendingJobAiModel();
         }
@@ -229,7 +233,9 @@ const Home = () => {
                     <Ionicons name="briefcase-outline" size={24} color={Colors.PRIMARY} />
                 </View>
                 <Text style={styles.jobTitle}>{item.title}</Text>
-                <Text style={styles.salary}>VNĐ {item.salary}</Text>
+                <Text style={styles.salary}>
+                    {formatCurrency(item.from_salary)} - {formatCurrency(item.to_salary)} VNĐ
+                </Text>
                 <Text style={styles.jobDetail}>{item.working_time}</Text>
             </TouchableOpacity>
         );
@@ -303,28 +309,28 @@ const Home = () => {
                 </TouchableOpacity>
             </View>
             <View style={styles.trendingContainer}>
-                    <Text style={styles.trendingLabel}>Trending Jobs</Text>
-                    <FlatList
-                        data={jobAiGenerated}
-                        keyExtractor={(item, index) => `CV${item.job_title}-${index}`}
-                        horizontal
-                        showsHorizontalScrollIndicator={true}
-                        contentContainerStyle={styles.horizontalList}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setQ(item.job_title);
-                                    setSearchField('title');
-                                    handleSearch();
-                                }}
-                                accessible={true}
-                                accessibilityLabel={`Search for ${item.job_title}`}
-                            >
-                                <Chip icon="label" style={styles.chip}>{item.job_title}</Chip>
-                            </TouchableOpacity>
-                        )}
-                    />
-                </View>
+                <Text style={styles.trendingLabel}>Trending Jobs</Text>
+                <FlatList
+                    data={jobAiGenerated}
+                    keyExtractor={(item, index) => `CV${item.job_title}-${index}`}
+                    horizontal
+                    showsHorizontalScrollIndicator={true}
+                    contentContainerStyle={styles.horizontalList}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            onPress={() => {
+                                setQ(item.job_title);
+                                setSearchField('title');
+                                handleSearch();
+                            }}
+                            accessible={true}
+                            accessibilityLabel={`Search for ${item.job_title}`}
+                        >
+                            <Chip icon="label" style={styles.chip}>{item.job_title}</Chip>
+                        </TouchableOpacity>
+                    )}
+                />
+            </View>
             {isSearching && (
                 <View style={styles.searchInfoContainer}>
                     <Text style={styles.searchInfoText}>
@@ -376,7 +382,7 @@ const Home = () => {
                 ListFooterComponent={loading && <ActivityIndicator size="large" color={Colors.PRIMARY} style={styles.loader} />}
                 data={jobs}
                 renderItem={renderJobItem}
-                keyExtractor={(item) => item.id.toString()} 
+                keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={true}
                 ListEmptyComponent={!loading && (
