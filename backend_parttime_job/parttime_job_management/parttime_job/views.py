@@ -274,15 +274,14 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                 {"detail": "Không tìm thấy công ty của bạn"},
                 status=status.HTTP_404_NOT_FOUND
             )
-
         
 
         serializer = JobSerializer(data= request.data, context={'request': request,'company': company})
+
         if serializer.is_valid():
             try:
                 job = serializer.save(company=company)
                 followers = Follow.objects.filter(company=company, active=True).select_related("user")
-
 
                 for follow in followers:
                     user = follow.user

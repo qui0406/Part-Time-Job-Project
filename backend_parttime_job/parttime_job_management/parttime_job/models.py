@@ -93,21 +93,15 @@ class CompanyApprovalHistory(models.Model):
 
 
 class Job(BaseModel):
-    SALARY_UNIT_CHOICES = [
-        ('dg', 'đồng/giờ'),
-        ('tt', 'triệu/tháng'),
-    ]
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="jobs")
     title = models.CharField(max_length=255)
     description = models.TextField()
     location = models.TextField()
     skills = models.TextField()
-    salary = models.CharField(max_length=100, null=True, blank=True)
+    # salary = models.CharField(max_length=100, null=True, blank=True)
     working_time = models.CharField(max_length=100)
     from_salary = models.FloatField(validators=[MinValueValidator(0)], default=0, blank=True, null=True)
     to_salary = models.FloatField(validators=[MinValueValidator(0)], default=0, blank=True, null=True)
-    negotiable_salary = models.BooleanField(default=False)
-    unit_salary = models.CharField(max_length=50, choices=SALARY_UNIT_CHOICES, default='dg')
     def __str__(self):
         return self.title
 
