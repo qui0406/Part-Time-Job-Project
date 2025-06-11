@@ -707,7 +707,7 @@ class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = ['id', 'company', 'company_name', 'title', 'description',
-                  'location', 'skills', 'salary', 'working_time', 'active']
+                  'location', 'skills', 'salary','from_salary', 'to_salary', 'negotiable_salary', 'unit_salary', 'working_time', 'active']
         extra_kwargs = {
             'company': {'read_only': True},
             'active': {'read_only': True}
