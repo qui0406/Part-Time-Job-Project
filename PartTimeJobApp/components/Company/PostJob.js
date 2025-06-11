@@ -13,15 +13,15 @@ export default function PostJob() {
         title: '',
         description: '',
         skills: '',
-        salary: '',
+        from_salary: '',
+        to_salary: '',
         working_time: '',
         location: '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    //gợi ý cách nhập dữ liệu
-    const [showSalaryGuide, setShowSalaryGuide] = useState(false);
-    const [showShiftGuide, setShowShiftGuide] = useState(false);
+    // const [showSalaryGuide, setShowSalaryGuide] = useState(false);
+    // const [showShiftGuide, setShowShiftGuide] = useState(false);
 
     const navigation = useNavigation();
     const route = useRoute();
@@ -35,7 +35,7 @@ export default function PostJob() {
     };
 
     const postJob = async () => {
-        if (!job.title || !job.description || !job.skills || !job.salary || !job.working_time || !job.location) {
+        if (!job.title || !job.description || !job.skills || !job.from_salary || !job.to_salary || !job.working_time || !job.location) {
             setError('Vui lòng điền đầy đủ thông tin bắt buộc');
             return;
         }
@@ -83,49 +83,49 @@ export default function PostJob() {
         }
     };
 
-    const SalaryGuideModal = () => (
-        <Modal
-            transparent={true}
-            visible={showSalaryGuide}
-            animationType="fade"
-            onRequestClose={() => setShowSalaryGuide(false)}
-        >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Hướng dẫn nhập lương</Text>
-                    <Text style={styles.modalText}>- Lương theo giờ: 30k-50k/giờ</Text>
-                    <Text style={styles.modalText}>- Lương theo ca: 120k-200k/ca</Text>
-                    <Text style={styles.modalText}>- Lương theo ngày: 200k-350k/ngày</Text>
-                    <TouchableOpacity style={styles.modalButton} onPress={() => setShowSalaryGuide(false)}>
-                        <Text style={styles.modalButtonText}>Đóng</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </Modal>
-    );
+    // const SalaryGuideModal = () => (
+    //     <Modal
+    //         transparent={true}
+    //         visible={showSalaryGuide}
+    //         animationType="fade"
+    //         onRequestClose={() => setShowSalaryGuide(false)}
+    //     >
+    //         <View style={styles.modalOverlay}>
+    //             <View style={styles.modalContent}>
+    //                 <Text style={styles.modalTitle}>Hướng dẫn nhập lương</Text>
+    //                 <Text style={styles.modalText}>- Lương tối thiểu: 30,000 VNĐ/giờ hoặc 200,000 VNĐ/ngày</Text>
+    //                 <Text style={styles.modalText}>- Lương tối đa: 50,000 VNĐ/giờ hoặc 350,000 VNĐ/ngày</Text>
+    //                 <Text style={styles.modalText}>- Ví dụ: Từ 30,000 VNĐ đến 50,000 VNĐ/giờ</Text>
+    //                 <TouchableOpacity style={styles.modalButton} onPress={() => setShowSalaryGuide(false)}>
+    //                     <Text style={styles.modalButtonText}>Đóng</Text>
+    //                 </TouchableOpacity>
+    //             </View>
+    //         </View>
+    //     </Modal>
+    // );
 
-    const ShiftGuideModal = () => (
-        <Modal
-            transparent={true}
-            visible={showShiftGuide}
-            animationType="fade"
-            onRequestClose={() => setShowShiftGuide(false)}
-        >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Hướng dẫn nhập thời gian làm việc</Text>
-                    <Text style={styles.modalText}>- Ca sáng: 8h-12h</Text>
-                    <Text style={styles.modalText}>- Ca chiều: 13h-17h</Text>
-                    <Text style={styles.modalText}>- Ca tối: 18h-22h</Text>
-                    <Text style={styles.modalText}>- Cuối tuần: T7-CN (14h-18h)</Text>
-                    <Text style={styles.modalText}>- Linh hoạt: Thỏa thuận</Text>
-                    <TouchableOpacity style={styles.modalButton} onPress={() => setShowShiftGuide(false)}>
-                        <Text style={styles.modalButtonText}>Đóng</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </Modal>
-    );
+    // const ShiftGuideModal = () => (
+    //     <Modal
+    //         transparent={true}
+    //         visible={showShiftGuide}
+    //         animationType="fade"
+    //         onRequestClose={() => setShowShiftGuide(false)}
+    //     >
+    //         <View style={styles.modalOverlay}>
+    //             <View style={styles.modalContent}>
+    //                 <Text style={styles.modalTitle}>Hướng dẫn nhập thời gian làm việc</Text>
+    //                 <Text style={styles.modalText}>- Ca sáng: 8h-12h</Text>
+    //                 <Text style={styles.modalText}>- Ca chiều: 13h-17h</Text>
+    //                 <Text style={styles.modalText}>- Ca tối: 18h-22h</Text>
+    //                 <Text style={styles.modalText}>- Cuối tuần: T7-CN (14h-18h)</Text>
+    //                 <Text style={styles.modalText}>- Linh hoạt: Thỏa thuận</Text>
+    //                 <TouchableOpacity style={styles.modalButton} onPress={() => setShowShiftGuide(false)}>
+    //                     <Text style={styles.modalButtonText}>Đóng</Text>
+    //                 </TouchableOpacity>
+    //             </View>
+    //         </View>
+    //     </Modal>
+    // );
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -170,25 +170,39 @@ export default function PostJob() {
 
                         <View style={styles.fieldContainer}>
                             <View style={styles.labelRow}>
-                                <Text style={styles.label}>Mức lương *</Text>
-                                <TouchableOpacity onPress={() => setShowSalaryGuide(true)}>
+                                <Text style={styles.label}>Mức lương tối thiểu (VNĐ/Giờ) *</Text>
+                                {/* <TouchableOpacity onPress={() => setShowSalaryGuide(true)}>
                                     <Text style={styles.helpText}>Xem gợi ý</Text>
-                                </TouchableOpacity>
+                                </TouchableOpacity> */}
                             </View>
                             <TextInput
                                 style={styles.input}
-                                placeholder="VD: 30k-50k/giờ, 120k-200k/ca, 200k-350k/ngày"
-                                value={job.salary}
-                                onChangeText={(text) => change('salary', text)}
+                                placeholder="VD: 30000/giờ hoặc 200000/ngày"
+                                value={job.from_salary}
+                                onChangeText={(text) => change('from_salary', text)}
+                                keyboardType="numeric"
+                            />
+                        </View>
+
+                        <View style={styles.fieldContainer}>
+                            <View style={styles.labelRow}>
+                                <Text style={styles.label}>Mức lương tối đa (VNĐ/Giờ) *</Text>
+                            </View>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="VD: 50000/giờ hoặc 350000/ngày"
+                                value={job.to_salary}
+                                onChangeText={(text) => change('to_salary', text)}
+                                keyboardType="numeric"
                             />
                         </View>
 
                         <View style={styles.fieldContainer}>
                             <View style={styles.labelRow}>
                                 <Text style={styles.label}>Thời gian làm việc *</Text>
-                                <TouchableOpacity onPress={() => setShowShiftGuide(true)}>
+                                {/* <TouchableOpacity onPress={() => setShowShiftGuide(true)}>
                                     <Text style={styles.helpText}>Xem gợi ý</Text>
-                                </TouchableOpacity>
+                                </TouchableOpacity> */}
                             </View>
                             <TextInput
                                 style={styles.input}
@@ -215,15 +229,15 @@ export default function PostJob() {
                             <ActivityIndicator size="large" color={Colors.PRIMARY} />
                         ) : (
                             <TouchableOpacity style={styles.button} onPress={postJob}>
-                                <Text style={styles.buttonText}>Đăng tin</Text>
+                                <Text style={styles.buttonText}>Đăng ngay</Text>
                             </TouchableOpacity>
                         )}
                     </ScrollView>
                 </KeyboardAvoidingView>
             </View>
 
-            <SalaryGuideModal />
-            <ShiftGuideModal />
+            {/* <SalaryGuideModal />
+            <ShiftGuideModal /> */}
         </SafeAreaView>
     );
 }
