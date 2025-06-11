@@ -93,15 +93,15 @@ class CompanyApprovalHistory(models.Model):
 
 
 class Job(BaseModel):
-    company = models.ForeignKey(
-        Company, on_delete=models.CASCADE, related_name="jobs")
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="jobs")
     title = models.CharField(max_length=255)
     description = models.TextField()
     location = models.TextField()
     skills = models.TextField()
-    salary = models.CharField(max_length=100)
+    # salary = models.CharField(max_length=100, null=True, blank=True)
     working_time = models.CharField(max_length=100)
-
+    from_salary = models.FloatField(validators=[MinValueValidator(0)], default=0, blank=True, null=True)
+    to_salary = models.FloatField(validators=[MinValueValidator(0)], default=0, blank=True, null=True)
     def __str__(self):
         return self.title
 

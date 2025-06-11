@@ -21,6 +21,7 @@ from .models import Message
 from firebase_admin import auth
 from .tasks import send_new_job_email
 import hashlib
+import re
 
 from parttime_job.chat.services import sync_message_to_firebase
 from parttime_job.firebase import initialize_firebase
@@ -232,10 +233,12 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
     def get_queryset(self):
         queryset = self.queryset
         title = self.request.query_params.get('title')
+        company_name = self.request.query_params.get('company_name')
+        work_time = self.request.query_params.get('working_time')
+
         min_salary = self.request.query_params.get('min_salary')
         max_salary = self.request.query_params.get('max_salary')
-        work_time = self.request.query_params.get('working_time')
-        company_name = self.request.query_params.get('company_name')
+        
 
         if title:
             queryset = queryset.filter(title__icontains=title)
@@ -271,8 +274,10 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView):
                 {"detail": "Không tìm thấy công ty của bạn"},
                 status=status.HTTP_404_NOT_FOUND
             )
+        
 
-        serializer = JobSerializer(data=request.data, context={'request': request,'company': company})
+        serializer = JobSerializer(data= request.data, context={'request': request,'company': company})
+
         if serializer.is_valid():
             try:
                 job = serializer.save(company=company)
@@ -583,7 +588,7 @@ class RatingViewSet(BaseRatingViewSet):
         super().perform_create(serializer)
 
 
-    @action(methods=['get'], url_path='list-rating-job-of-company', detail=False, permission_classes=[AllowAny])
+    @action(methods=['get'], url_path='list-rating-job-of-company', detail=False, permission_classes=[permissions.IsAuthenticated])
     def list_ratings(self, request): 
         company_id = request.query_params.get('company_id')
         job_id = request.query_params.get('job_id')
@@ -683,7 +688,7 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             return [permissions.IsAuthenticated(), perms.OwnerPerms()]
         if self.action in ['get_all_comments', 'get_all_comments_by_job', 'reply_comment']:
             return [permissions.IsAuthenticated()]
-        return permissions.AllowAny()
+        return [permissions.AllowAny]
 
     @action(methods=['get'], url_path='get-all-comments', detail=False)
     def get_all_comments(self, request):
