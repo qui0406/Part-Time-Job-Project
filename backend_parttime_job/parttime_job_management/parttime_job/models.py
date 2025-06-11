@@ -38,7 +38,6 @@ class User(AbstractUser, BaseModel):
     avatar = CloudinaryField(null= False)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
     is_verified = models.BooleanField(default=False)  
-
     modified_date = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'username'
@@ -76,8 +75,7 @@ class Company(BaseModel):
 
 
 class CompanyImage(models.Model):
-    company = models.ForeignKey(
-        Company, on_delete=models.CASCADE, related_name="images")
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="images")
     image = CloudinaryField()
 
 
@@ -98,7 +96,6 @@ class Job(BaseModel):
     description = models.TextField()
     location = models.TextField()
     skills = models.TextField()
-    # salary = models.CharField(max_length=100, null=True, blank=True)
     working_time = models.CharField(max_length=100)
     from_salary = models.FloatField(validators=[MinValueValidator(0)], default=0, blank=True, null=True)
     to_salary = models.FloatField(validators=[MinValueValidator(0)], default=0, blank=True, null=True)
@@ -154,7 +151,7 @@ class Rating(BaseModel):
     job = models.ForeignKey(Job, on_delete=models.SET_NULL, null=True, blank=True)
     rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
-    is_reading = models.BooleanField(default=False)  # Đánh giá đã đọc hay chưa
+    is_reading = models.BooleanField(default=False)  
 
     class Meta:
         unique_together = ('user', 'company', 'job')
@@ -198,11 +195,7 @@ class VerificationDocument(models.Model):
         ('student_card', 'Thẻ sinh viên'),
         ('other', 'Khác'),
     )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="verification_documents"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name="verification_documents")
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
     document_front = CloudinaryField('document_front', resource_type='image', blank=True, null=True)
     document_back = CloudinaryField('document_back', resource_type='image', blank=True, null=True)
@@ -236,7 +229,7 @@ class Message(BaseModel):
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    firebase_key = models.CharField(max_length=255, blank=True)  # Store Firebase message key
+    firebase_key = models.CharField(max_length=255, blank=True)  
     is_read = models.BooleanField(default=False)
     
     def __str__(self):
