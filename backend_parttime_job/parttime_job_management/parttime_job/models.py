@@ -160,14 +160,14 @@ class Rating(BaseModel):
         return self.rating 
 
 class CommentDetail(BaseModel):
-    rating_employer = models.OneToOneField('Rating', on_delete=models.CASCADE) 
+    rating_employer = models.OneToOneField('Rating', on_delete=models.CASCADE, related_name='comment_employer_rating') 
     employer_reply = models.TextField(blank=True)
     
     def __str__(self):
         return self.employer_reply
     
 class ReplyCommetFromEmployerDetail(BaseModel):
-    rating_candidate = models.OneToOneField('EmployerRating', on_delete=models.CASCADE) 
+    rating_candidate = models.OneToOneField('EmployerRating', on_delete=models.CASCADE, related_name='reply_candidate_rating') 
     candidate_reply = models.TextField(blank=True)
     
     def __str__(self):
