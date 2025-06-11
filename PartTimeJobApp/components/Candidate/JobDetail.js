@@ -38,7 +38,6 @@ const JobDetail = () => {
             } else if (typeof job.company === 'number') {
                 companyId = job.company;
             } else {
-                alert('Lỗi: Không tìm thấy thông tin công ty');
                 return;
             }
 
@@ -52,7 +51,6 @@ const JobDetail = () => {
                 setRatings([]);
             }
         } catch (ex) {
-            alert('Lỗi: Không thể tải đánh giá, vui lòng thử lại sau');
             setRatings([]);
             setNextPage(null);
         } finally {

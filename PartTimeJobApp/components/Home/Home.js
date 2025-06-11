@@ -18,12 +18,10 @@ const Home = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-
     const [q, setQ] = useState('');
     const [searchField, setSearchField] = useState('title');
     const [isSearching, setIsSearching] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
-
 
     const [jobAiGenerated, setJobAiGenerated] = useState([]);
 
@@ -56,7 +54,36 @@ const Home = () => {
         }
     };
 
-    const loadJobs = useCallback(async () => {
+    const validateSearchInput = (searchValue, field) => {
+        if (!searchValue || searchValue.trim() === '') {
+            return { isValid: true, value: '' };
+        }
+
+        switch (field) {
+            case 'salary':
+                const salary = parseFloat(searchValue.trim());
+                if (isNaN(salary) || salary < 0) {
+                    return { 
+                        isValid: false, 
+                        message: 'Vui lòng nhập mức lương là một số không âm (VD: 30000)' 
+                    };
+                }
+                return { isValid: true, value: salary };
+            
+            case 'title':
+            case 'working_time':
+                const trimmedValue = searchValue.trim();
+                if (trimmedValue.length < 1) {
+                    return { isValid: false, message: 'Vui lòng nhập ít nhất 1 ký tự' };
+                }
+                return { isValid: true, value: trimmedValue };
+            
+            default:
+                return { isValid: true, value: searchValue.trim() };
+        }
+    };
+    
+    const loadJobs = async () => {
         if (page > 0) {
             try {
                 setLoading(true);
@@ -64,15 +91,19 @@ const Home = () => {
                 if (!token) throw new Error('No token');
 
                 let url = `${endpoints['job-list']}?page=${page}&page_size=3`;
-                if (q) {
+                
+                if (q && q.trim()) {
+                    const validation = validateSearchInput(q, searchField);
+                    
+                    if (!validation.isValid) {
+                        setLoading(false);
+                        return;
+                    }
+
                     if (searchField === 'salary') {
-                        const salaryParams = parseSalary(q);
-                        if (salaryParams) {
-                            if (salaryParams.min_salary) url += `&min_salary=${salaryParams.min_salary}`;
-                            if (salaryParams.max_salary) url += `&max_salary=${salaryParams.max_salary}`;
-                        }
+                        url += `&find_salary=${validation.value}`;
                     } else {
-                        url += `&${searchField}=${q}`;
+                        url += `&${searchField}=${encodeURIComponent(validation.value)}`;
                     }
                 }
 
@@ -92,45 +123,27 @@ const Home = () => {
                     setPage(0);
                 }
             } catch (error) {
+                console.error('Load jobs error:', error);
+                
                 if (error.response && error.response.status === 404) {
                     setJobs([]);
                     setTotalPages(1);
                 } else {
-                    Alert.alert('Lỗi', 'Không thể tải danh sách công việc');
+                    if (error.message !== 'No token' && !error.message.includes('validation')) {
+                        console.log('Lỗi!!!');
+                    }
                 }
             } finally {
                 setLoading(false);
             }
         }
-    }, [page, q, searchField]);
-
-    const formatCurrency = (value) => {
-        if (!value) return '0';
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     };
-    const parseSalary = (query) => {
-        const cleanQuery = query.replace(/[^0-9kKmM-]/g, '').toLowerCase();
-        const rangeMatch = cleanQuery.match(/(\d+[km]?)-(\d+[km]?)/);
-        const singleMatch = cleanQuery.match(/(\d+[km]?)/);
-
-        if (rangeMatch) {
-            let min = parseFloat(rangeMatch[1].replace(/[km]/, '')) * (rangeMatch[1].includes('k') ? 1000 : rangeMatch[1].includes('m') ? 1000000 : 1);
-            let max = parseFloat(rangeMatch[2].replace(/[km]/, '')) * (rangeMatch[2].includes('k') ? 1000 : rangeMatch[2].includes('m') ? 1000000 : 1);
-            return { min_salary: min, max_salary: max };
-        } else if (singleMatch) {
-            let value = parseFloat(singleMatch[1].replace(/[km]/, '')) * (singleMatch[1].includes('k') ? 1000 : singleMatch[1].includes('m') ? 1000000 : 1);
-            return { min_salary: value };
-        }
-        return null;
-    };
-
+   
     useEffect(() => {
-        if (user && user.role === 'candidate') {
-            setPage(1);
-            setJobs([]);
-            loadJobs();
-        }
-    }, [user]);
+        setPage(1);
+        setJobs([]);
+        loadJobs()
+    }, []);
 
     useEffect(() => {
         if (user && user.role === 'candidate') {
@@ -140,8 +153,15 @@ const Home = () => {
 
     useEffect(() => {
         let timer = setTimeout(() => {
-            loadJobs();
-        }, 100);
+            if (!q || q.trim() === '') {
+                loadJobs();
+            } else {
+                const validation = validateSearchInput(q, searchField);
+                if (validation.isValid) {
+                    loadJobs();
+                }
+            }
+        }, 200); 
 
         return () => clearTimeout(timer);
     }, [q, page, searchField]);
@@ -166,19 +186,16 @@ const Home = () => {
             return;
         }
 
-        if (searchField === 'salary') {
-            const salaryParams = parseSalary(q);
-            if (!salaryParams) {
-                Alert.alert('Lỗi', 'Vui lòng nhập mức lương hợp lệ (VD: 30k, 30k-50k, 5m)');
-                return;
-            }
+        const validation = validateSearchInput(q, searchField);
+        if (!validation.isValid) {
+            Alert.alert('Lỗi nhập liệu', validation.message);
+            return;
         }
-
+    
         setIsSearching(true);
         search(q, setQ);
-    }, [q, searchField, isSearching]);
+    }, [q, searchField, isSearching])
 
-    // Clear search 
     const clearSearch = useCallback(() => {
         search('', setQ);
         setIsSearching(false);
@@ -187,12 +204,17 @@ const Home = () => {
     const renderSearchPlaceholder = () => {
         switch (searchField) {
             case 'salary':
-                return 'Nhập mức lương (VD: 30k, 30k-50k)';
+                return 'Nhập mức lương (VD: 30000)';
             case 'working_time':
                 return 'Nhập thời gian làm việc';
             default:
                 return 'Tìm kiếm công việc';
         }
+    };
+ 
+    const formatCurrency = (value) => {
+        if (!value) return '0';
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     };
 
     const renderJobItem = useCallback(({ item }) => {
@@ -265,7 +287,6 @@ const Home = () => {
         );
     };
 
-    // Kiểm tra role user
     if (!user || user.role !== 'candidate') {
         return (
             <SafeAreaView style={styles.container}>
@@ -308,6 +329,7 @@ const Home = () => {
                     <Ionicons name="search" size={24} color={Colors.WHITE} />
                 </TouchableOpacity>
             </View>
+            
             <View style={styles.trendingContainer}>
                 <Text style={styles.trendingLabel}>Trending Jobs</Text>
                 <FlatList
@@ -331,6 +353,7 @@ const Home = () => {
                     )}
                 />
             </View>
+            
             {isSearching && (
                 <View style={styles.searchInfoContainer}>
                     <Text style={styles.searchInfoText}>
@@ -388,7 +411,9 @@ const Home = () => {
                 ListEmptyComponent={!loading && (
                     <View style={styles.noJobsContainer}>
                         <Ionicons name="search-outline" size={60} color={Colors.GRAY} />
-                        <Text style={styles.noJobsText}>Không tìm thấy công việc phù hợp.</Text>
+                        <Text style={styles.noJobsText}>
+                            {q && q.trim() ? 'Không tìm thấy công việc phù hợp.' : 'Không có công việc nào.'}
+                        </Text>
                         <TouchableOpacity style={styles.retryButton} onPress={() => { setPage(1); setJobs([]); loadJobs(); }}>
                             <Text style={styles.retryButtonText}>Tải lại danh sách</Text>
                         </TouchableOpacity>
@@ -408,7 +433,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingTop: 15,
     },
-    // Trending section styles
     trendingContainer: {
         marginBottom: 15,
     },
@@ -429,7 +453,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // Search styles
     searchWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
