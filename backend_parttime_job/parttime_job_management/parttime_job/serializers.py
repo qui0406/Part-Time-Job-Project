@@ -1,198 +1,202 @@
-# from rest_framework import serializers  
-# from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, CommentDetail, ReplyCommetFromEmployerDetail  
-# import re
-# from django.core.exceptions import ValidationError
-# from cloudinary.uploader import upload
+from rest_framework import serializers  
+from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, CommentDetail, ReplyCommetFromEmployerDetail  
+import re
+from django.core.exceptions import ValidationError
+from cloudinary.uploader import upload
 
 
-# class ItemSerializer(serializers.ModelSerializer):
-#     def to_representation(self, instance):
-#         data = super().to_representation(instance)
-#         data['image'] = instance.image.url
-#         return data
+class ItemSerializer(serializers.ModelSerializer):
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['image'] = instance.image.url
+        return data
 
 
-# class UserSerializer(serializers.ModelSerializer):
-#     def create(self, validated_data):
-#         data = validated_data.copy()
-#         u = User(**data)
-#         u.set_password(u.password)
-#         u.save()
-#         return u
+class UserSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        data = validated_data.copy()
+        u = User(**data)
+        u.set_password(u.password)
+        u.save()
+        return u
 
-#     def to_representation(self, instance):
-#         data = super().to_representation(instance)
-#         data['avatar'] = instance.avatar.url if instance.avatar else ''
-#         return data
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['avatar'] = instance.avatar.url if instance.avatar else ''
+        return data
 
-#     class Meta:
-#         model = User
-#         fields = ['id', 'first_name', 'last_name', 'username', 'email',
-#                   'phone_number', 'password', 'role', 'avatar']
-#         extra_kwargs = {'password': {'write_only': True}}
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'username', 'email',
+                  'phone_number', 'password', 'role', 'avatar']
+        extra_kwargs = {'password': {'write_only': True}}
 
-# class UserUpdateSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(
-#         write_only=True, required=False, min_length=6)
+class UserUpdateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True, required=False, min_length=6)
 
-#     class Meta:
-#         model = User
-#         fields = ['first_name', 'last_name', 'username',
-#                   'email', 'phone_number', 'password']
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username',
+                  'email', 'phone_number', 'password']
 
-#     def update(self, instance, validated_data):
-#         if 'password' in validated_data:
-#             instance.set_password(validated_data.pop('password'))
-#         return super().update(instance, validated_data)
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            instance.set_password(validated_data.pop('password'))
+        return super().update(instance, validated_data)
     
-# class CompanyImageSerializer(ItemSerializer):
-#     class Meta:
-#         model = CompanyImage
-#         fields = ['image']
+class CompanyImageSerializer(ItemSerializer):
+    class Meta:
+        model = CompanyImage
+        fields = ['image']
 
 
-# class CompanySerializer(serializers.ModelSerializer):
-#     images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=True)
-#     image_list = serializers.SerializerMethodField()
-#     followed = serializers.SerializerMethodField()
-#     follower_count = serializers.SerializerMethodField()
+class CompanySerializer(serializers.ModelSerializer):
+    images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=True)
+    image_list = serializers.SerializerMethodField()
+    followed = serializers.SerializerMethodField()
+    follower_count = serializers.SerializerMethodField()
 
-#     def get_followed(self, obj):    
-#         request = self.context.get('request')
-#         if request and request.user.is_authenticated:
-#             return Follow.objects.filter(
-#                 user=request.user, company=obj).exists()
-#         return False
+    def get_followed(self, obj):    
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Follow.objects.filter(
+                user=request.user, company=obj).exists()
+        return False
     
-#     def get_image_list(self, obj):
-#         images = obj.images.all()
-#         return CompanyImageSerializer(images, many=True).data
+    def get_image_list(self, obj):
+        images = obj.images.all()
+        return CompanyImageSerializer(images, many=True).data
     
 
-#     def validate_images(self, value):
-#         if len(value) < 3:
-#             raise serializers.ValidationError("Cần ít nhất 3 hình ảnh môi trường làm việc.")
-#         for image in value:
-#             if image.content_type not in ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp']:
-#                 raise serializers.ValidationError("Chỉ chấp nhận ảnh JPEG, PNG, JPG, WEBP, GIF")
-#         return value
+    def validate_images(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError("Cần ít nhất 3 hình ảnh môi trường làm việc.")
+        for image in value:
+            if image.content_type not in ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp']:
+                raise serializers.ValidationError("Chỉ chấp nhận ảnh JPEG, PNG, JPG, WEBP, GIF")
+        return value
 
-#     def validate_company_name(self, value):
-#         if not value:
-#             raise serializers.ValidationError("Tên công ty không được để trống.")
-#         return value
+    def validate_company_name(self, value):
+        if not value:
+            raise serializers.ValidationError("Tên công ty không được để trống.")
+        return value
 
-#     class Meta:
-#         model = Company
-#         fields = ['id', 'user', 'company_name', 'company_phone',
-#                   'company_email', 'description', 'tax_id', 'images', 'followed', 'follower_count',
-#                   'image_list', 'address', 'latitude', 'longitude', 'is_approved', 'is_rejected']
-#         extra_kwargs = {
-#             'user': {'read_only': True}
-#         }
+    class Meta:
+        model = Company
+        fields = ['id', 'user', 'company_name', 'company_phone',
+                  'company_email', 'description', 'tax_id', 'images', 'followed', 'follower_count',
+                  'image_list', 'address', 'latitude', 'longitude', 'is_approved', 'is_rejected']
+        extra_kwargs = {
+            'user': {'read_only': True}
+        }
 
-#     def get_company_name(self, obj):
-#         return obj.company_name
+    def get_company_name(self, obj):
+        return obj.company_name
     
-#     def get_follower_count(self, obj):
-#         return Follow.objects.filter(company=obj).count()
+    def get_follower_count(self, obj):
+        return Follow.objects.filter(company=obj).count()
 
-# class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = CompanyApprovalHistory
-#         fields = ['company', 'approved_by', 'is_approved',
-#                   'is_rejected', 'reason', 'timestamp']
+class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyApprovalHistory
+        fields = ['company', 'approved_by', 'is_approved',
+                  'is_rejected', 'reason', 'timestamp']
 
-# class JobSerializer(serializers.ModelSerializer):
-#     company_name = serializers.SerializerMethodField()
+class JobSerializer(serializers.ModelSerializer):
+    company_name = serializers.SerializerMethodField()
 
-#     class Meta:
-#         model = Job
-#         fields = ['id', 'company', 'company_name', 'title', 'description',
-#                   'location', 'skills', 'salary', 'working_time', 'active']
-#         extra_kwargs = {
-#             'company': {'read_only': True},
-#             'active': {'read_only': True}
-#         }
+    class Meta:
+        model = Job
+        fields = ['id', 'company', 'company_name', 'title', 'description',
+                  'location', 'skills','from_salary', 'to_salary', 'working_time', 'active']
+        extra_kwargs = {
+            'company': {'read_only': True},
+            'active': {'read_only': True}
+        }
 
-#     def get_company_name(self, obj):
-#         return obj.company.company_name
+    def get_company_name(self, obj):
+        return obj.company.company_name
 
-#     def validate_title(self, value):
-#         if not value:
-#             raise serializers.ValidationError("Tiêu đề không được để trống.")
-#         return value
+    def validate_title(self, value):
+        if not value:
+            raise serializers.ValidationError("Tiêu đề không được để trống.")
+        return value
 
-#     def validate_description(self, value):
-#         if not value:
-#             raise serializers.ValidationError("Mô tả không được để trống.")
-#         return value
+    def validate_description(self, value):
+        if not value:
+            raise serializers.ValidationError("Mô tả không được để trống.")
+        return value
 
-#     def validate_location(self, value):
-#         if not value:
-#             raise serializers.ValidationError("Địa chỉ không được để trống.")
-#         return value
+    def validate_location(self, value):
+        if not value:
+            raise serializers.ValidationError("Địa chỉ không được để trống.")
+        return value
 
-#     def validate_skills(self, value):
-#         if not value:
-#             raise serializers.ValidationError("Kỹ năng không được để trống.")
-#         return value
+    def validate_skills(self, value):
+        if not value:
+            raise serializers.ValidationError("Kỹ năng không được để trống.")
+        return value
 
-#     def validate_salary(self, value):
-#         if not value:
-#             raise serializers.ValidationError("Mức lương không được để trống.")
-#         return value
+    def validate_salary(self, value):
+        if not value:
+            raise serializers.ValidationError("Mức lương không được để trống.")
+        return value
 
-#     def validate_working_time(self, value):
-#         if not value:
-#             raise serializers.ValidationError(
-#                 "Thời gian làm việc không được để trống.")
-#         return value
+    def validate_working_time(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Thời gian làm việc không được để trống.")
+        return value
 
 
 
-# class ApplicationSerializer(serializers.ModelSerializer):
-#     user =serializers.SerializerMethodField(read_only=True)
-#     cv = serializers.FileField(required=True)
-#     status_display = serializers.SerializerMethodField()
+class ApplicationSerializer(serializers.ModelSerializer):
+    user =serializers.SerializerMethodField(read_only=True)
+    cv = serializers.FileField(required=True)
+    status_display = serializers.SerializerMethodField()
 
     
-#     class Meta:
-#         model = Application
-#         fields = [
-#             'id', 'education', 'experience', 'current_job',
-#             'hope_salary', 'cv', 'status', 'status_display', 'employer_note', 'user',
-#         ]
-#         read_only_fields = ['status', 'employer_note']
+    class Meta:
+        model = Application
+        fields = [
+            'id', 'education', 'experience', 'current_job',
+            'hope_salary', 'cv', 'status', 'status_display', 'employer_note', 'user',
+        ]
+        read_only_fields = ['status', 'employer_note']
 
-#     def get_user(self, obj):
-#         return {
-#             'username': obj.user.username
-#         }
+    def get_user(self, obj):
+        return {
+            'id': obj.user.id,
+            'username': obj.user.username,
+            'email': obj.user.email,
+            'first_name': obj.user.first_name,
+            'last_name': obj.user.last_name,
+        }
     
     
-#     def get_status_display(self, obj):
-#         return obj.get_status_display() 
+    def get_status_display(self, obj):
+        return obj.get_status_display() 
 
-#     def validate(self, data):
-#         user = self.context['request'].user
-#         job = data.get('job')
-#         if job is None:
-#             raise serializers.ValidationError("Thông tin công việc là bắt buộc")
+    def validate(self, data):
+        user = self.context['request'].user
+        job = data.get('job')
+        if job is None:
+            raise serializers.ValidationError("Thông tin công việc là bắt buộc")
 
-#         existing_application = Application.objects.filter(job=job, user=user)
-#         if self.instance:
-#             existing_application = existing_application.exclude(pk=self.instance.pk)
+        existing_application = Application.objects.filter(job=job, user=user)
+        if self.instance:
+            existing_application = existing_application.exclude(pk=self.instance.pk)
 
-#         if existing_application.exists():
-#             raise serializers.ValidationError("Bạn đã nộp đơn ứng tuyển cho công việc này rồi")
+        if existing_application.exists():
+            raise serializers.ValidationError("Bạn đã nộp đơn ứng tuyển cho công việc này rồi")
 
-#         return data
+        return data
 
-#     def validate_cv(self, value):
-#         if not value.name.endswith(('.pdf', '.docx', '.jpg', '.jpeg', '.png')):
-#             raise serializers.ValidationError("Chỉ hỗ trợ file PDF, DOCX, JPG, JPEG, PNG.")
-#         return value
+    def validate_cv(self, value):
+        if not value.name.endswith(('.pdf', '.docx', '.jpg', '.jpeg', '.png')):
+            raise serializers.ValidationError("Chỉ hỗ trợ file PDF, DOCX, JPG, JPEG, PNG.")
+        return value
 
 
 # class ApplicationJobSerializer(serializers.ModelSerializer):
@@ -223,6 +227,8 @@
     
 #     def get_status_display(self, obj):
 #         return obj.get_status_display()
+    
+
 # class ApplicationDetailSerializer(ApplicationSerializer):
 #     job = serializers.SerializerMethodField(read_only=True)
 #     user = serializers.SerializerMethodField(read_only=True)
@@ -598,154 +604,154 @@
 
 
 
-from rest_framework import serializers  
-from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, CommentDetail, ReplyCommetFromEmployerDetail  
-import re
-from django.core.exceptions import ValidationError
-from cloudinary.uploader import upload
+# from rest_framework import serializers  
+# from parttime_job.models import User, Company, CompanyImage, CompanyApprovalHistory, Job, Application, Follow, Notification, Rating, EmployerRating, VerificationDocument, Conversation, Message, CommentDetail, ReplyCommetFromEmployerDetail  
+# import re
+# from django.core.exceptions import ValidationError
+# from cloudinary.uploader import upload
 
 
-class ItemSerializer(serializers.ModelSerializer):
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['image'] = instance.image.url
-        return data
+# class ItemSerializer(serializers.ModelSerializer):
+#     def to_representation(self, instance):
+#         data = super().to_representation(instance)
+#         data['image'] = instance.image.url
+#         return data
 
 
-class UserSerializer(serializers.ModelSerializer):
-    def create(self, validated_data):
-        data = validated_data.copy()
-        u = User(**data)
-        u.set_password(u.password)
-        u.save()
-        return u
+# class UserSerializer(serializers.ModelSerializer):
+#     def create(self, validated_data):
+#         data = validated_data.copy()
+#         u = User(**data)
+#         u.set_password(u.password)
+#         u.save()
+#         return u
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['avatar'] = instance.avatar.url if instance.avatar else ''
-        return data
+#     def to_representation(self, instance):
+#         data = super().to_representation(instance)
+#         data['avatar'] = instance.avatar.url if instance.avatar else ''
+#         return data
 
-    class Meta:
-        model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'email',
-                  'phone_number', 'password', 'role', 'avatar']
-        extra_kwargs = {'password': {'write_only': True}}
+#     class Meta:
+#         model = User
+#         fields = ['id', 'first_name', 'last_name', 'username', 'email',
+#                   'phone_number', 'password', 'role', 'avatar']
+#         extra_kwargs = {'password': {'write_only': True}}
 
-class UserUpdateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(
-        write_only=True, required=False, min_length=6)
+# class UserUpdateSerializer(serializers.ModelSerializer):
+#     password = serializers.CharField(
+#         write_only=True, required=False, min_length=6)
 
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'username',
-                  'email', 'phone_number', 'password']
+#     class Meta:
+#         model = User
+#         fields = ['first_name', 'last_name', 'username',
+#                   'email', 'phone_number', 'password']
 
-    def update(self, instance, validated_data):
-        if 'password' in validated_data:
-            instance.set_password(validated_data.pop('password'))
-        return super().update(instance, validated_data)
+#     def update(self, instance, validated_data):
+#         if 'password' in validated_data:
+#             instance.set_password(validated_data.pop('password'))
+#         return super().update(instance, validated_data)
     
-class CompanyImageSerializer(ItemSerializer):
-    class Meta:
-        model = CompanyImage
-        fields = ['image']
+# class CompanyImageSerializer(ItemSerializer):
+#     class Meta:
+#         model = CompanyImage
+#         fields = ['image']
 
 
-class CompanySerializer(serializers.ModelSerializer):
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=True)
-    image_list = CompanyImageSerializer(source='images', many=True, read_only=True)
-    followed = serializers.SerializerMethodField()
-    follower_count = serializers.SerializerMethodField()
+# class CompanySerializer(serializers.ModelSerializer):
+#     images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=True)
+#     image_list = CompanyImageSerializer(source='images', many=True, read_only=True)
+#     followed = serializers.SerializerMethodField()
+#     follower_count = serializers.SerializerMethodField()
 
-    def get_followed(self, obj):    
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return Follow.objects.filter(
-                user=request.user, company=obj, active = True ).exists()
-        return False
+#     def get_followed(self, obj):    
+#         request = self.context.get('request')
+#         if request and request.user.is_authenticated:
+#             return Follow.objects.filter(
+#                 user=request.user, company=obj, active = True ).exists()
+#         return False
     
 
 
-    def validate_images(self, value):
-        if len(value) < 3:
-            raise serializers.ValidationError("Cần ít nhất 3 hình ảnh môi trường làm việc.")
-        for image in value:
-            if image.content_type not in ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp']:
-                raise serializers.ValidationError("Chỉ chấp nhận ảnh JPEG, PNG, JPG, WEBP, GIF")
-        return value
+#     def validate_images(self, value):
+#         if len(value) < 3:
+#             raise serializers.ValidationError("Cần ít nhất 3 hình ảnh môi trường làm việc.")
+#         for image in value:
+#             if image.content_type not in ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp']:
+#                 raise serializers.ValidationError("Chỉ chấp nhận ảnh JPEG, PNG, JPG, WEBP, GIF")
+#         return value
 
-    def validate_company_name(self, value):
-        if not value:
-            raise serializers.ValidationError("Tên công ty không được để trống.")
-        return value
+#     def validate_company_name(self, value):
+#         if not value:
+#             raise serializers.ValidationError("Tên công ty không được để trống.")
+#         return value
 
-    class Meta:
-        model = Company
-        fields = ['id', 'user', 'company_name', 'company_phone',
-                  'company_email', 'description', 'tax_id', 'images', 'followed', 'follower_count',
-                  'image_list', 'address', 'latitude', 'longitude', 'is_approved', 'is_rejected']
-        extra_kwargs = {
-            'user': {'read_only': True}
-        }
+#     class Meta:
+#         model = Company
+#         fields = ['id', 'user', 'company_name', 'company_phone',
+#                   'company_email', 'description', 'tax_id', 'images', 'followed', 'follower_count',
+#                   'image_list', 'address', 'latitude', 'longitude', 'is_approved', 'is_rejected']
+#         extra_kwargs = {
+#             'user': {'read_only': True}
+#         }
 
-    def get_company_name(self, obj):
-        return obj.company_name
+#     def get_company_name(self, obj):
+#         return obj.company_name
     
-    def get_follower_count(self, obj):
-        return Follow.objects.filter(company=obj).count()
+#     def get_follower_count(self, obj):
+#         return Follow.objects.filter(company=obj).count()
 
-class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CompanyApprovalHistory
-        fields = ['company', 'approved_by', 'is_approved',
-                  'is_rejected', 'reason', 'timestamp']
+# class CompanyApprovalHistorySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = CompanyApprovalHistory
+#         fields = ['company', 'approved_by', 'is_approved',
+#                   'is_rejected', 'reason', 'timestamp']
 
-class JobSerializer(serializers.ModelSerializer):
-    company = serializers.PrimaryKeyRelatedField(read_only=True)
-    company_name = serializers.SerializerMethodField()
+# class JobSerializer(serializers.ModelSerializer):
+#     company = serializers.PrimaryKeyRelatedField(read_only=True)
+#     company_name = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Job
-        fields = ['id', 'company', 'company_name', 'title', 'description',
-                  'location', 'skills','from_salary', 'to_salary','working_time', 'active']
-        extra_kwargs = {
-            'company': {'read_only': True},
-            'active': {'read_only': True}
-        }
+#     class Meta:
+#         model = Job
+#         fields = ['id', 'company', 'company_name', 'title', 'description',
+#                   'location', 'skills','from_salary', 'to_salary','working_time', 'active']
+#         extra_kwargs = {
+#             'company': {'read_only': True},
+#             'active': {'read_only': True}
+#         }
 
-    def get_company_name(self, obj):
-        return obj.company.company_name
+#     def get_company_name(self, obj):
+#         return obj.company.company_name
 
-    def validate_title(self, value):
-        if not value:
-            raise serializers.ValidationError("Tiêu đề không được để trống.")
-        return value
+#     def validate_title(self, value):
+#         if not value:
+#             raise serializers.ValidationError("Tiêu đề không được để trống.")
+#         return value
 
-    def validate_description(self, value):
-        if not value:
-            raise serializers.ValidationError("Mô tả không được để trống.")
-        return value
+#     def validate_description(self, value):
+#         if not value:
+#             raise serializers.ValidationError("Mô tả không được để trống.")
+#         return value
 
-    def validate_location(self, value):
-        if not value:
-            raise serializers.ValidationError("Địa chỉ không được để trống.")
-        return value
+#     def validate_location(self, value):
+#         if not value:
+#             raise serializers.ValidationError("Địa chỉ không được để trống.")
+#         return value
 
-    def validate_skills(self, value):
-        if not value:
-            raise serializers.ValidationError("Kỹ năng không được để trống.")
-        return value
+#     def validate_skills(self, value):
+#         if not value:
+#             raise serializers.ValidationError("Kỹ năng không được để trống.")
+#         return value
 
-    def validate_salary(self, value):
-        if not value:
-            raise serializers.ValidationError("Mức lương không được để trống.")
-        return value
+#     def validate_salary(self, value):
+#         if not value:
+#             raise serializers.ValidationError("Mức lương không được để trống.")
+#         return value
 
-    def validate_working_time(self, value):
-        if not value:
-            raise serializers.ValidationError(
-                "Thời gian làm việc không được để trống.")
-        return value
+#     def validate_working_time(self, value):
+#         if not value:
+#             raise serializers.ValidationError(
+#                 "Thời gian làm việc không được để trống.")
+#         return value
 
 
 

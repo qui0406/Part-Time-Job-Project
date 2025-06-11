@@ -235,17 +235,13 @@ class JobListViewSet(viewsets.ViewSet, generics.ListAPIView):
         title = self.request.query_params.get('title')
         company_name = self.request.query_params.get('company_name')
         work_time = self.request.query_params.get('working_time')
-
-        min_salary = self.request.query_params.get('min_salary')
-        max_salary = self.request.query_params.get('max_salary')
+        find_salary = self.request.query_params.get('find_salary')
         
 
         if title:
             queryset = queryset.filter(title__icontains=title)
-        if min_salary:
-            queryset = queryset.filter(salary__gte=float(min_salary))
-        if max_salary:
-            queryset = queryset.filter(salary__lte=float(max_salary))
+        if find_salary:
+            queryset = queryset.filter(from_salary__lte=find_salary, to_salary__gte=find_salary)
         if work_time:
             queryset = queryset.filter(working_time__icontains=work_time)
         if company_name:
