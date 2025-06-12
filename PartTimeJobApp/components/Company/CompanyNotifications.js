@@ -27,10 +27,8 @@ export default function CompanyNotifications() {
                 throw new Error('Không tìm thấy token xác thực');
             }
 
-            // Lấy thông tin công ty hiện tại - SỬA LỖI: Kiểm tra endpoint key
             let currentCompany;
             try {
-                // Thử với các key endpoint có thể có
                 const companyEndpoint = endpoints['current-company'] || endpoints['current_company'] || endpoints['company'];
                 if (!companyEndpoint) {
                     throw new Error('Không tìm thấy endpoint company');
@@ -40,7 +38,6 @@ export default function CompanyNotifications() {
                 currentCompany = companyResponse.data;
             } catch (companyError) {
                 console.log('Lỗi khi lấy thông tin công ty:', companyError);
-                // Nếu không lấy được company, có thể dùng user.company_id hoặc cách khác
                 if (user.company_id) {
                     currentCompany = { id: user.company_id };
                 } else {
@@ -52,19 +49,15 @@ export default function CompanyNotifications() {
                 throw new Error('Không tìm thấy thông tin công ty');
             }
 
-            // Promise để lấy đồng thời cả đơn ứng tuyển và đánh giá
             const [applicationsResponse, ratingsResponse] = await Promise.all([
-                // Lấy đơn ứng tuyển pending
                 authApi(token).get(endpoints['application-profile'] || endpoints['applications'], {
                     params: { status: 'pending' }
                 }),
-                // SỬA LỖI: Gọi API đúng cách để lấy thông báo đánh giá
-                authApi(token).get(`${endpoints['ratings-candidate']}get-notification-rating/`, {
+                authApi(token).get(`${endpoints['ratings-notification']}get-notification-rating/`, {
                     params: { company_id: currentCompany.id }
                 })
             ]);
 
-            // Xử lý đơn ứng tuyển (giữ nguyên)
             let pendingApplications = [];
             if (Array.isArray(applicationsResponse.data)) {
                 pendingApplications = applicationsResponse.data;
@@ -79,24 +72,19 @@ export default function CompanyNotifications() {
                 application.job
             );
 
-            // SỬA LỖI: Xử lý dữ liệu đánh giá đúng cách
             let ratingNotifications = [];
             console.log('Rating API Response:', ratingsResponse.data);
 
-            // CHÍNH SỬA: Xử lý cả 2 trường hợp trả về
             if (ratingsResponse.data) {
                 if (ratingsResponse.data.list_notification) {
-                    // Trường hợp API trả về object có list_notification
                     ratingNotifications = ratingsResponse.data.list_notification;
                 } else if (Array.isArray(ratingsResponse.data)) {
-                    // Trường hợp API trả về array trực tiếp (như log hiện tại)
                     ratingNotifications = ratingsResponse.data;
                 }
             }
 
             console.log('Rating notifications found:', ratingNotifications.length);
 
-            // Tạo thông báo từ đơn ứng tuyển (giữ nguyên)
             const applicationNotifications = validApplications.map(application => {
                 const username = application.user?.username || application.user?.first_name || 'Ứng viên';
                 const jobTitle = application.job?.title || `Công việc #${application.job?.id || 'không xác định'}`;
@@ -113,9 +101,7 @@ export default function CompanyNotifications() {
                 };
             });
 
-            // SỬA LỖI: Tạo thông báo từ đánh giá với dữ liệu đúng
             const ratingNotificationItems = ratingNotifications.map(rating => {
-                // SỬA LỖI: Xử lý dữ liệu rating từ API response
                 const username = rating.user || 'Ứng viên';
                 const jobTitle = rating.job || 'Công việc';
                 const ratingValue = rating.rating || 0;
@@ -129,14 +115,12 @@ export default function CompanyNotifications() {
                     ratingId: rating.id,
                     rating: rating,
                     type: 'rating_notification',
-                    priority: rating.is_reading ? 3 : 2 // Chưa đọc có độ ưu tiên cao hơn
+                    priority: rating.is_reading ? 3 : 2 
                 };
             });
 
-            // Kết hợp và sắp xếp theo thời gian và độ ưu tiên
             const allNotifications = [...applicationNotifications, ...ratingNotificationItems]
                 .sort((a, b) => {
-                    // Sắp xếp theo độ ưu tiên trước, sau đó theo thời gian
                     if (a.priority !== b.priority) {
                         return a.priority - b.priority;
                     }
@@ -209,46 +193,21 @@ export default function CompanyNotifications() {
     };
 
     const handleNotificationPress = async (notification) => {
-        if (notification.type === 'application_review') {
-            console.log('Chuyển đến chi tiết đơn với applicationId:', notification.applicationId);
-            navigation.navigate('ApplicationDetail', {
-                applicationId: notification.applicationId,
-                application: notification.application
-            });
-        }  else if (notification.type === 'rating_notification') {
-            console.log('Chuyển đến màn hình phản hồi đánh giá:', notification.ratingId);
-        
-            const token = await AsyncStorage.getItem('token');
-            if (token && notification.rating && !notification.rating.is_reading) {
-                try {
-                    await authApi(token).get(`${endpoints['ratings-candidate']}get-notification-rating/`, {
-                        params: {
-                            company_id: notification.rating.company?.id || user.company_id,
-                            job_id: notification.rating.job?.id
-                        }
-                    });
-        
-                    // Cập nhật trạng thái local
-                    setNotifications(prev =>
-                        prev.map(item =>
-                            item.id === notification.id
-                                ? { ...item, priority: 3, rating: { ...item.rating, is_reading: true } }
-                                : item
-                        )
-                    );
-                } catch (error) {
-                    console.error('Lỗi khi đánh dấu đã đọc:', error);
-                }
-            }
-        
-            // 👉 Điều hướng sang màn hình phản hồi đánh giá
-            navigation.navigate('ReplyRating', {
-                rating: notification.rating, // Truyền cả đối tượng đánh giá
-                ratingId: notification.ratingId
-            });
-        }
-        
-    };
+    if (notification.type === 'application_review') {
+        console.log('Chuyển đến chi tiết đơn với applicationId:', notification.applicationId);
+        navigation.navigate('ApplicationDetail', {
+            applicationId: notification.applicationId,
+            application: notification.application
+        });
+    } else if (notification.type === 'rating_notification') {
+        console.log('Chuyển đến màn hình phản hồi đánh giá:', notification.ratingId);
+        navigation.navigate('ReplyRating', {
+            rating: notification.rating, 
+            ratingId: notification.ratingId
+        });
+    }
+};
+
 
     const getNotificationStyle = (notification) => {
         switch (notification.type) {
@@ -258,7 +217,7 @@ export default function CompanyNotifications() {
                 return {
                     ...styles.notificationItem,
                     borderLeftColor: '#FFD700',
-                    backgroundColor: notification.priority === 2 ? '#FFF9E6' : '#FFFFFF' // Highlight chưa đọc
+                    backgroundColor: notification.priority === 2 ? '#FFF9E6' : '#FFFFFF' 
                 };
             default:
                 return styles.notificationItem;
@@ -351,7 +310,6 @@ export default function CompanyNotifications() {
     );
 }
 
-// Thêm styles nếu chưa có
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
