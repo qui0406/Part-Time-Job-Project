@@ -208,6 +208,7 @@ export default function CompanyNotifications() {
     }
 };
 
+
     const getNotificationStyle = (notification) => {
         switch (notification.type) {
             case 'application_review':
