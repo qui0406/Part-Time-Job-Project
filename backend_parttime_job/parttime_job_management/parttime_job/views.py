@@ -41,41 +41,36 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            try:
+                firebase_user = auth.create_user(
+                    email=serializer.validated_data.get('email'),
+                    password=request.data.get('password') 
+                )
+                firebase_uid = firebase_user.uid
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        user = serializer.save()
-        
-        try:
-            email = serializer.validated_data.get('email')
-            password = request.data.get('password')
+                UserProfile.objects.create(
+                    user=user,
+                    firebase_uid=firebase_uid,
+                    firebase_email=serializer.validated_data['email'],
+                    firebase_password=request.data.get('password') 
+                )
 
-            firebase_user = auth.create_user(
-                email=email ,
-                password=password, 
-            )
-            firebase_uid = firebase_user.uid
+            except Exception as e:
+                logger.error("Tạo tài khoản thất bại")
+                user.delete()
+                return Response(
+                    {"Tạo tài khoản Firebase thất bại: ", str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-            password = str(hashlib.sha256(password.strip().encode("utf-8")).hexdigest())
-
-            UserProfile.objects.create(
-                user=user,
-                firebase_uid=firebase_uid,
-                firebase_email=email,
-                firebase_password=password
-            )
-
-        except Exception as e:
-            user.delete()
             return Response(
-                {"Tạo tài khoản Firebase thất bại: ", str(e)},
-                status=status.HTTP_400_BAD_REQUEST
+                {"message": "Tạo tài khoản thành công!", "user_id": str(user.id)},
+                status=status.HTTP_201_CREATED
             )
-        return Response(
-            {"message": "Tạo tài khoản thành công!", "user_id": str(user.id)},
-            status=status.HTTP_201_CREATED
-        )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
     @action(methods=['get'], url_path='current-user', detail=False)
@@ -110,8 +105,10 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     #
     @action(methods=['get'], url_path='current-company', detail=False)
     def get_current_company(self, request):
+
         if not hasattr(request.user, 'employer_profile'):
             return Response({"detail": "User không có company"}, status=status.HTTP_404_NOT_FOUND)
+        
         company = request.user.employer_profile
         serializer = self.get_serializer(company)
         return Response(serializer.data)
@@ -119,9 +116,11 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     #
     @action(methods=['post'], url_path='create-company', detail=False)
     def create_current_company(self, request):
+        user = request.user
         if hasattr(request.user, 'employer_profile'):
             return Response({"detail": "User đã tồn tại company"}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer = CompanySerializer(data=request.data, context={'request': request})
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -154,7 +153,6 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             follow.save()
         serializer = FollowSerializer(follow)
         status_follow = True if follow.active else False
-        
         return Response({"detail": status_follow, "data": serializer.data}, status=status.HTTP_200_OK)
 
 
@@ -554,7 +552,7 @@ class NotificationViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializer.data)
 
 
-class BaseRatingViewSet(viewsets.ViewSet, generics.CreateAPIView):
+class BaseRatingViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
     def get_permissions(self):
         if self.action in ['perform_create', 'update_rating', 'delete_rating']:
@@ -569,27 +567,38 @@ class RatingViewSet(BaseRatingViewSet):
     serializer_class = RatingSerializer
     paginator_classes = [paginators.RatingPagination]
 
+
     def get_permissions(self):
         if self.action in ['perform_create', 'update_rating', 'delete_rating']:
             return [permissions.IsAuthenticated(), perms.IsCandidate(), perms.OwnerPerms()]
         return super().get_permissions()
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        company_id = serializer.validated_data.get('company')
-        job_id = serializer.validated_data.get('job')
 
-        if Rating.objects.filter(user=user, company=company_id, job=job_id).exists():
-            raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
+    @action(methods=['post'], url_path='post-rating', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def post_rating(self, request):
+        user = request.user
+        company_id = request.data.get('company')
+        job_id = request.data.get('job')
+
         if not company_id:
             raise serializers.ValidationError("Trường company không được để trống.")
-        super().perform_create(serializer)
+        if not job_id:
+            raise serializers.ValidationError("Trường job không được để trống.")
+        if Rating.objects.filter(user=user, company=company_id, job=job_id).exists():
+            raise serializers.ValidationError("Bạn đã đánh giá công ty này cho công việc này rồi.")
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(user=user, company_id=company_id, job_id=job_id)
+            return Response({"detail": "Đánh giá đã được gửi thành công"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
     @action(methods=['get'], url_path='list-rating-job-of-company', detail=False, permission_classes=[permissions.IsAuthenticated])
     def list_ratings(self, request): 
         company_id = request.query_params.get('company_id')
         job_id = request.query_params.get('job_id')
+        import pdb; pdb.set_trace()
         queryset = Rating.objects.filter(active=True, job_id= job_id, company_id=company_id)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -608,6 +617,7 @@ class RatingViewSet(BaseRatingViewSet):
     def get_notification_rating(self, request): 
         company_id = request.query_params.get('company_id')
         job_id = request.query_params.get('job_id')
+
         queryset = Rating.objects.filter(company_id=company_id, active=True, is_reading=False).order_by('-created_date')
         
         rating = Rating.objects.filter(company_id=company_id, job_id=job_id, active=True).first()
@@ -646,13 +656,32 @@ class EmployerRatingViewSet(BaseRatingViewSet):
     permission_classes = [permissions.IsAuthenticated, perms.IsEmployer]
     pagination_class = paginators.RatingPagination
 
-    def perform_create(self, serializer):
-        employer = self.request.user
-        user = serializer.validated_data.get('user')
-        application = serializer.validated_data.get('application')
-        if EmployerRating.objects.filter(employer=employer, user=user, application=application).exists():
-            raise serializers.ValidationError("Bạn đã đánh giá ứng viên này cho đơn ứng tuyển này rồi.")
-        serializer.save(employer=employer)
+    @action(methods=['post'], url_path='post-rating-employer', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def post_rating_employer(self, request): 
+        employer = request.user
+        application_id = request.data.get('application') 
+
+
+        application_instance = Application.objects.filter(pk=application_id, active=True).first()
+
+        if not application_instance:
+            return Response({"detail": "Không tìm thấy đơn ứng tuyển."}, status=404)
+
+        user_id = application_instance.user_id
+
+        if not user_id or not application_id:
+            return Response({"detail": "Thiếu dữ liệu người dùng hoặc đơn ứng tuyển."}, status=400)
+
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            try:
+                application_instance = Application.objects.get(pk=application_id, user_id=user_id, active=True)
+            except Application.DoesNotExist:
+                return Response({"detail": "Không tìm thấy đơn ứng tuyển."}, status=404)
+            serializer.save(employer=employer, user_id=user_id, application=application_instance)
+            return Response({"detail": "Đánh giá đã được gửi thành công"}, status=201)
+        return Response(serializer.errors, status=400)
+
 
     @action(methods=['get'], url_path='get-notification-rating-user-application', detail=False, permission_classes=[permissions.IsAuthenticated], serializer_class= RatingEmployerWithCommentSerializer)
     def get_notification_user_from_application(self, request):
@@ -745,8 +774,10 @@ class CommentDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
     @action(methods=['post'], url_path='reply-comment', detail=False, permission_classes=[permissions.IsAuthenticated, perms.IsEmployer])
     def reply_comment(self, request):
+        import pdb; pdb.set_trace()
         rating_employer_id = request.data.get('rating_employer_id')
         employer_reply = request.data.get('employer_reply')
+
         if not rating_employer_id:
             return Response(
                 {"detail": "Rating_employer_id bắt buộc"},
@@ -849,8 +880,13 @@ class CommentEmployerDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     @action(methods=['get'], url_path='get-notification-rating', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_notification_rating(self, request): 
         user = request.user
+        user_id = request.query_params.get('user_id')
 
-        queryset = EmployerRating.objects.filter(user = user,
+        
+
+
+
+        queryset = EmployerRating.objects.filter(user_id = user_id,
             active=True, is_reading=False).order_by('-created_date')
 
         return Response({
@@ -1051,7 +1087,7 @@ class VerifyDocumentViewSet(viewsets.ViewSet, generics.ListAPIView):
     def get_status(self, request, pk=None):
         state = False
         try:
-            document = VerificationDocument.objects.get(user=request.user)
+            document = VerificationDocument.objects.filter(user=request.user).first()
             if document: 
                 state = True
             return Response({
@@ -1120,6 +1156,8 @@ class MessageViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def perform_create(self, serializer):
         message = serializer.save()
+        
         firebase_key = sync_message_to_firebase(message)
+        
         message.firebase_key = firebase_key
         message.save()

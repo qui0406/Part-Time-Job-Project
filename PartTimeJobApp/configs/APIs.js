@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://8805-171-252-189-157.ngrok-free.app'; // Replace with your actual API base URL
+const BASE_URL = 'https://2557-171-252-189-157.ngrok-free.app'; // Replace with your actual API base URL
 
 export const endpoints = {
     'register': '/user/',
@@ -38,8 +38,10 @@ export const endpoints = {
     'review-application-action': '/review-application/', // /:id/review/ sẽ được thêm vào để phê duyệt/từ chối
     'notification': '/notification/', // Thông báo
     'comment-employer-details': '/comment-employer-details/', // Chi tiết đánh giá của ứng viên về nhà tuyển dụng
-    'ratings': '/ratings/',
-    'employer-ratings': '/employer-ratings/',
+    'ratings': '/ratings/post-rating/',
+    'ratings-candidate': '/ratings/',
+    'ratings-employer': '/employer-ratings/',
+    'employer-ratings': '/employer-ratings/post-rating-employer/',
     'comment-details': '/comment-details/',
     'verify-document': '/verify-document/verify/',
     'conversations': '/conversations/',
