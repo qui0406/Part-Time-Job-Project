@@ -59,7 +59,7 @@ export default function CompanyNotifications() {
                     params: { status: 'pending' }
                 }),
                 // SỬA LỖI: Gọi API đúng cách để lấy thông báo đánh giá
-                authApi(token).get(`${endpoints['ratings']}get-notification-rating/`, {
+                authApi(token).get(`${endpoints['ratings-candidate']}get-notification-rating/`, {
                     params: { company_id: currentCompany.id }
                 })
             ]);
@@ -221,7 +221,7 @@ export default function CompanyNotifications() {
             const token = await AsyncStorage.getItem('token');
             if (token && notification.rating && !notification.rating.is_reading) {
                 try {
-                    await authApi(token).get(`${endpoints['ratings']}get-notification-rating/`, {
+                    await authApi(token).get(`${endpoints['ratings-candidate']}get-notification-rating/`, {
                         params: {
                             company_id: notification.rating.company?.id || user.company_id,
                             job_id: notification.rating.job?.id

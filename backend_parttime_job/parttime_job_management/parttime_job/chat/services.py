@@ -36,8 +36,8 @@ storage = firebase.storage()
 def sync_message_to_firebase(message):
     
     try:
-        # Get sender's profile for Firebase credentials
         try:
+
             profile = message.sender.profile
             firebase_email = profile.firebase_email or message.sender.email
             firebase_password = profile.firebase_password
@@ -65,6 +65,7 @@ def sync_message_to_firebase(message):
                     pass
             logger.error(f"Authentication failed: {error_message}")
             raise ValueError(f"Firebase authentication failed: {error_message}")
+        
 
         # Prepare message data
         message_data = {
@@ -75,6 +76,7 @@ def sync_message_to_firebase(message):
             'timestamp': message.timestamp.isoformat(),
             'is_read': message.is_read,
         }
+
         conversation_id = message.conversation.firebase_conversation_id or str(message.conversation.id)
         messages_ref = db.child('conversations').child(conversation_id).child('messages')
         result = messages_ref.push(message_data, user['idToken'])

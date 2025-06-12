@@ -51,7 +51,26 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     firebase_uid = models.CharField(max_length=255, blank=True, null=True, help_text="Firebase user UID")
     firebase_email = models.EmailField(blank=True, null=True, help_text="Firebase authentication email")
-    firebase_password = models.CharField(max_length=64, blank=True, null=True)  
+    _firebase_password = models.BinaryField(max_length=255, blank=True, null=True)
+
+    @property
+    def firebase_password(self):
+        if self._firebase_password:
+            try:
+                # Decode bytes to string and load the signed value
+                password_str = self._firebase_password.decode('utf-8')
+                return signing.loads(password_str)
+            except (signing.BadSignature, UnicodeDecodeError, ValueError) as e:
+                return None
+        return None
+
+    @firebase_password.setter
+    def firebase_password(self, value):
+        if value:
+            # Serialize and encode to bytes
+            self._firebase_password = signing.dumps(value).encode('utf-8')
+        else:
+            self._firebase_password = None
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
@@ -157,7 +176,7 @@ class Rating(BaseModel):
         unique_together = ('user', 'company', 'job')
 
     def __str__(self):
-        return self.rating 
+        return f"{self.user.username} - {self.company.company_name} - {self.rating}" 
 
 class CommentDetail(BaseModel):
     rating_employer = models.OneToOneField('Rating', on_delete=models.CASCADE, related_name='comment_employer_rating') 
@@ -209,7 +228,7 @@ class VerificationDocument(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.user.username
+        return f"{self.user.username} - {self.document_type}"
 
 class Conversation(BaseModel):
     candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name="candidate_conversations")
@@ -233,4 +252,4 @@ class Message(BaseModel):
     is_read = models.BooleanField(default=False)
     
     def __str__(self):
-        return self.conversation
+        return f"Message from {self.sender.username} to {self.receiver.username} in {self.conversation.id}"
