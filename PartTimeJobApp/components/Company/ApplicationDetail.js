@@ -66,7 +66,7 @@ export default function ApplicationDetail() {
       }
 
       const url = `${
-        endpoints['employer-ratings']
+        endpoints['employer-rating-details']
       }get-notification-rating-user-application/?application_id=${application_id}&page=${pageNum}`;
       const res = await authApi(token).get(url);
 

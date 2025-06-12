@@ -78,31 +78,33 @@ const ApplyJob = () => {
         console.info('Thiếu token hoặc job ID');
         return;
       }
-
-      const storedVerified = await loadVerificationStatus();
-      setIsVerified(storedVerified);
-
-      if (!storedVerified) {
-        try {
-          console.info('Gọi API xác minh:', endpoints['check-verification-status']);
-          const verificationRes = await authApi(token).get(endpoints['check-verification-status']);
-          console.info('Trạng thái xác minh từ server:', verificationRes.data);
-          const verified = verificationRes.data.state || false;
-          setIsVerified(verified);
-          await saveVerificationStatus(verified); // Lưu trạng thái vào AsyncStorage
-        } catch (ex) {
-          console.info('Lỗi kiểm tra xác minh:', ex.message, ex.response?.status, ex.response?.data);
-          setIsVerified(user?.is_verified || false);
-          await saveVerificationStatus(user?.is_verified || false); // Lưu fallback
+  
+      try {
+        const verificationRes = await authApi(token).get(endpoints['check-verification-status']);
+        
+        const verified = verificationRes.data.state || false;
+        setIsVerified(verified);
+        await saveVerificationStatus(verified);
+        
+      } catch (ex) {
+        console.info('Lỗi kiểm tra xác minh!!');
+        
+        if (ex.response?.status === 404) {
+          setIsVerified(false);
+          await saveVerificationStatus(false);
+        } else {
+          const fallbackVerified = user?.is_verified || false;
+          setIsVerified(fallbackVerified);
+          await saveVerificationStatus(fallbackVerified);
         }
       }
-
+  
       const res = await authApi(token).get(endpoints['application-profile-my-all-applications-nofilter']);
       console.info('Dữ liệu ứng tuyển:', res.data);
-
+  
       const applications = Array.isArray(res.data) ? res.data : [];
       const existingApp = applications.find((app) => app.job?.id === job.id);
-
+  
       if (existingApp) {
         setExistingApplication(existingApp);
         setIsUpdating(true);
@@ -121,12 +123,12 @@ const ApplyJob = () => {
       setApplicationLoading(false);
     }
   };
+  
 
   useEffect(() => {
     loadApplication();
   }, [job?.id]);
 
-  // Chọn tài liệu
   const pickDocument = async () => {
     try {
       setLoading(true);
@@ -161,7 +163,6 @@ const ApplyJob = () => {
     }
   };
 
-  // Chọn ảnh từ thư viện
   const pickImage = async (type) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -188,7 +189,6 @@ const ApplyJob = () => {
     }
   };
 
-  // Chụp ảnh bằng camera
   const takePhoto = async (type) => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -221,14 +221,12 @@ const ApplyJob = () => {
     }
   };
 
-  // Set ảnh theo loại
   const setImageByType = (type, asset) => {
     if (type === 'front') setDocumentFront(asset);
     else if (type === 'back') setDocumentBack(asset);
     else if (type === 'selfie') setSelfieImage(asset);
   };
 
-  // Hiển thị tùy chọn chọn ảnh
   const showImagePickerOptions = (type) => {
     const typeLabels = {
       front: 'ảnh mặt trước CCCD',
@@ -253,7 +251,7 @@ const ApplyJob = () => {
       Alert.alert('Lỗi', 'Vui lòng cung cấp cả ảnh mặt trước và mặt sau của CCCD/CMND.');
       return;
     }
-
+  
     try {
       setVerificationLoading(true);
       const token = await AsyncStorage.getItem('token');
@@ -261,7 +259,7 @@ const ApplyJob = () => {
         Alert.alert('Lỗi', 'Không tìm thấy token xác thực.');
         return;
       }
-
+  
       const formData = new FormData();
       formData.append('document_type', 'id_card');
       formData.append('document_front', {
@@ -281,18 +279,19 @@ const ApplyJob = () => {
           name: 'selfie.jpg',
         });
       }
-
+  
       const res = await authApi(token).post(
         endpoints['verify-document'],
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
       console.info('Kết quả xác minh:', res.data);
-
+  
       if (res.data.verified) {
         setIsVerified(true);
-        await saveVerificationStatus(true); // Lưu trạng thái xác minh
+        await saveVerificationStatus(true);
         setOcrData(res.data.response?.result?.result || {});
+        setShowVerification(false); 
         Alert.alert('Thành công', 'Xác minh danh tính thành công!');
       } else {
         Alert.alert('Lỗi', res.data.error || 'Xác minh không thành công. Vui lòng thử lại.');

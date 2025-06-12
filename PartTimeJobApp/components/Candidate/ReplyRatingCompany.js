@@ -15,25 +15,30 @@ export default function ReplyRatingCompany({ route }) {
             Alert.alert('Lỗi', 'Vui lòng nhập phản hồi trước khi gửi.');
             return;
         }
-
+    
         const token = await AsyncStorage.getItem('token');
         console.log('Token lấy được:', token);
-
+    
         try {
-            const data = {
-                rating_candidate_id: String(rating.id),
-                candidate_reply: reply,
-            };
-
-            console.log('Dữ liệu gửi lên:', data);
-
+            const formData = new FormData();
+            formData.append('rating_candidate_id', String(rating.id));
+            formData.append('candidate_reply', reply);
+    
+            console.log('Dữ liệu gửi lên:', formData);
+    
             const response = await authApi(token).post(
-                `${endpoints['comment-employer-details']}${rating.id}/reply-comment/`, data
+                `${endpoints['comment-employer-details']}${rating.id}/reply-comment/`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
             );
-
+    
             console.log('Phản hồi từ API:', response.data);
-
-            if (res.status === 201) {
+    
+            if (response.status === 201) {
                 Alert.alert('Thành công', 'Đánh giá của bạn đã được gửi!');
                 navigation.goBack();
             }
@@ -43,8 +48,10 @@ export default function ReplyRatingCompany({ route }) {
                 errorMessage = err.response.data?.detail || JSON.stringify(err.response.data) || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.';
             } else if (err.response?.status === 404) {
                 errorMessage = 'Không tìm thấy đánh giá để phản hồi. Có thể đánh giá này không thuộc về bạn.';
+            } else if (err.response?.status === 415) {
+                errorMessage = 'Lỗi định dạng dữ liệu. Vui lòng kiểm tra lại định dạng gửi lên.';
             }
-
+    
             Alert.alert('Lỗi', errorMessage);
         }
     };
