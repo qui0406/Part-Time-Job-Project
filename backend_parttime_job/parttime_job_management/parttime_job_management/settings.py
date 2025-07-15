@@ -117,10 +117,10 @@ LOGIN_URL = '/login/'
 
 # Configuration
 cloudinary.config(
-    cloud_name="do43r8nr0",
-    api_key="947875495844325",
+    cloud_name="",
+    api_key="",
     # Click 'View API Keys' above to copy your API secret
-    api_secret="evQEPk5TbxIMpCWbbXl8sLMbo6A",
+    api_secret="",
     secure=True
 )
 
@@ -197,30 +197,17 @@ AUTH_USER_MODEL = 'parttime_job.User'
 WSGI_APPLICATION = 'parttime_job_management.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'chat',
-#         'USER': 'root',
-#         'PASSWORD': '12345678',
-#         'HOST': '' # mặc định localhost
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'chat',
         'USER': 'root',
         'PASSWORD': '12345678',
-        'HOST': '' # mặc định localhost
+        'HOST': ''
     }
 }
 FIREBASE_CONFIG = {
-    "apiKey": "AIzaSyCpabc024Q5PVK4KMV70iC0A_BONXqspk4",
+    "apiKey": "",
     "authDomain": "parttimejobapp-7d711.firebaseapp.com",
     "databaseURL": "https://parttimejobapp-7d711-default-rtdb.firebaseio.com/",
     "projectId": "parttimejobapp-7d711",
@@ -229,15 +216,7 @@ FIREBASE_CONFIG = {
     "appId": "1:944686521630:web:b7794202a8d63bc4afbd0f",
     "measurementId": "G-T343S4GEYG"
 }
-# const firebaseConfig = {
-#   apiKey: "AIzaSyCpabc024Q5PVK4KMV70iC0A_BONXqspk4",
-#   authDomain: "parttimejobapp-7d711.firebaseapp.com",
-#   projectId: "parttimejobapp-7d711",
-#   storageBucket: "parttimejobapp-7d711.firebasestorage.app",
-#   messagingSenderId: "944686521630",
-#   appId: "1:944686521630:web:b7794202a8d63bc4afbd0f",
-#   measurementId: "G-T343S4GEYG"
-# }
+
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 
 
@@ -314,11 +293,11 @@ OAUTH2_PROVIDER = {
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'anhqui04062004@gmail.com'
+EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = "vhqt qoqg vemh liqf"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'anhqui04062004@gmail.com'
+DEFAULT_FROM_EMAIL = ''
 
 
 LOGIN_REDIRECT_URL = '/'
