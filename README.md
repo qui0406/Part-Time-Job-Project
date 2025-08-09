@@ -2,6 +2,7 @@
 
 # Backend: Django
 # Front-end: React-native
+# Database: MySQL
 
 - ## 🌟 Key Features
 - **🔐 OAuth2 Authentication** - Secure login with social accounts
@@ -45,5 +46,6 @@ npm install
 
 # Start Expo development server
 npx expo start
+
 
 
