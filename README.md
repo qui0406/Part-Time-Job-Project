@@ -1,7 +1,7 @@
 # 🚀 Part-Time Job Management System
 
-#Backend: Django
-#Front-end: React-native
+# Backend: Django
+# Front-end: React-native
 
 - ## 🌟 Key Features
 - **🔐 OAuth2 Authentication** - Secure login with social accounts
@@ -45,4 +45,5 @@ npm install
 
 # Start Expo development server
 npx expo start
+
 
