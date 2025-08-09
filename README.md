@@ -10,6 +10,8 @@
 - **🗺️ Location-based Jobs** - OpenStreetMap integration
 - **📸 Cloud Media** - Cloudinary for image/uploads
 - **📱 Cross-platform** - React Native for iOS/Android
+- **🌐 API Documentation** - (Swagger UI)
+- **🤖 AI-Powered Smart Features** - Generative AI
 
 ### Prerequisites
 - Python 3.12
@@ -46,6 +48,7 @@ npm install
 
 # Start Expo development server
 npx expo start
+
 
 
 
