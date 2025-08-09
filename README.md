@@ -1,15 +1,7 @@
 # 🚀 Part-Time Job Management System
 
-Part-Time-Job-Project/
-├── parttime_job_management/      # Django backend
-│   ├── parttime_job/            # Main app
-│   ├── manage.py
-│   └── requirements.txt
-├── PartTimeJobApp/              # React Native frontend
-│   ├── assets/
-│   ├── components/
-│   └── App.js
-└── README.md
+#Backend: Django
+#Front-end: React-native
 
 - ## 🌟 Key Features
 - **🔐 OAuth2 Authentication** - Secure login with social accounts
@@ -53,3 +45,4 @@ npm install
 
 # Start Expo development server
 npx expo start
+
