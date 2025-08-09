@@ -1,4 +1,8 @@
-# BTL_PartTimeJob_Project
-
-CLIENT_ID = 'gRjf1kpOczE3dxRAH9JsHDcZo26LDk9sM8OkWog2'
-CLIENT_SECRET='B91b9muVTNjvoTNjDHSR8JD3IvYa3jXQZslRmqk2XPEZQTAzTYvP2Td9iq6de1pfLBxvZvWHYJ1gYqHaQNykNUQKDCXPRHjKcUBnbDXGQATHjyZL2PMRfqo6Any7ERXu'
+# PartTimeJob_Project
+- Backend: Django
+- Front-end: React native
+Tech Stack
+- Python 3.12 , MySQL
+- OAuth2
+- FireBase chat real-time, Cloudinary
+- React native, Axios
